@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<!--
+MUSIAL WEB APPLICATION | PROTEIN DASHBOARD
+AUTHOR: Simon Hackl
+CONTACT: simon.hackl@uni-tuebingen.de
+VERSION: 2.1
+
+LICENSE
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="author" content="Simon Hackl" />
+    <title>MUSIAL | PROTEIN DASHBOARD | {{ target }}</title>
+    <link
+      rel="icon"
+      type="image/x-icon"
+      href="{{ url_for('static', filename='resources/icon.ico') }}"
+    />
+    <!--
+      Definition of stylesheets to use in the dashboard.
+      -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.korzh.com/metroui/v4/css/metro-all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="{{url_for('static', filename='css/index.css')}}"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="{{url_for('static', filename='css/protein_dashboard.css')}}"
+    />
+    <link
+      href="https://unpkg.com/tabulator-tables@5.4.2/dist/css/tabulator_materialize.min.css"
+      rel="stylesheet"
+    />
+    <!--
+      Definition of java script files to use in the dashboard.
+      -->
+    <script
+      type="text/javascript"
+      src="https://cdn.metroui.org.ua/v4/js/metro.min.js"
+    ></script>
+    <script
+      type="text/javascript"
+      src="https://unpkg.com/tabulator-tables@5.4.2/dist/js/tabulator.min.js"
+    ></script>
+    <script
+      type="text/javascript"
+      src="https://code.jquery.com/jquery-3.6.0.min.js"
+    ></script>
+    <script
+      type="text/javascript"
+      src="https://3Dmol.org/build/3Dmol-min.js"
+    ></script>
+    <script
+      type="text/javascript"
+      src="https://kit.fontawesome.com/3efd018578.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      type="text/javascript"
+      src="https://cdn.jsdelivr.net/npm/echarts@5.1.0/dist/echarts.min.js"
+    ></script>
+    <script
+      type="text/javascript"
+      src="https://cdn.jsdelivr.net/npm/sweetalert2@11"
+    ></script>
+    <script
+      type="text/javascript"
+      src="https://cdn.jsdelivr.net/npm/resize-sensor@0.0.6/ResizeSensor.min.js"
+    ></script>
+    <script>
+      var DATA = JSON.parse(
+        "{{ data|safe }}"
+          .replaceAll("'", '"')
+          .replaceAll(/[\u0000-\u001F\u007F-\u009F]/g, "\\n")
+          .replaceAll("True", "true")
+          .replaceAll("False", "false")
+      );
+    </script>
+    <script
+      type="text/javascript"
+      src="{{url_for('static', filename='js/protein_dashboard.js')}}"
+    ></script>
+  </head>
+  <body>
+    <header
+      id="menu"
+      class="app-bar app-bar-expand app_header"
+      data-role="appbar"
+      data-expand="true"
+      data-role-appbar="true"
+    >
+      <!-- App icon -->
+      <span class="brand no-hover"
+        ><img
+          src="{{ url_for('static', filename='resources/logo.png') }}"
+          alt="no picture"
+      /></span>
+      <!-- Menu elements floating left -->
+      <div class="app-bar-container mr-auto d-none d-flex-fs">
+        <button onclick="openDialogFilter()" class="app-bar-item text-upper">
+          filter proteoforms
+        </button>
+        <button onclick="openDialogTracks()" class="app-bar-item text-upper">
+          annotation tracks
+        </button>
+      </div>
+      <!-- Menu elements floating right -->
+      <div class="app-bar-container ml-auto d-none d-flex-fs">
+        <a
+          id="menu-link-github"
+          href="https://github.com/Integrative-Transcriptomics/MUSIAL"
+          target="_blank"
+          class="app-bar-item text-upper"
+          ><i class="fa-brands fa-github p-2"></i
+        ></a>
+        <a
+          id="menu-link-legal"
+          href="{{url_for('get_template_legal')}}"
+          target="_blank"
+          class="app-bar-item text-upper"
+          >LEGAL</a
+        >
+      </div>
+    </header>
+    <div id="musialweb-protein-dashboard">
+      <span id="tag-title">MUSIAL Prototype Dashboard | {{ target }}</span>
+      <div
+        id="musialweb-protein-dashboard-positioninformation"
+        data-role="draggable"
+        style="display: none"
+      >
+        <button
+          id="musialweb-protein-dashboard-positioninformation-closebutton"
+          class="noDecoration"
+          onclick="hidePositionInformation()"
+        >
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <p
+          id="musialweb-protein-dashboard-positioninformation-proteoformID"
+        ></p>
+        <p id="musialweb-protein-dashboard-positioninformation-noSamples"></p>
+        <p id="musialweb-protein-dashboard-positioninformation-position"></p>
+        <p id="musialweb-protein-dashboard-positioninformation-variant"></p>
+        <p id="musialweb-protein-dashboard-positioninformation-noVariants"></p>
+        <div
+          id="musialweb-protein-dashboard-positioninformation-echart"
+          style="width: 340px; height: 230px"
+        ></div>
+      </div>
+      <div
+        data-role="splitter"
+        class="h-100"
+        data-split-mode="vertical"
+        data-min-sizes="200"
+      >
+        <div
+          id="musialweb-protein-dashboard-3dmol"
+          class="d-flex flex-justify-center flex-align-center"
+        ></div>
+        <div
+          id="musialweb-protein-dashboard-echart"
+          class="d-flex flex-justify-center flex-align-center"
+        ></div>
+      </div>
+    </div>
+  </body>
+</html>

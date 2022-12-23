@@ -1,0 +1,242 @@
+{% extends 'index.html' %} {% block styles %}
+
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="{{url_for('static', filename='css/home.css')}}"
+/>
+
+{% endblock %} {% block scripts %}
+
+<script
+  type="text/javascript"
+  src="{{url_for('static', filename='js/home.js')}}"
+  defer
+></script>
+
+{% endblock %} {% block menu %}
+
+<!-- Menu elements floating left -->
+<div class="app-bar-container mr-auto d-none d-flex-fs">
+  <a
+    id="menu-link-home"
+    href="{{url_for('get_template_home')}}"
+    class="app-bar-item text-upper active"
+    >home</a
+  >
+  <a
+    id="menu-link-upload"
+    href="{{url_for('get_template_upload')}}"
+    class="app-bar-item text-upper"
+    >upload</a
+  >
+  <a
+    id="menu-link-results"
+    href="{{url_for('get_template_results')}}"
+    class="app-bar-item text-upper"
+    >results</a
+  >
+</div>
+<!-- Menu elements floating right -->
+<div class="app-bar-container ml-auto d-none d-flex-fs">
+  <i id="menu-active-session-indicator" class="p-2 fa-solid fa-square-rss"></i>
+  <a
+    id="menu-link-legal"
+    href="{{url_for('get_template_legal')}}"
+    class="app-bar-item text-upper"
+    >legal</a
+  >
+</div>
+
+{% endblock %} {% block content %}
+
+<div id="main-home" class="main">
+  <div class="remark">
+    <p class="text-light text-just">
+      <strong>MUSIAL</strong> is a web platform that computes
+      <strong>prokaryotic genome, gene</strong> and
+      <strong>protein sequence alignments</strong> from
+      <strong>variant call datasets (using both SNVs and Indels)</strong>
+      derived from multiple samples of one species. Scientists can
+      <strong>assess the variability of a species</strong> on the genome, gene,
+      and protein sequence level, e.g., study which positions in the species
+      exhibit large or no variability, identify genes with large variability,
+      which samples agree on which proteoforms, etc. The platform is designed to
+      support the detection of features of interest for downstream analyses. It
+      provides multiple <strong>data export options</strong> for
+      <strong>FASTA</strong> as well as <strong>tabular formats</strong>.
+    </p>
+  </div>
+  <div class="remark">
+    <div class="grid">
+      <div class="row">
+        <div class="cell-5">
+          <div
+            id="home-start-example-tile"
+            data-role="tile"
+            data-size="medium"
+            onclick="startExampleSession()"
+          >
+            <i class="icon fa-solid fa-magnifying-glass"></i>
+            <span class="tag-translucent text-center branding-bar"
+              >explore example</span
+            >
+          </div>
+          <div class="w-50">
+            <p class="text-upper text-leader2">start an example session</p>
+            <p class="text-light">
+              To explore the features of MUSIAL, click on the
+              <i class="text-upper">explore example</i> field on the left. This
+              will start a session with a small example dataset that we provide
+              on our server.
+            </p>
+          </div>
+        </div>
+        <div class="cell-5 offset-1">
+          <div
+            id="home-download-example-tile"
+            data-role="tile"
+            data-size="medium"
+            onclick="getExampleData()"
+          >
+            <i class="icon fa-solid fa-file-zipper"></i>
+            <span class="tag-translucent text-center branding-bar"
+              >example data</span
+            >
+          </div>
+          <div class="w-50">
+            <p class="text-upper text-leader2">example data for upload form</p>
+            <p class="text-light">
+              To familiarize yourself with the upload process, (which data is
+              mandatory in which format), download the example data that was
+              also used to create the example session by clicking on the
+              <i class="text-upper">example data</i> field on the left.
+            </p>
+          </div>
+        </div>
+      </div>
+      <br />
+      <div class="row">
+        <div class="cell-5">
+          <div
+            id="home-show-tutorial-tile"
+            data-role="tile"
+            data-size="medium"
+            onclick="redirectHelp()"
+          >
+            <i class="icon fa-brands fa-leanpub"></i>
+            <span class="tag-translucent text-center branding-bar">help</span>
+          </div>
+          <div class="w-50">
+            <p class="text-upper text-leader2">help</p>
+            <p class="text-light">
+              On the help page (for access click on the
+              <i class="text-tupper">help</i> field on the left) we provide an
+              introduction to MUSIAL's architecture, the upload process, the
+              interactive exploration possibilities, and how to download the
+              computation results.
+            </p>
+          </div>
+        </div>
+        <div class="cell-5 offset-1">
+          <div
+            id="home-view-source-tile"
+            data-role="tile"
+            data-size="medium"
+            onclick="redirectSource()"
+          >
+            <i class="icon fa-brands fa-github"></i>
+            <span class="tag-translucent text-center branding-bar"
+              >view source</span
+            >
+          </div>
+          <div class="w-50">
+            <p class="text-upper text-leader2">source code</p>
+            <p class="text-light">
+              If you encounter any problems, have feature requests, or want to
+              access the source code of MUSIAL please visit our GitHub
+              repository. All our source code is freely available and released
+              under the GPL 3.0 license.
+            </p>
+          </div>
+        </div>
+        <!--<div class="cell">
+          <div id="home-graphical-abstract" class="w-100 h-100"></div>
+        </div>-->
+      </div>
+    </div>
+  </div>
+  <div class="remark footer">
+    <div class="grid">
+      <div class="row">
+        <div class="cell-3">
+          <p class="text-upper text-leader2 text-center">citation</p>
+          <p class="text-light">
+            If you use any component of MUSIAL in your work, please cite
+            <br />
+            <span class="tag-citation">
+              Hackl et al., (2022, December 20), MUSIAL,
+              <i>https://github.com/Integrative-Transcriptomics/MUSIAL</i></span
+            >
+          </p>
+        </div>
+        <div class="cell-4 offset-1">
+          <p class="text-upper text-leader2 text-center">
+            browser compatibility
+          </p>
+          <table class="table subcompact table-border cell-border">
+            <thead>
+              <tr>
+                <th>OS</th>
+                <th>Version</th>
+                <th>Chrome</th>
+                <th>Firefox</th>
+                <th>Edge</th>
+                <th>Safari</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>Linux</th>
+                <th>Ubuntu 20.04.4</th>
+                <th>not tested</th>
+                <th>102.08</th>
+                <th>n/a</th>
+                <th>n/a</th>
+              </tr>
+              <tr>
+                <th>MacOS</th>
+                <th>Ventura 13.0.1</th>
+                <th>108.0.5359.124</th>
+                <th>108.1</th>
+                <th>n/a</th>
+                <th>16.1</th>
+              </tr>
+              <tr>
+                <th>Windows</th>
+                <th>11</th>
+                <th>108.0.5359.125</th>
+                <th>108.0</th>
+                <th>108.0.1462.54</th>
+                <th>n/a</th>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="cell-3 offset-1">
+          <p class="text-upper text-leader2 text-center">legal</p>
+          <p class="text-light">
+            This website is free and open to all users and there is no login
+            requirement. If cookies are used, you will receive a consent form.
+            Our web service does not use tracking cookies and all submitted data
+            is kept confidential. You will find additional information on the
+            <a href="{{url_for('get_template_legal')}}">legal</a>
+            page.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

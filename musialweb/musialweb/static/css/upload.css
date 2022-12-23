@@ -1,0 +1,115 @@
+/**
+MUSIAL WEB APPLICATION
+AUTHOR: Simon Hackl
+CONTACT: simon.hackl@uni-tuebingen.de
+VERSION: 2.1
+
+LICENSE
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+#main-upload {
+  overflow-y: auto;
+  flex-direction: column;
+}
+
+#main-upload .h-menu {
+  background-color: var(--background-color-primary);
+}
+
+#main-upload .remark {
+  background-color: var(--background-color-tertiary);
+}
+
+#main-upload .remark .info-clickable {
+  float: right;
+  color: var(--contrast-primary);
+}
+
+#main-upload .remark .info-block {
+  background-color: rgba(96, 113, 150, 0.6);
+  border-radius: 2px;
+  box-shadow: 1px 1px 6px var(--text-color-secondary);
+  color: var(--background-color-primary);
+}
+
+#main-upload .remark .info-block a {
+  text-decoration: none !important;
+}
+
+#main-upload .remark .info-block a:link {
+  color: var(--background-color-tertiary) !important;
+}
+
+#main-upload .remark .info-block a:visited {
+  color: var(--color-secondary) !important;
+}
+
+#main-upload .remark .info-block a:hover {
+  color: var(--contrast-primary) !important;
+}
+
+#main-upload .remark .info-block a:active {
+  color: var(--contrast-primary) !important;
+}
+
+#main-upload .remark i {
+  color: var(--color-primary);
+  font-size: x-large;
+}
+
+#main-upload h3 small i {
+  color: var(--text-color-secondary) !important;
+  font-size: large !important;
+}
+
+#main-upload .mandatory-tag {
+  color: var(--contrast-primary);
+  font-weight: bold;
+  font-size: medium;
+}
+
+#main-upload #upload-data-button {
+  background-color: var(--contrast-secondary);
+}
+
+#main-upload #upload-session-button {
+  background-color: var(--contrast-secondary);
+}
+
+#main-upload #upload-data-button:disabled {
+  background-color: var(--color-quarternary);
+}
+
+#main-upload #upload-session-input {
+  display: none;
+}
+
+#main-upload .toolbar .button {
+  margin-left: 4px;
+  margin-right: 4px;
+  background-color: var(--color-tertiary);
+  color: var(--background-color-primary);
+}
+
+#main-upload .toolbar .button:hover {
+  transition: 0.2s;
+  background-color: var(--color-primary);
+}
+
+#main-upload .toolbar .button:disabled {
+  background-color: var(--color-quarternary);
+}
+
+.toolbar-text {
+  color: var(--text-color-secondary);
+  font-size: normal;
+}

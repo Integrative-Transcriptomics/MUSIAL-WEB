@@ -1,0 +1,247 @@
+{% extends 'index.html' %} {% block styles %}
+
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="{{url_for('static', filename='css/help.css')}}"
+/>
+
+{% endblock %} {% block menu %}
+
+<!-- Menu elements floating left -->
+<div class="app-bar-container mr-auto d-none d-flex-fs">
+  <a
+    id="menu-link-home"
+    href="{{url_for('get_template_home')}}"
+    class="app-bar-item text-upper"
+    >home</a
+  >
+  <a
+    id="menu-link-upload"
+    href="{{url_for('get_template_upload')}}"
+    class="app-bar-item text-upper"
+    >upload</a
+  >
+  <a
+    id="menu-link-results"
+    href="{{url_for('get_template_results')}}"
+    class="app-bar-item text-upper"
+    >results</a
+  >
+</div>
+<!-- Menu elements floating right -->
+<div class="app-bar-container ml-auto d-none d-flex-fs">
+  <i id="menu-active-session-indicator" class="p-2 fa-solid fa-square-rss"></i>
+  <a
+    id="menu-link-legal"
+    href="{{url_for('get_template_legal')}}"
+    class="app-bar-item text-upper"
+    >legal</a
+  >
+</div>
+
+{% endblock %} {% block content %}
+
+<div id="main-help" class="main">
+  <ul data-role="tabs" data-expand="true">
+    <li>
+      <a class="text-upper text-light" href="#_target_1"
+        >Platform Architecture</a
+      >
+    </li>
+    <li><a class="text-upper text-light" href="#_target_2">Upload Data</a></li>
+    <li>
+      <a class="text-upper text-light" href="#_target_3"
+        >Download Data and Assess Results</a
+      >
+    </li>
+  </ul>
+  <div class="border bd-default">
+    <div class="help-page-container" id="_target_1">
+      <h2><small>Backend and Architecture</small></h2>
+      <p class="text-just">
+        <i class="fa-solid fa-circle-chevron-right"></i> We use a flask API as
+        backend: The API implements the processing of user requests (provision
+        of table overview data, static resources, session validation, etc.) and
+        runs the standalone version of MUSIAL (implemented in Java) on our
+        server for all calculations, i.e., submissions and the provision of
+        files for download.
+      </p>
+      <p class="text-just">
+        <i class="fa-solid fa-circle-chevron-right"></i> Once a user submits a
+        request, the calculation of a database file (in JSON format) using
+        MUSIAL is started. The results of this computation are stored encrypted
+        on our server and stored as a session for each user. All further
+        calculations, such as the download of sequence data or the provision of
+        overview tables and visualizations are based on this file.
+      </p>
+
+      <p class="text-just">
+        <i class="fa-solid fa-circle-chevron-right"></i> Each session will be
+        held active for a couple of days, so you can return back to the platform
+        if you want to download a different subset of your data. To indicate if
+        your session is still active, the small signal icon on the upper right
+        corner of our website will turn green (cf. the image below).
+      </p>
+      <img
+        src="{{ url_for('static', filename='resources/help/help_architecture.png') }}"
+        alt="no picture"
+      />
+      <h2><small>Why do we use Cookies?</small></h2>
+      <p>
+        <i class="fa-solid fa-circle-chevron-right"></i> Cookies are used by the
+        flask API to associate intermediate data, i.e. an active session, for
+        each user in an encrypted form. They are not tracking cookies. As long
+        as you keep your session cookie, you will have access to your data. Keep
+        this in mind if you clean your browser data or switch browsers while
+        accessing our platform.
+      </p>
+    </div>
+    <div class="help-page-container" id="_target_2">
+      <h2><small>Upload Procedure</small></h2>
+      <p>
+        <i class="fa-solid fa-circle-chevron-right"></i> Requests can be
+        submitted from the
+        <a href="{{url_for('get_template_upload')}}">UPLOAD</a> page. On the top
+        left of the page you will find the SUBMIT REQUEST button that will turn
+        green (cf. the image below) once alle mandatory fields are filled in
+        correctly.
+      </p>
+      <img
+        src="{{ url_for('static', filename='resources/help/help_submission_1.png') }}"
+        alt="no picture"
+      />
+      <p>
+        <i class="fa-solid fa-circle-chevron-right"></i> The submission form is
+        subdivided into different sections in order to structure the submission
+        procedure. For each section you will find a red information icon on the
+        upper right; You can click the respective icons to toggle an information
+        panel that states what the respective input fields/parameters are used
+        for and in which format you have to enter your data/files. As an
+        example, the information panel of the Reference Genome section is
+        displayed in the image below.
+      </p>
+      <img
+        src="{{ url_for('static', filename='resources/help/help_submission_2.png') }}"
+        alt="no picture"
+      />
+    </div>
+
+    <div class="help-page-container" id="_target_3">
+      <h2><small>Results Page</small></h2>
+      <p>
+        <i class="fa-solid fa-circle-chevron-right"></i> The results page of
+        MUSIAL is subdivided into two sections (cf. the image below). The lower
+        section serves as a panel to download your session, overview, and
+        sequence data in various formats. As for the submission page, a red
+        information icon is available that, once clicked, toggles an information
+        panel listing all relevant information about the download process. The
+        upper section yields a tabulator element that can be filled with
+        distinct entries of your session - users can choose between Samples,
+        Genes and Variants content by clicking the respective button next to the
+        Display Content panel.
+      </p>
+      <img
+        src="{{ url_for('static', filename='resources/help/help_results_1.png') }}"
+        alt="no picture"
+      />
+      <h2><small>Display Content: Samples</small></h2>
+      <p>
+        <i class="fa-solid fa-circle-chevron-right"></i> The
+        <i>Samples</i> display mode will query all sample information of the
+        currently active session from our server. Each sample will be depicted
+        as one row. The columns are (from left to right), the sample's internal
+        name, the number of observed (nucleotide) substitutions, insertions and
+        deletions, a peity SVG icon that depicts the ratio of reference to
+        non-reference alleles and proteoforms of the sample across all analyzed
+        genes, all user-defined annotations followed by the allele and
+        proteoform identifier per analyzed gene. Clicking on the peity SVG donut
+        will tooltip the actual percentages and clicking on a allele or
+        proteoform identifier will tooltip detail information about the entry
+        (cf. the two images below.)
+      </p>
+      <img
+        src="{{ url_for('static', filename='resources/help/help_results_2.png') }}"
+        alt="no picture"
+      />
+      <p>
+        <i class="fa-solid fa-circle-chevron-right"></i> Clicking on an allele
+        or proteoform identifier displays detailed information about that entry,
+        including the internal identifier/name, the number of deletions,
+        substitutions, and insertions, the frequency compared to all samples in
+        the data set, and the percentage of variable positions, as well as a
+        list of all variants for alleles and proteoforms. The tooltips for
+        proteoforms provide additional information about the first novel
+        termination, if any, and the percentage of positions truncated by that
+        termination. If no novel termination was observed, the value N/A is
+        provided. A conglomeration value is also provided: The conglomeration
+        value is the p-value of a Kolmogorov-Smirnov test that null hypothesizes
+        that the observed position of variants corresponds to a hypothetical
+        equal distribution of variable positions in the primary protein
+        sequence. Low values indicate an accumulation of variants along the
+        primary sequence.
+      </p>
+      <img
+        src="{{ url_for('static', filename='resources/help/help_results_3.png') }}"
+        alt="no picture"
+      />
+      <h2><small>Display Content: Variants</small></h2>
+      <p>
+        <i class="fa-solid fa-circle-chevron-right"></i> The
+        <i>Variants</i> display mode will query all (nucleotide) variants of the
+        currently active session from our server. Each variant will be depicted
+        as one row. The columns are (from left to right), the variant's type,
+        reference and alternative content, its frequency across all samples,
+        which analyzed gene the variant has an effect on and all SnpEff
+        annotations.
+      </p>
+      <img
+        src="{{ url_for('static', filename='resources/help/help_results_4.png') }}"
+        alt="no picture"
+      />
+      <h2><small>Display Content: Genes</small></h2>
+      <p>
+        <i class="fa-solid fa-circle-chevron-right"></i> The
+        <i>Genes</i> display mode will query all analyzed genes (i.e., the
+        selected features to analyzed, this could also be the set of reference
+        chromosomes/plasmids in case of whole genome analysis) of the currently
+        active session from our server. Each gene will be depicted as one row.
+        The columns are (from left to right), the genes's internal name, the
+        chromosome the gene is located on, its start and end position, the
+        strand orientation, if the gene is considered coding and has a deposited
+        structure in the active session, the number of alleles and proteoforms
+        and a peity SVG histogram of the percentage of variable positions across
+        all alleles and proteoforms followed by all user-specific annotations.
+        If a structure is deposited the pie chart icon can be clicked to open
+        MUSIAL's prototype protein dashboard in a new tab.
+      </p>
+      <img
+        src="{{ url_for('static', filename='resources/help/help_results_5.png') }}"
+        alt="no picture"
+      />
+      <h2><small>Filter, Group and Sort Data</small></h2>
+      <p>
+        <i class="fa-solid fa-circle-chevron-right"></i> The tabulator element
+        allows users to filter, group, and sort the currently depicted data.
+        While filters will be taken into account for the Overview Table
+        download, groups will be demerged. (1) Filters can be applied by
+        selecting values in the Field, Type and Value input forms and clicking
+        the green plus button. The adjacent red button will remove all filters.
+        (2) Groups can be applied by selecting a column to group the data based
+        on and, as for filtering, clicking the adjacent green button. Clicking
+        the red button will remove all current groupings. (3) Rows can be sorted
+        based on a single column by clicking the header. In the example image
+        below, samples were filtered for the region <i>europe</i> and grouped by
+        <i>country</i>. Next, rows were sorted by <i>Ref. Proteoforms</i> - This
+        will allow you, for example, to quickly detect samples that yield a very
+        high variability per region and country.
+      </p>
+      <img
+        src="{{ url_for('static', filename='resources/help/help_results_6.png') }}"
+        alt="no picture"
+      />
+    </div>
+  </div>
+</div>
+
+{% endblock %}

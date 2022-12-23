@@ -1,0 +1,100 @@
+/**
+MUSIAL WEB APPLICATION
+AUTHOR: Simon Hackl
+CONTACT: simon.hackl@uni-tuebingen.de
+VERSION: 2.1
+
+LICENSE
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+#main-home {
+  overflow-y: auto;
+  flex-direction: column;
+  /*background-image: url("/static/resources/home_background_image.png");
+  background-repeat: repeat;
+  background-attachment: local;
+  background-position: center;
+  background-repeat: repeat;
+  background-size: cover;*/
+  background-color: var(--color-secondary);
+  width: 100%;
+  text-align: justify;
+}
+
+#home-show-tutorial-tile {
+  border-radius: 6px;
+  background-color: var(--color-tertiary);
+  margin-right: 2vw;
+  width: max(150px, 8vmax);
+  height: max(150px, 8vmax);
+}
+
+#home-start-example-tile {
+  border-radius: 6px;
+  background-color: var(--contrast-primary);
+  margin-right: 2vw;
+  width: max(150px, 8vmax);
+  height: max(150px, 8vmax);
+}
+
+#home-download-example-tile {
+  border-radius: 6px;
+  background-color: var(--color-tertiary);
+  margin-right: 2vw;
+  width: max(150px, 8vmax);
+  height: max(150px, 8vmax);
+}
+
+#home-view-source-tile {
+  border-radius: 6px;
+  background-color: var(--color-tertiary);
+  margin-right: 2vw;
+  width: max(150px, 8vmax);
+  height: max(150px, 8vmax);
+}
+
+#home-graphical-abstract {
+  background-color: var(--background-color-tertiary);
+}
+
+.branding-bar {
+  font-size: 0.7em !important;
+}
+
+.remark {
+  margin: 1vw;
+  background-color: rgba(239, 240, 248, 0.9);
+  color: var(--text-color-secondary);
+  font-size: large;
+  border-radius: 2px;
+  box-shadow: 0px 0px 2px var(--text-color-secondary);
+}
+
+.cell-5 div {
+  display: inline-block !important;
+}
+
+.cell-1 i {
+  color: var(--background-color-primary) !important;
+}
+
+.footer {
+  font-size: small;
+}
+
+.footer div {
+  padding: 10px;
+}
+
+.row {
+  margin-bottom: 10px;
+}

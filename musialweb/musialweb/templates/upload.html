@@ -1,0 +1,554 @@
+{% extends 'index.html' %} {% block styles %}
+
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="{{url_for('static', filename='css/upload.css')}}"
+/>
+
+{% endblock %} {% block scripts %}
+
+<script
+  type="text/javascript"
+  src="{{url_for('static', filename='js/upload.js')}}"
+  defer
+></script>
+
+<script
+  type="text/javascript"
+  src="{{url_for('static', filename='js/papaparse.min.js')}}"
+  defer
+></script>
+
+<script
+  type="text/javascript"
+  src="{{url_for('static', filename='js/pako.browser.js')}}"
+  defer
+></script>
+
+{% endblock %} {% block menu %}
+
+<!-- Menu elements floating left -->
+<div class="app-bar-container mr-auto d-none d-flex-fs">
+  <a
+    id="menu-link-home"
+    href="{{url_for('get_template_home')}}"
+    class="app-bar-item text-upper"
+    >home</a
+  >
+  <a
+    id="menu-link-upload"
+    href="{{url_for('get_template_upload')}}"
+    class="app-bar-item text-upper active"
+    >upload</a
+  >
+  <a
+    id="menu-link-results"
+    href="{{url_for('get_template_results')}}"
+    class="app-bar-item text-upper"
+    >results</a
+  >
+</div>
+<!-- Menu elements floating right -->
+<div class="app-bar-container ml-auto d-none d-flex-fs">
+  <i id="menu-active-session-indicator" class="p-2 fa-solid fa-square-rss"></i>
+  <a
+    id="menu-link-legal"
+    href="{{url_for('get_template_legal')}}"
+    class="app-bar-item text-upper"
+    >legal</a
+  >
+</div>
+
+{% endblock %} {% block content %}
+
+<div id="main-upload" class="main">
+  <ul class="h-menu m-4">
+    <div class="toolbar" data-role="buttongroup">
+      <span class="tag-dark text-upper">start session</span>
+      <button
+        onclick="submit()"
+        id="upload-data-button"
+        class="button small rounded text-upper"
+        disabled
+      >
+        submit request
+      </button>
+      <span
+        ><sup class="mandatory-tag">*</sup
+        ><sup class="toolbar-text"
+          >Mandatory fields must be filled in</sup
+        ></span
+      >
+      <!--
+      <span class="ml-2 mr-2 toolbar-text">or</span>
+      <input type="file" id="submit-session-input" />
+      <label
+        id="submit-session-button"
+        for="submit-session-input"
+        class="button small rounded text-upper"
+        disabled
+        >UPLOAD</label
+      >
+      <span class="ml-2 mr-2 toolbar-text">an existing session</span>
+      -->
+    </div>
+  </ul>
+  <div class="remark m-4">
+    <h3 class="p-2 text-left">
+      <small><i class="fa-solid fa-dna"></i> Reference Genome </small>
+      <i
+        id="collapse-reference-genome"
+        class="fa-solid fa-circle-info info-clickable float-right"
+      ></i>
+    </h3>
+    <div
+      class="info-block mb-6"
+      data-role="collapse"
+      data-toggle-element="#collapse-reference-genome"
+      data-collapsed="true"
+    >
+      <div class="p-5 text-left">
+        <p>
+          <span class="tag-translucent">reference genome</span>
+          <a
+            href="https://www.ncbi.nlm.nih.gov/genbank/fastaformat/"
+            target="_blank"
+            >FASTA</a
+          >
+          format file containing one or more contigs/chromosomes/plasmids to use
+          as the reference genome for the analysis. Ensure that the sequence
+          identifier (SeqID) is unique for each entry and matches the
+          identifiers in the used variant call (.vcf) and generic feature format
+          (.gff) files. Example:
+        </p>
+        <p class="tag-info-text">
+          >SeqID ...
+          <br />CAGAACATAAAGATAGACTTGCTGACTAAGTAGTAAAGAGAAGAACGTTGTTTCAGGTAA
+          <br />GTTAAGATAGTGTCACGTAGACGCACCACCCGGGAAGAAGACAGTCTCGGACTTCACTCA
+          <br />
+          ...
+        </p>
+      </div>
+      <div class="p-5 text-left">
+        <p>
+          <span class="tag-translucent">excluded positions</span> (Optional)
+          Specifies positions to be excluded from the analysis.
+        </p>
+        <p class="tag-info-text">SeqID:3,11,42,512;SeqID:5,7,1024</p>
+      </div>
+    </div>
+    <input
+      id="input-reference-genome"
+      type="file"
+      data-role="file"
+      data-button-title='<i class="fa-solid fa-file-arrow-up"></i>'
+      data-prepend="<small><span class='tag-light'>reference genome</span> (.fasta)<sup class='mandatory-tag'>*</sup></small>"
+      accept=".fasta,.fasta"
+    />
+    <textarea
+      id="input-reference-genome-excluded-positions"
+      class="mt-4"
+      type="text"
+      data-role="textarea"
+      data-prepend="<small><span class='tag-light'>excluded positions</span></small>"
+    ></textarea>
+  </div>
+
+  <div class="remark m-4">
+    <h3 class="p-2 text-left">
+      <small><i class="fa-solid fa-bacteria"></i> Samples</small>
+      <i
+        id="collapse-samples"
+        class="fa-solid fa-circle-info info-clickable float-right"
+      ></i>
+    </h3>
+    <div
+      class="info-block mb-6"
+      data-role="collapse"
+      data-toggle-element="#collapse-samples"
+      data-collapsed="true"
+    >
+      <div class="p-5 text-left">
+        <p>
+          <span class="tag-translucent">variant call files</span> One or more
+          files in
+          <a
+            href="https://gatk.broadinstitute.org/hc/en-us/articles/360035531692-VCF-Variant-Call-Format"
+            target="_blank"
+            >VCF</a
+          >
+          format, each containing variant calls for exactly one biological
+          sample. If haploid calls are provided, only the variant with the
+          highest frequency in terms of number of reads is used. Ensure that the
+          CHROM column's row values match any SeqID of the provided reference
+          genome. Each filename will be used as the internal sample identifier.
+          Required fields can be derived from the example below. Example:
+        </p>
+        <p class="tag-info-text">
+          [HEADER LINES]
+          <br />
+          #CHROM POS ID REF ALT QUAL FILTER INFO FORMAT SampleID
+          <br />
+          SeqID 6442 . G A 7243.77 . AC=2;AF=1.00;AN=2;DP=172 GT:AD:DP:GQ:PL
+          1/1:0,172:172:99:7272,515,0
+          <br />
+          SeqID 7179 . T C 9100.77 . AC=2;AF=1.00;AN=2;DP=215 GT:AD:DP:GQ:PL
+          1/1:0,215:215:99:9129,644,0
+          <br />
+          ...
+        </p>
+      </div>
+      <div class="p-5 text-left">
+        <p>
+          <span class="tag-translucent">sample meta information</span>
+          (Optional) A file in
+          <a href="https://docs.fileformat.com/spreadsheet/tsv/" target="_blank"
+            >TSV</a
+          >
+          format format containing meta information to be added to sample
+          entries. Column names and cell values can be arbitrary; the first
+          column must contain sample identifiers that match a provided variant
+          call file. Example:
+        </p>
+        <p class="tag-info-text">
+          sampleID&#09;location&#09;year&#09;databank_accessor&#09;growth_condition
+          <br />
+          Oddoda&#09;europe&#09;2022&#09;SAMN1&#09;pH7
+          <br />
+          Ramron&#09;europe&#09;2022&#09;SAMN2&#09;pH7
+          <br />
+          ...
+        </p>
+      </div>
+    </div>
+    <input
+      id="input-samples-files"
+      type="file"
+      data-role="file"
+      data-button-title='<i class="fa-solid fa-file-arrow-up"></i>'
+      data-prepend="<small><span class='tag-light'>variant calls</span> (.vcf)<sup class='mandatory-tag'>*</sup></small>"
+      accept=".vcf"
+      multiple
+    />
+    <input
+      id="input-samples-meta"
+      type="file"
+      data-role="file"
+      data-button-title='<i class="fa-solid fa-file-arrow-up"></i>'
+      data-prepend="<small><span class='tag-light'>sample meta information</span> (.tsv)</small>"
+      class="mt-4"
+      accept=".csv,.tsv"
+    />
+  </div>
+
+  <div class="remark m-4">
+    <h3 class="p-2 text-left">
+      <small
+        ><i class="fa-solid fa-magnifying-glass"></i> Genomic Features</small
+      >
+      <i
+        id="collapse-features"
+        class="fa-solid fa-circle-info info-clickable float-right"
+      ></i>
+    </h3>
+    <div
+      class="info-block mb-6"
+      data-role="collapse"
+      data-toggle-element="#collapse-features"
+      data-collapsed="true"
+    >
+      <div class="p-5 text-left">
+        <p>
+          <span class="tag-translucent">genome annotatoin</span> A file in
+          <a
+            href="https://www.ensembl.org/info/website/upload/gff.html?redirect=no"
+            target="_blank"
+            >GFF</a
+          >
+          format, describing features of the provided reference genome. Ensure
+          that the seqname cell entries match the SeqID values of the provided
+          reference genome. Example:
+        </p>
+        <p class="tag-info-text">
+          SeqID&emsp;Genbank&emsp;gene&emsp;2&emsp;1242&emsp;.&emsp;+&emsp;.&emsp;ID=gene-GENOME_0001;Name=idaR;gbkey=Gene;gene=idaR;gene_biotype=protein_coding;locus_tag=GENOME_0001
+          <br />
+          ...
+        </p>
+      </div>
+      <div class="p-5 text-left">
+        <p>
+          <span class="tag-translucent">genes to analyze</span>
+          (Optional) One or more genes to be explicitly analyzed. If the field
+          is left empty, an analysis of the entire genome will be performed. The
+          gene information is extracted from the provided feature annotation
+          file; To assign a feature, a corresponding attribute key and value of
+          the annotation file must be provided. Example:
+        </p>
+        <p class="tag-info-text">Name=idaR,locus_tag=GENOME_0001</p>
+      </div>
+      <div class="p-5 text-left">
+        <p>
+          <span class="tag-translucent">gene meta information:</span>
+          (Optional) A file in
+          <a href="https://docs.fileformat.com/spreadsheet/tsv/" target="_blank"
+            >TSV</a
+          >
+          format format containing meta information to be added to gene/feature
+          entries. Column names and cell values can be arbitrary; the first
+          column must contain gene identifiers that match a specified gene to
+          analyze. Example:
+        </p>
+        <p class="tag-info-text">
+          geneID&#09;class&#09;structure_pdb_id&#09;function
+          <br />
+          IdaR&#09;outer membrane protein&#09;2STH&#09;ion uptake
+          <br />
+          GENOME_0001&#09;isomerase&#09;1HOT&#09;glucosamid 6-phosphate
+          deaminase
+          <br />
+          ...
+        </p>
+      </div>
+    </div>
+    <input
+      id="input-features-file"
+      type="file"
+      data-role="file"
+      data-button-title='<i class="fa-solid fa-file-arrow-up"></i>'
+      data-prepend="<small><span class='tag-light'>genome annotatoin</span> (.gff)<sup class='mandatory-tag'>*</sup></small>"
+      accept=".gff,.gff3,.gff,gff3"
+    />
+    <textarea
+      id="input-features-list"
+      class="mt-4"
+      type="text"
+      data-role="textarea"
+      data-prepend="<small><span class='tag-light'>genes to analyze</span></small>"
+    ></textarea>
+    <input
+      id="input-features-meta"
+      type="file"
+      data-role="file"
+      data-button-title='<i class="fa-solid fa-file-arrow-up"></i>'
+      data-prepend="<small><span class='tag-light'>gene meta information</span> (.tsv)</small>"
+      class="mt-4"
+      accept=".csv,.tsv"
+    />
+  </div>
+
+  <div class="remark m-4">
+    <h3 class="p-2 text-left">
+      <small
+        ><i class="fa-solid fa-magnifying-glass"></i> Protein Analysis</small
+      >
+      <i
+        id="collapse-protein"
+        class="fa-solid fa-circle-info info-clickable float-right"
+      ></i>
+    </h3>
+    <div
+      class="info-block mb-6"
+      data-role="collapse"
+      data-toggle-element="#collapse-protein"
+      data-collapsed="true"
+    >
+      <div class="p-5 text-left">
+        <p>
+          <span class="tag-translucent">infer proteoform information</span>
+          Set this option to infer aminoacid variants of specified features
+          independent of provided
+          <a
+            href="https://www.wwpdb.org/documentation/file-format-content/format33/v3.3.html"
+            target="_blank"
+            >PDB</a
+          >
+          files.
+        </p>
+      </div>
+      <div class="p-5 text-left">
+        <p>
+          <span class="tag-translucent">protein structures</span>
+          (Optional) One or multiple files in
+          <a
+            href="https://www.wwpdb.org/documentation/file-format-content/format33/v3.3.html"
+            target="_blank"
+            >PDB</a
+          >
+          format. The file names have to match with specified genes to analyze
+          and the corresponding structure will be assigned to the respective
+          feature. Providing protein structures will trigger the inference of
+          aminoacid variants. Example:
+        </p>
+        <p class="tag-info-text">
+          HEADER&emsp;...<br />
+          TITLE&emsp;...<br />
+          REMARK&emsp;1&emsp;...<br />
+          ATOM&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1&nbsp;&nbsp;N&nbsp;&nbsp;&nbsp;MET&nbsp;A&nbsp;&nbsp;&nbsp;1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-23.819&nbsp;-24.222&nbsp;&nbsp;&nbsp;8.665&nbsp;&nbsp;1.00&nbsp;&nbsp;0.84&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;N<br />
+          ATOM&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2&nbsp;&nbsp;CA&nbsp;&nbsp;MET&nbsp;A&nbsp;&nbsp;&nbsp;1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-23.394&nbsp;-23.056&nbsp;&nbsp;&nbsp;9.435&nbsp;&nbsp;1.00&nbsp;&nbsp;0.86&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C<br />
+          ...
+        </p>
+      </div>
+    </div>
+    <input
+      id="input-infer-proteoforms"
+      type="checkbox"
+      class="mt-4"
+      checked
+      data-role="switch"
+      data-caption="Infer Proteoform Information"
+      data-cls-switch="custom-switch-on-off"
+      data-material="true"
+    />
+    <input
+      id="input-features-proteins"
+      type="file"
+      data-role="file"
+      data-button-title='<i class="fa-solid fa-file-arrow-up"></i>'
+      data-prepend="<small><span class='tag-light'>protein structures</span> (.pdb)</small>"
+      class="mt-4"
+      accept=".pdb"
+      multiple
+    />
+  </div>
+
+  <div class="remark m-4">
+    <h3 class="p-2 text-left">
+      <small><i class="fa-solid fa-sliders"></i> Adjust Parameters</small>
+      <i
+        id="collapse-parameters"
+        class="fa-solid fa-circle-info info-clickable float-right"
+      ></i>
+    </h3>
+    <div
+      class="info-block mb-6"
+      data-role="collapse"
+      data-toggle-element="#collapse-parameters"
+      data-collapsed="true"
+    >
+      <div class="p-5 text-left">
+        <p>
+          <span class="tag-translucent"
+            >minimal variant call position coverage</span
+          >
+          The minimal number of reads to cover a variant position in order to be
+          accepted. Requires a positive integer.
+        </p>
+      </div>
+      <div class="p-5 text-left">
+        <p>
+          <span class="tag-translucent">minimal variant call quality</span>
+          The minimal cell value of the QUAL field of provided
+          <a
+            href="https://gatk.broadinstitute.org/hc/en-us/articles/360035531692-VCF-Variant-Call-Format"
+            target="_blank"
+            >VCF</a
+          >
+          files variants in order to be accepted. Requires a positive integer.
+        </p>
+      </div>
+      <div class="p-5 text-left">
+        <p>
+          <span class="tag-translucent"
+            >minimal homozygous variant call frequency</span
+          >
+          The minimal allele frequency (in %) of a called homozygous variant in
+          order to be accepted. Requires a value between 0 and 100.
+        </p>
+      </div>
+      <div class="p-5 text-left">
+        <p>
+          <span class="tag-translucent"
+            >minimal heterozygous variant call frequency</span
+          >
+          The minimal allele frequency (in %) of a called heterozygous variant
+          in order to be accepted. Requires a value between 0 and 100.
+        </p>
+      </div>
+      <div class="p-5 text-left">
+        <p>
+          <span class="tag-translucent"
+            >maximal heterozygous variant call frequency</span
+          >
+          The maximal allele frequency (in %) of a called heterozygous variant
+          in order to be accepted. Requires a value between 0 and 100.
+        </p>
+      </div>
+    </div>
+
+    <table class="table">
+      <tbody>
+        <tr>
+          <td class="w-75 text-left">Minimal Variant Call Position Coverage</td>
+          <td>
+            <input
+              id="input-parameter-min-coverage"
+              type="text"
+              data-role="input"
+              data-append="Position Coverage"
+              data-default-value="5"
+            />
+          </td>
+        </tr>
+        <tr>
+          <td class="w-75 text-left">
+            Minimal Variant Call Quality (Phred scaled Error)
+          </td>
+          <td>
+            <input
+              id="input-parameter-min-quality"
+              type="text"
+              data-role="input"
+              data-append="Phred Likelihood"
+              data-default-value="30"
+            />
+          </td>
+        </tr>
+        <tr>
+          <td class="w-75 text-left">
+            Minimal Homozygous Variant Call Frequency
+          </td>
+          <td>
+            <input
+              id="input-parameter-min-hom-frequency"
+              type="text"
+              data-role="input"
+              data-append="%"
+              data-default-value="90"
+            />
+          </td>
+        </tr>
+        <tr>
+          <td class="w-75 text-left">
+            Minimal Heterozygous Variant Call Frequency
+          </td>
+          <td>
+            <input
+              id="input-parameter-min-het-frequency"
+              type="text"
+              data-role="input"
+              data-append="%"
+              data-default-value="45"
+            />
+          </td>
+        </tr>
+        <tr>
+          <td class="w-75 text-left">
+            Maximal Heterozygous Variant Call Frequency
+          </td>
+          <td>
+            <input
+              id="input-parameter-max-het-frequency"
+              type="text"
+              data-role="input"
+              data-append="%"
+              data-default-value="55"
+            />
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

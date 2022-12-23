@@ -1,0 +1,160 @@
+{% extends 'index.html' %} {% block styles %}
+
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="{{url_for('static', filename='css/legal.css')}}"
+/>
+
+{% endblock %} {% block menu %}
+
+<!-- Menu elements floating left -->
+<div class="app-bar-container mr-auto d-none d-flex-fs">
+  <a
+    id="menu-link-home"
+    href="{{url_for('get_template_home')}}"
+    class="app-bar-item text-upper"
+    >home</a
+  >
+  <a
+    id="menu-link-upload"
+    href="{{url_for('get_template_upload')}}"
+    class="app-bar-item text-upper"
+    >upload</a
+  >
+  <a
+    id="menu-link-explore"
+    href="{{url_for('get_template_results')}}"
+    class="app-bar-item text-upper"
+    >results</a
+  >
+</div>
+<!-- Menu elements floating right -->
+<div class="app-bar-container ml-auto d-none d-flex-fs">
+  <i id="menu-active-session-indicator" class="p-2 fa-solid fa-square-rss"></i>
+  <a
+    id="menu-link-legal"
+    href="{{url_for('get_template_legal')}}"
+    class="app-bar-item text-upper active"
+    >legal</a
+  >
+</div>
+
+{% endblock %} {% block content %}
+
+<div id="main-legal" class="main">
+  <div class="remark m-4">
+    <h2 class="p-2 text-center">
+      <small>3rd Party Libraries and Resources</small>
+    </h2>
+    <p>
+      <i class="fa-solid fa-circle-chevron-right"></i> We use
+      <a href="https://sweetalert2.github.io/">sweetalert2.js</a> for popups.
+    </p>
+    <p>
+      <i class="fa-solid fa-circle-chevron-right"></i> The layout of our
+      platform is based on <a href="https://metroui.org.ua/">Metro 4</a> and
+      many of the used icons are from
+      <a href="https://fontawesome.com/">fontawesome</a>.
+    </p>
+    <p>
+      <i class="fa-solid fa-circle-chevron-right"></i> We utilize
+      <a href="https://jquery.com/">jQuery.js</a> in our scripts and use
+      <a href="https://github.com/foliojs/brotli.js">brotli.js</a> and
+      <a href="https://github.com/nodeca/pako">pako.js</a> for data compression.
+    </p>
+    <p>
+      <i class="fa-solid fa-circle-chevron-right"></i> We utilize
+      <a href="https://3dmol.csb.pitt.edu/">3Dmol.js</a> and
+      <a href="https://echarts.apache.org/en/index.html">Apache ECharts</a> for
+      our prototype protein dashboard.
+    </p>
+    <p>
+      <i class="fa-solid fa-circle-chevron-right"></i> We use
+      <a href="https://tabulator.info/">Tabulator</a> and
+      <a href="https://github.com/railsjazz/peity_vanilla">peity vanilla</a> to
+      display results.
+    </p>
+    <p>
+      <i class="fa-solid fa-circle-chevron-right"></i> Our backend is based on
+      <a href="https://flask.palletsprojects.com/en/2.2.x/">Flask</a> and
+      <a href="https://flask-session.readthedocs.io/en/latest/">Flask-Session</a
+      >.
+    </p>
+    <p>
+      <i class="fa-solid fa-circle-chevron-right"></i> The loading animation was
+      created with the assistance of
+      <a href="https://openai.com/dall-e-2/">DALL·E 2</a>.
+    </p>
+  </div>
+  <div class="remark m-4">
+    <h2 class="p-2 text-center">
+      <small>Disclaimer</small>
+    </h2>
+    <p class="indent">
+      <b>Content liability</b> The contents of our pages were created with the
+      utmost care. However, we cannot guarantee the accuracy, completeness and
+      actuality of the content. As a service provider, we are responsible for
+      our own content on these pages under the general laws according to § 7
+      TMG. According to §§ 8 to 10 TMG, however, we are not obligated as a
+      service provider to monitor transmitted or stored third-party information
+      or to investigate circumstances that indicate illegal activity.
+      Obligations to remove or block the use of information under the general
+      laws remain unaffected. However, liability in this regard is only possible
+      from the point in time at which a concrete infringement of the law becomes
+      known. If we become aware of such infringements, we will remove this
+      content immediately.
+    </p>
+    <p class="indent">
+      <b>Link liability</b> This page may contain links to external websites of
+      third parties, on whose contents we have no influence. We cannot take any
+      liability for these external contents. The respective provider or operator
+      of the pages is always responsible for the content of the linked pages.
+      The linked pages were checked for possible legal violations at the time of
+      linking. Illegal contents were not recognizable at the time of linking.
+      However, a permanent control of the contents of the linked pages is not
+      reasonable without concrete evidence of a violation of the law. If we
+      become aware of any infringements, we will remove such links immediately.
+    </p>
+    <p class="indent">
+      <b>Data privacy</b> The use of our website is possible without providing
+      personal data and no processed data is stored. If personal data (such as
+      name, address or e-mail addresses) is collected, this is on a voluntary
+      basis. This data will not be passed on to third parties without your
+      express consent. We point out that data transmission over the Internet
+      (e.g. communication by e-mail) may yield security gaps. Complete
+      protection of data against access by third parties is not possible. The
+      use of contact data published within the framework of the impressum by
+      third parties for the purpose of sending advertising and information
+      material is hereby expressly prohibited. The operators of the pages
+      expressly reserve the right to take legal action in the event of the
+      sending of advertising information, such as spam e-mails.
+    </p>
+    <p class="indent">
+      <b>Copyright</b> This program is free software: you can redistribute it
+      and/or modify it under the terms of the GNU General Public License as
+      published by the Free Software Foundation, either version 3 of the
+      License, or (at your option) any later version. This program is
+      distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+      without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+      PARTICULAR PURPOSE. See the GNU General Public License for more details.
+      (<a href="http://www.gnu.org/licenses">http://www.gnu.org/licenses</a>)
+    </p>
+  </div>
+  <div class="remark m-4">
+    <h2 class="p-2 text-center">
+      <small>Contact Information</small>
+    </h2>
+    <address>
+      <b>Simon Hackl</b>
+      <br />
+      Sand 14<br />
+      72076 Tübingen, Germany<br />
+      <a href="mailto:simon.hackl@uni-tuebingen.de"
+        >simon.hackl@uni-tuebingen.de</a
+      >
+    </address>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,184 @@
+/**
+MUSIAL WEB APPLICATION
+AUTHOR: Simon Hackl
+CONTACT: simon.hackl@uni-tuebingen.de
+VERSION: 2.1
+
+LICENSE
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+#main-results {
+  overflow-y: auto;
+  flex-direction: column;
+}
+
+#main-results .h-menu {
+  background-color: var(--background-color-primary);
+}
+
+#main-results .remark {
+  background-color: var(--background-color-tertiary);
+}
+
+#main-results .remark .info-clickable {
+  float: right;
+  color: var(--contrast-primary);
+}
+
+#main-results .remark .info-block {
+  background-color: rgba(96, 113, 150, 0.6);
+  border-radius: 2px;
+  box-shadow: 1px 1px 6px var(--text-color-secondary);
+  color: var(--background-color-primary);
+}
+
+#main-results .remark i {
+  color: var(--color-primary);
+  font-size: x-large;
+}
+
+#main-results h3 small i {
+  color: var(--text-color-secondary) !important;
+  font-size: large !important;
+}
+
+#main-results .toolbar .button {
+  margin-left: 4px;
+  margin-right: 4px;
+  background-color: var(--color-quarternary);
+  color: var(--background-color-primary);
+}
+
+#main-results .toolbar .toolbar-tag {
+  margin-left: 4px;
+  margin-right: 4px;
+  padding: 2px 8px 2px 8px;
+  font-size: small;
+  background-color: var(--color-secondary);
+  color: var(--text-color-secondary);
+  border-radius: 1px;
+}
+
+#main-results .toolbar .select {
+  margin-left: 4px;
+  margin-right: 4px;
+}
+
+#main-results .toolbar .input {
+  margin-left: 4px;
+  margin-right: 4px;
+}
+
+#main-results .toolbar .input button {
+  background-color: transparent;
+}
+
+#main-results .toolbar .input button:hover {
+  background-color: transparent;
+}
+
+#main-results .toolbar .button:hover {
+  transition: 0.2s;
+  background-color: var(--color-primary);
+}
+
+#results-table-add-filter-button {
+  background-color: var(--contrast-secondary) !important;
+}
+
+#results-table-reset-filter-button {
+  background-color: var(--contrast-primary) !important;
+}
+
+#results-table-add-group-button {
+  background-color: var(--contrast-secondary) !important;
+}
+
+#results-table-reset-group-button {
+  background-color: var(--contrast-primary) !important;
+}
+
+#results-table-download-button {
+  font-size: medium;
+}
+
+#results-extended-access-download-button {
+  margin-left: 4px;
+  margin-right: 4px;
+  background-color: var(--contrast-secondary);
+  color: var(--background-color-primary);
+}
+
+.active-content {
+  background-color: var(--color-tertiary) !important;
+}
+
+.tabulator-col-title {
+  padding-left: 2vw;
+}
+
+.tabulator-col-sorter {
+  padding: 2px;
+}
+
+.tabulator-menu {
+  background-color: var(--background-color-secondary) !important;
+}
+
+.tabulator-popup {
+  background-color: rgba(227, 229, 237, 0.9) !important;
+  border-radius: 2px;
+  min-width: 20vw;
+}
+
+.tabulator-popup-variants {
+  background-color: rgba(227, 229, 237, 0.9);
+  color: var(--text-color-secondary);
+  max-height: 10vh;
+  margin: 4px;
+  overflow-y: scroll;
+}
+
+.tabulator-structure-button {
+  text-decoration: none;
+  background-color: transparent;
+  border: none;
+}
+
+.tabulator-structure-button i {
+  color: var(--color-tertiary) !important;
+  cursor: pointer;
+}
+
+.tabulator-structure-button i:hover {
+  color: var(--color-primary) !important;
+  transition: 0.2s;
+}
+
+.fa-xmark {
+  color: var(--text-color-secondary) !important;
+}
+
+li {
+  padding-bottom: 4px;
+}
+
+.download-tile {
+  border-radius: 6px;
+  background-color: var(--color-tertiary);
+  display: inline-block;
+  margin: 10px;
+}
+
+.download-tile i {
+  color: var(--background-color-primary) !important;
+}

@@ -1,0 +1,317 @@
+{% extends 'index.html' %} {% block styles %}
+<link
+  href="https://unpkg.com/tabulator-tables@5.4.2/dist/css/tabulator.min.css"
+  rel="stylesheet"
+/>
+
+<link
+  href="https://unpkg.com/tabulator-tables@5.4.2/dist/css/tabulator_materialize.min.css"
+  rel="stylesheet"
+/>
+
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="{{url_for('static', filename='css/results.css')}}"
+/>
+{% endblock %} {% block scripts %}
+<script
+  type="text/javascript"
+  src="https://unpkg.com/tabulator-tables@5.4.2/dist/js/tabulator.min.js"
+></script>
+<script
+  type="text/javascript"
+  src="{{url_for('static', filename='js/peity-vanilla.min.js')}}"
+></script>
+<script
+  type="text/javascript"
+  src="{{url_for('static', filename='js/results.js')}}"
+  defer
+></script>
+{% endblock %}{% block menu %}
+
+<!-- Menu elements floating left -->
+<div class="app-bar-container mr-auto d-none d-flex-fs">
+  <a
+    id="menu-link-home"
+    href="{{url_for('get_template_home')}}"
+    class="app-bar-item text-upper"
+    >home</a
+  >
+  <a
+    id="menu-link-upload"
+    href="{{url_for('get_template_upload')}}"
+    class="app-bar-item text-upper"
+    >upload</a
+  >
+  <a
+    id="menu-link-results"
+    href="{{url_for('get_template_results')}}"
+    class="app-bar-item text-upper active"
+    >results</a
+  >
+</div>
+<!-- Menu elements floating right -->
+<div class="app-bar-container ml-auto d-none d-flex-fs">
+  <i id="menu-active-session-indicator" class="p-2 fa-solid fa-square-rss"></i>
+  <a
+    id="menu-link-legal"
+    href="{{url_for('get_template_legal')}}"
+    class="app-bar-item text-upper"
+    >legal</a
+  >
+</div>
+
+{% endblock %} {% block content %}
+
+<div id="main-results" class="main">
+  <ul class="h-menu m-4">
+    <div class="toolbar" data-role="buttongroup">
+      <span class="tag-dark text-upper">display content</span>
+      <button
+        id="results-set-samples-table"
+        class="button small rounded text-upper"
+        onclick="setTableToSamples()"
+      >
+        samples
+      </button>
+      <button
+        id="results-set-genes-table"
+        class="button small rounded text-upper"
+        onclick="setTableToGenes()"
+      >
+        genes
+      </button>
+      <button
+        id="results-set-variants-table"
+        class="button small rounded text-upper"
+        onclick="setTableToVariants()"
+      >
+        variants
+      </button>
+    </div>
+    <div class="toolbar float-right" data-role="buttongroup">
+      <span class="tag-dark">group</span>
+      <select
+        id="results-table-group-field"
+        class="input-small"
+        data-role="select"
+        data-prepend="Field"
+        data-filter="false"
+      ></select>
+      <button
+        id="results-table-add-group-button"
+        class="button small rounded"
+        onclick="addTableGroup()"
+      >
+        <i class="fa-solid fa-plus"></i>
+      </button>
+      <button
+        id="results-table-reset-group-button"
+        class="button small rounded"
+        onclick="resetTableGroup()"
+      >
+        <i class="fa-solid fa-arrow-rotate-left"></i>
+      </button>
+    </div>
+    <div class="toolbar float-right" data-role="buttongroup">
+      <span class="tag-dark">filter</span>
+      <select
+        id="results-table-filter-field"
+        class="input-small"
+        data-role="select"
+        data-prepend="Field"
+        data-filter="false"
+      ></select>
+      <select
+        id="results-table-filter-type"
+        class="input-small"
+        data-role="select"
+        data-prepend="Type"
+        data-filter="false"
+      >
+        <option value="=">Equal</option>
+        <option value="<">Less</option>
+        <option value="<=">Less or Equal</option>
+        <option value=">">Greater</option>
+        <option value=">=">Greater or Equal</option>
+        <option value="!=">Unequal</option>
+        <option value="like">Contains</option>
+      </select>
+      <input
+        id="results-table-filter-value"
+        type="text"
+        class="input-small"
+        data-role="input"
+        data-prepend="Value"
+      />
+      <button
+        id="results-table-add-filter-button"
+        class="button small rounded"
+        onclick="addTableFilter()"
+      >
+        <i class="fa-solid fa-plus"></i>
+      </button>
+      <button
+        id="results-table-reset-filter-button"
+        class="button small rounded"
+        onclick="resetTableFilter()"
+      >
+        <i class="fa-solid fa-arrow-rotate-left"></i>
+      </button>
+    </div>
+  </ul>
+  <div class="remark m-4">
+    <div id="main-results-content-table"></div>
+  </div>
+  <div class="remark m-4">
+    <h3 class="p-2 text-left">
+      <small>Data Download</small>
+      <i
+        id="collapse-download"
+        class="fa-solid fa-circle-info info-clickable float-right"
+      ></i>
+    </h3>
+    <div
+      class="info-block mb-6"
+      data-role="collapse"
+      data-toggle-element="#collapse-download"
+      data-collapsed="true"
+    >
+      <div class="p-5 text-left">
+        <p>
+          <span class="tag-translucent">overview table</span>
+          Download the currently displayed table in CSV or JSON file format.
+          Groupings will affect the sorting of the rows.
+        </p>
+      </div>
+
+      <div class="p-5 text-left">
+        <p>
+          <span class="tag-translucent">session</span>
+          Download the computational results of MUSIAL currently stored for your
+          session as .json.br file. You will need to de-compress the file with
+          <a href="https://www.brotli.org/" target="_blank">brotli</a> in order
+          to view the data in a human readable form.
+        </p>
+      </div>
+
+      <div class="p-5 text-left">
+        <p>
+          <span class="tag-translucent">sequences</span>
+          Download sequences in multi .fasta format. Per feature one file will
+          be generated that comprises sequences per sample or sample group with
+          the specified configuration.
+        </p>
+      </div>
+
+      <div class="p-5 text-left">
+        <p>
+          <span class="tag-translucent">variants table</span>
+          Download variants in a .tsv format. Per feature, one file will be
+          generated that contains positions (wrt. the reference) as rows and a
+          column per sample or sample group, listing the observed variants at
+          the respective positions.
+        </p>
+      </div>
+
+      <div class="p-5 text-left">
+        <p>
+          The <span class="tag-translucent">sequences</span> and
+          <span class="tag-translucent">variants table</span> download options
+          share a common set of configuration parameters:
+        </p>
+        <ul data-role="list">
+          <li>
+            <span class="tag-translucent">content</span> Switch between
+            nucleotide or aminoacid content. For non-coding features, only
+            nucleotide content is available.
+          </li>
+          <li>
+            <span class="tag-translucent">align sequences</span> Sequences will
+            be aligned, i.e., all sequences will yield the same length by
+            padding gap symbols for inserted positions that are not shared by an
+            entry.
+          </li>
+          <li>
+            <span class="tag-translucent">group by</span> Groups entries by
+            alleles or proteoforms. If disabled, an entry per sample will be
+            generated.
+          </li>
+          <li>
+            <span class="tag-translucent">include conserved positions</span>
+            Includes conserved positions at which no variant was observed for
+            any sample.
+          </li>
+          <li>
+            <span class="tag-translucent">include indels</span> Includes indel
+            positions.
+          </li>
+          <li>
+            <span class="tag-translucent"
+              >include only or exclude specified samples</span
+            >
+            You can enter any number of sample identifiers into the input field
+            (by pressing space). Dependent on the mode, entries that were
+            derived for the specified samples are included only or excluded from
+            the generated files.
+          </li>
+          <li>
+            <span class="tag-translucent"
+              >include only or exclude specified features</span
+            >
+            You can enter any number of feature identifiers into the input field
+            (by pressing space). Dependent on the mode, files for only or all
+            but except the specified features are generated.
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div
+      class="rounded download-tile"
+      data-role="tile"
+      data-size="medium"
+      onclick="downloadOverviewTable()"
+    >
+      <i class="icon fa-solid fa-table"></i>
+      <span class="tag-translucent text-center branding-bar"
+        >Overview Table</span
+      >
+    </div>
+
+    <div
+      class="rounded download-tile"
+      data-role="tile"
+      data-size="medium"
+      onclick="getSession()"
+    >
+      <i class="icon fa-regular fa-file-code"></i>
+      <span class="tag-translucent text-center branding-bar">Session</span>
+    </div>
+
+    <div
+      class="rounded download-tile"
+      data-role="tile"
+      data-size="medium"
+      onclick="getSequences()"
+    >
+      <i class="icon fa-solid fa-bars-staggered"></i>
+      <span class="tag-translucent text-center branding-bar">Sequences</span>
+    </div>
+
+    <div
+      class="rounded download-tile"
+      data-role="tile"
+      data-size="medium"
+      onclick="getVariantsTable( )"
+    >
+      <i class="icon fa-solid fa-table-cells"></i>
+      <span class="tag-translucent text-center branding-bar"
+        >Variants Table</span
+      >
+    </div>
+  </div>
+</div>
+
+{% endblock %}
