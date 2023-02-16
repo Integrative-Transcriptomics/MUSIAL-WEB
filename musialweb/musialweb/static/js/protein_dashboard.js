@@ -833,8 +833,7 @@ function initializeSequenceViewer() {
     STATE.sequenceViewerEChartOption.series.splice(0, 3); // Remove all annotation tracks.
   // Initialize temp. variables.
   var position = 1;
-  var chain = Object.keys(DATA.proteinSequences)[0]; // Select first chain.
-  var chainSequence = DATA.proteinSequences[chain];
+  var chainSequence = DATA.translatedNucleotideSequence;
   var hasTerminated = false;
   /**
    * Adds the specified variant information to the STATE.positionInformation object.

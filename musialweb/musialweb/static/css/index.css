@@ -52,6 +52,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   background: var(--text-color-secondary);
 }
 
+body.wait * {
+  cursor: wait;
+}
+
 #menu {
   background-color: var(--color-primary);
   color: var(--background-color-primary);

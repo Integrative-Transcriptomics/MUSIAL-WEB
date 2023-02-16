@@ -1,8 +1,11 @@
 var table;
 var tableDefinition = undefined;
 var tableData = undefined;
+var tableActiveType = undefined;
 var tableFilter = [];
 var tableGroup = [];
+var tableCurrentSamples = [];
+var tableCurrentFeatures = [];
 
 axios
   .get(WWW + "/has_session")
@@ -37,7 +40,7 @@ axios
     }
   })
   .catch((error) => {
-    console.log(error);
+    handleError(error);
   });
 
 function setTableToSamples() {
@@ -283,12 +286,14 @@ function setTableToSamples() {
         $("#results-set-samples-table").addClass("active-content");
         $("#results-set-genes-table").removeClass("active-content");
         $("#results-set-variants-table").removeClass("active-content");
+        tableActiveType = "samples";
       } catch (error) {
-        console.log(error);
+        handleError(error);
       }
+      updateTableSelectionForExport();
     })
     .catch((error) => {
-      console.log(error);
+      handleError(error);
     });
 }
 
@@ -481,12 +486,14 @@ function setTableToGenes() {
         $("#results-set-samples-table").removeClass("active-content");
         $("#results-set-genes-table").addClass("active-content");
         $("#results-set-variants-table").removeClass("active-content");
+        tableActiveType = "genes";
       } catch (error) {
-        console.log(error);
+        handleError(error);
       }
+      updateTableSelectionForExport();
     })
     .catch((error) => {
-      console.log(error);
+      handleError(error);
     });
 }
 
@@ -544,6 +551,11 @@ function setTableToVariants() {
           field: "Effect",
           width: "6vw",
         });
+        table.addColumn({
+          title: "Occurrence",
+          field: "Occurrence",
+          width: "6vw",
+        });
         // Add SnpEff annotation columns.
         var annotationColumns = [];
         for (let dataKey of dataKeys.filter((k) => k.startsWith("SNPEFF"))) {
@@ -569,12 +581,14 @@ function setTableToVariants() {
         $("#results-set-samples-table").removeClass("active-content");
         $("#results-set-genes-table").removeClass("active-content");
         $("#results-set-variants-table").addClass("active-content");
+        tableActiveType = "variants";
       } catch (error) {
-        console.log(error);
+        handleError(error);
       }
+      updateTableSelectionForExport();
     })
     .catch((error) => {
-      console.log(error);
+      handleError(error);
     });
 }
 
@@ -610,6 +624,14 @@ function addTableFilter() {
       type: $("#results-table-filter-type")[0].value,
       value: parseFloat($("#results-table-filter-value")[0].value),
     });
+  } else if ($("#results-table-filter-type")[0].value == "keywords") {
+    tableFilter.push({
+      field: $("#results-table-filter-field")[0].value,
+      type: $("#results-table-filter-type")[0].value,
+      value: $("#results-table-filter-value")[0]
+        .value.replaceAll(";", " ")
+        .replaceAll(",", " "),
+    });
   } else {
     tableFilter.push({
       field: $("#results-table-filter-field")[0].value,
@@ -619,12 +641,22 @@ function addTableFilter() {
   }
   table.setFilter(tableFilter);
   table.redraw(true);
+  updateTableSelectionForExport();
 }
 
 function resetTableFilter() {
   tableFilter = [];
   table.setFilter(tableFilter);
   table.redraw(true);
+  updateTableSelectionForExport();
+}
+
+function updateTableSelectionForExport() {
+  if (tableActiveType == "samples") {
+    tableCurrentSamples = table.getData("active").map((row) => row["Name"]);
+  } else if (tableActiveType == "genes") {
+    tableCurrentFeatures = table.getData("active").map((row) => row["Name"]);
+  }
 }
 
 function addTableGroup() {
@@ -792,13 +824,13 @@ function getSequences() {
         <div class="row">
           <div class="cell-3 m-2 text-left">
             <small><span class="rounded input-info-tag text-upper">include only or exclude specified samples</span></small>
+            <button class="button small rounded data-download-copy-from-table-button m-2" onclick="pasteSamplesFromTable('#download-data-samples-list')"><i class="fa-regular fa-paste"></i></button>
           </div>
           <div class="cell-1 mt-2 text-right">Include</div>
-          <div class="cell-1 m-2">
+          <div class="cell-1 ml-2">
             <input
               id="download-data-samples-mode"
               type="checkbox"
-              checked
               data-role="switch"
               data-cls-switch="custom-switch-choice"
               data-material="true"
@@ -806,19 +838,19 @@ function getSequences() {
           </div>
           <div class="cell-1 mt-2 text-left">Exclude</div>
           <div class="cell-5 m-2">
-            <input id="download-data-samples-list" class="input-small" type="text" data-role="taginput" />
+            <input id="download-data-samples-list" class="input-small" type="text" data-role="taginput" style="overflow-y: hide"/>
           </div>
         </div>
         <div class="row">
           <div class="cell-3 m-2 text-left">
             <small><span class="rounded input-info-tag text-upper">include only or exclude specified features</span></small>
+            <button class="button small rounded data-download-copy-from-table-button m-2" onclick="pasteFeaturesFromTable('#download-data-features-list')"><i class="fa-regular fa-paste"></i></button>
           </div>
           <div class="cell-1 mt-2 text-right">Include</div>
-          <div class="cell-1 m-2">
+          <div class="cell-1 ml-2">
             <input
               id="download-data-features-mode"
               type="checkbox"
-              checked
               data-role="switch"
               data-cls-switch="custom-switch-choice"
               data-material="true"
@@ -826,7 +858,7 @@ function getSequences() {
           </div>
           <div class="cell-1 mt-2 text-left">Exclude</div>
           <div class="cell-5 m-2">
-            <input id="download-data-features-list" class="input-small" type="text" data-role="taginput" />
+            <input id="download-data-features-list" class="input-small" type="text" data-role="taginput" >
           </div>
         </div>
       </div>
@@ -905,7 +937,7 @@ function getSequences() {
           downloadBlob(response.data, "sequences.zip");
         })
         .catch((error) => {
-          console.log(error);
+          handleError(error);
         });
     }
   });
@@ -984,41 +1016,41 @@ function getVariantsTable() {
         <div class="row">
           <div class="cell-3 m-2 text-left">
             <small><span class="rounded input-info-tag text-upper">include only or exclude specified samples</span></small>
+            <button class="button small rounded data-download-copy-from-table-button m-2" onclick="pasteSamplesFromTable('#download-data-samples-list')"><i class="fa-regular fa-paste"></i></button>
           </div>
           <div class="cell-1 mt-2 text-right">Include</div>
-          <div class="cell-1 m-2">
+          <div class="cell-1 ml-2">
             <input
               id="download-data-samples-mode"
               type="checkbox"
-              checked
               data-role="switch"
               data-cls-switch="custom-switch-choice"
               data-material="true"
             />
           </div>
           <div class="cell-1 mt-2 text-left">Exclude</div>
-          <div class="cell-3 m-2">
-            <input id="download-data-samples-list" class="input-small" type="text" data-role="taginput" />
+          <div class="cell-5 m-2 mh-25">
+            <input id="download-data-samples-list" class="input-small" type="text" data-role="taginput"/>
           </div>
         </div>
         <div class="row">
           <div class="cell-3 m-2 text-left">
             <small><span class="rounded input-info-tag text-upper">include only or exclude specified features</span></small>
+            <button class="button small rounded data-download-copy-from-table-button m-2" onclick="pasteFeaturesFromTable('#download-data-features-list')"><i class="fa-regular fa-paste"></i></button>
           </div>
           <div class="cell-1 mt-2 text-right">Include</div>
-          <div class="cell-1 m-2">
+          <div class="cell-1 ml-2">
             <input
               id="download-data-features-mode"
               type="checkbox"
-              checked
               data-role="switch"
               data-cls-switch="custom-switch-choice"
               data-material="true"
             />
           </div>
           <div class="cell-1 mt-2 text-left">Exclude</div>
-          <div class="cell-3 m-2">
-            <input id="download-data-features-list" class="input-small" type="text" data-role="taginput" />
+          <div class="cell-5 m-2 mh-25">
+            <input id="download-data-features-list" class="input-small" type="text" data-role="taginput"/>
           </div>
         </div>
       </div>
@@ -1090,10 +1122,18 @@ function getVariantsTable() {
         })
         .catch((error) => {
           Swal.close();
-          console.log(error);
+          handleError(error);
         });
     }
   });
+}
+
+function pasteSamplesFromTable(target) {
+  Metro.getPlugin($(target)[0], "taginput").val(tableCurrentSamples);
+}
+
+function pasteFeaturesFromTable(target) {
+  Metro.getPlugin($(target)[0], "taginput").val(tableCurrentFeatures);
 }
 
 function getProteinDashboard(identifier) {

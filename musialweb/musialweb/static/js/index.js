@@ -44,7 +44,7 @@ function handleResponseCode(response) {
       html:
         `
         <div class="remark secondary text-left">
-            An server error occurred. Please check your input/session data. If you cannot solve your problem, feel free to open an issue <a href='https://github.com/Integrative-Transcriptomics/MUSIAL/issues' target='_blan'>here</a>.
+            A server side error occurred. Please check your input/session data. If you cannot solve your problem, feel free to open an issue <a href='https://github.com/Integrative-Transcriptomics/MUSIAL/issues' target='_blan'>here</a>.
         </div>
         <div class="remark secondary text-left"><span class="input-info-tag">LOG:</span><br>
             ` +
@@ -82,7 +82,7 @@ function handleResponseCode(response) {
         });
       })
       .catch((error) => {
-        console.log(error);
+        handleError(error);
       });
   }
 }
@@ -97,6 +97,33 @@ function displayWarningPopup(text) {
     title: "Oops...",
     confirmButtonColor: "#6d81ad",
     text: text,
+  });
+}
+
+function handleError(error) {
+  // console.log( error );
+  Swal.fire({
+    iconHtml: `<i class="error-icon fa-solid fa-triangle-exclamation"></i>`,
+    title: "Application Error",
+    confirmButtonColor: "#6d81ad",
+    color: "#747474",
+    background: "#fafafcd9",
+    backdrop: `
+            rgba(96, 113, 150, 0.4)
+            left top
+            no-repeat
+          `,
+    html:
+      `
+        <div class="remark secondary text-left">
+            An application error occurred. Please check your input/session data. If you cannot solve your problem, feel free to open an issue <a href='https://github.com/Integrative-Transcriptomics/MUSIAL/issues' target='_blan'>here</a>.
+        </div>
+        <div class="remark secondary text-left"><span class="input-info-tag">LOG:</span><br>
+            ` +
+      error.message +
+      `
+        </div>
+      `,
   });
 }
 
@@ -130,20 +157,9 @@ function checkForSession() {
       }
     })
     .catch((error) => {
-      console.log(error);
+      handleError(error);
     });
 }
-
-/*
-<div class="loading">
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>*/
 
 function displayLoader(text) {
   Swal.fire({

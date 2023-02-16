@@ -347,12 +347,13 @@ function startExampleSession() {
       }
     })
     .catch((error) => {
-      console.log(error);
+      handleError(error);
     });
 }
 
 async function submit() {
   if (canSubmit) {
+    document.body.className = "wait";
     let sampleFiles = request.samples;
     request.samples = {};
     for (let sampleFile of sampleFiles) {
@@ -404,6 +405,7 @@ async function submit() {
     request.minHomFrequency = request.minHomFrequency / 100;
     request.minHetFrequency = request.minHetFrequency / 100;
     request.maxHetFrequency = request.maxHetFrequency / 100;
+    document.body.className = "";
     Swal.fire({
       title: "We use a cookie so that you can access your data!",
       iconHtml: `
@@ -438,6 +440,7 @@ async function submit() {
           no-repeat
       `,
     }).then((result) => {
+      document.body.className = "wait";
       if (result.isConfirmed) {
         displayLoader(
           `Your request is being processed! You will be forwarded when the results are ready`
@@ -456,12 +459,14 @@ async function submit() {
             }
           })
           .catch((error) => {
-            console.log(error);
+            handleError(error);
           })
           .finally((_) => {
+            document.body.className = "";
             resetForm();
           });
       } else if (result.isDenied) {
+        document.body.className = "";
         resetForm();
       }
     });

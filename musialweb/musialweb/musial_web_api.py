@@ -216,7 +216,7 @@ def get_samples_table():
                 if annotation_field.startswith("AL!"):
                     annotation_key = annotation_field.replace("AL!", "AL§")
                     sample_row_data["Reference Alleles[%]"][1] += 1
-                    if annotation_value.endswith("WT"):
+                    if annotation_value.endswith("REFERENCE"):
                         sample_row_data["Reference Alleles[%]"][0] += 1
                     rec_sub += int(
                         session[api_parameters["RESULT_KEY"]]["features"][
@@ -236,7 +236,7 @@ def get_samples_table():
                 elif annotation_field.startswith("PF!"):
                     annotation_key = annotation_field.replace("PF!", "PF§")
                     sample_row_data["Reference Proteoforms[%]"][1] += 1
-                    if annotation_value.endswith("WT"):
+                    if annotation_value.endswith("REFERENCE"):
                         sample_row_data["Reference Proteoforms[%]"][0] += 1
                 else:
                     annotation_key = "AN§" + annotation_field
@@ -375,12 +375,15 @@ def get_variants_table():
                     ][position][content]["annotations"]["FRQ"],
                 }
                 effects = set([])
+                occurences = set([])
                 for affected_feature in session[api_parameters["RESULT_KEY"]][
                     "nucleotideVariants"
                 ][position][content]["occurrence"]:
                     feature, allele = affected_feature.split("!")
                     effects.add(feature)
+                    occurences.add(allele)
                 variant_row_data["Effect"] = ";".join(effects)
+                variant_row_data["Occurrence"] = ";".join(occurences)
                 for annotation_field, annotation_value in session[
                     api_parameters["RESULT_KEY"]
                 ]["nucleotideVariants"][position][content]["annotations"].items():

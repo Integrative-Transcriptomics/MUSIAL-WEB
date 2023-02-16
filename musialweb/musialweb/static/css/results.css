@@ -118,6 +118,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   color: var(--background-color-primary);
 }
 
+.data-download-copy-from-table-button {
+  background-color: var(--color-primary) !important;
+  color: var(--background-color-primary) !important;
+}
+
 .active-content {
   background-color: var(--color-tertiary) !important;
 }

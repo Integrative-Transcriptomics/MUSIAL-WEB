@@ -19,7 +19,7 @@ function startExampleSession() {
     html: `
         <ul id="cookie-consent-text-container">
           <li>As long as you keep the cookie, you can return here and continue with your session.</li>
-          <li>Accepting this cookie will create a session with our sample dataset for you on our server.</li>
+          <li>Accepting this cookie will create a session with our example dataset for you on our server.</li>
           <li>No personalized data is collected or shared with third parties and you will not be tracked by this cookie.</li>
           <li>The cookie will expire after five days and your example session will be deleted.</li>
         </ul>
@@ -52,7 +52,7 @@ function startExampleSession() {
           }
         })
         .catch((error) => {
-          console.log(error);
+          handleError(error);
         });
     }
   });
