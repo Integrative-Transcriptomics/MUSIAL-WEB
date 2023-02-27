@@ -99,15 +99,47 @@
   color: var(--text-color-secondary) !important;
 }
 
+.hint {
+  background-color: transparent !important;
+  font-weight: bold;
+}
+
 #tag-title {
   z-index: 5;
   position: absolute;
   top: 1vh;
   left: 0.7vw;
-  padding: 4px;
+  padding: 5px;
   font-size: small;
   background-color: hsla(233, 20%, 91%, 0.8);
   color: var(--text-color-secondary);
   border-radius: 4px;
   text-transform: uppercase;
+}
+
+#toolbar {
+  z-index: 5;
+  position: absolute;
+  top: 1vh;
+  right: 0.7vw;
+  padding: 5px;
+  font-size: small;
+  background-color: hsla(233, 20%, 91%, 0.8);
+  color: var(--text-color-secondary);
+  border-radius: 4px;
+}
+
+#toolbar button {
+  z-index: 5;
+  border: none;
+  border-radius: 4px;
+  font-size: 1.6em;
+  background-color: transparent;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+#toolbar button:hover {
+  background-color: var(--color-secondary);
+  transition: 0.4s;
 }

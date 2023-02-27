@@ -73,7 +73,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     ></script>
     <script
       type="text/javascript"
-      src="https://kit.fontawesome.com/3efd018578.js"
+      src="https://kit.fontawesome.com/df04f22e3d.js"
       crossorigin="anonymous"
     ></script>
     <script
@@ -116,15 +116,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
           src="{{ url_for('static', filename='resources/logo.png') }}"
           alt="no picture"
       /></span>
-      <!-- Menu elements floating left -->
-      <div class="app-bar-container mr-auto d-none d-flex-fs">
-        <button onclick="openDialogFilter()" class="app-bar-item text-upper">
-          filter proteoforms
-        </button>
-        <button onclick="openDialogTracks()" class="app-bar-item text-upper">
-          annotation tracks
-        </button>
-      </div>
       <!-- Menu elements floating right -->
       <div class="app-bar-container ml-auto d-none d-flex-fs">
         <a
@@ -145,6 +136,35 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     </header>
     <div id="musialweb-protein-dashboard">
       <span id="tag-title">MUSIAL Prototype Dashboard | {{ target }}</span>
+      <span id="toolbar">
+        <button
+          id="toolbar-filter-proteoforms"
+          onclick="openDialogFilter()"
+          data-role="hint"
+          data-hint-position="bottom"
+          data-hint-text="Filter Proteoforms"
+        >
+          <i class="fa-thin fa-filter-list"></i>
+        </button>
+        <button
+          id="toolbar-annotation-tracks"
+          onclick="openDialogTracks()"
+          data-role="hint"
+          data-hint-position="bottom"
+          data-hint-text="Manage Annotation Tracks"
+        >
+          <i class="fa-thin fa-note"></i>
+        </button>
+        <button
+          id="toolbar-highlight-residues"
+          onclick="openDialogHighlight()"
+          data-role="hint"
+          data-hint-position="bottom"
+          data-hint-text="Highlight Structure Positions"
+        >
+          <i class="fa-thin fa-paintbrush"></i>
+        </button>
+      </span>
       <div
         id="musialweb-protein-dashboard-positioninformation"
         data-role="draggable"

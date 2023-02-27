@@ -601,11 +601,12 @@ var SETTINGS = {
   _PFMinNoSamples: 1,
   _explicitPFs: [],
   _explicitSamples: [],
+  _proteinViewerAddStyles: {},
 };
 var wtPrefix = "Wild Type";
 var wtGeneLabel = wtPrefix + " Gene (Translated)";
 var wtProteoformLabel = wtPrefix + " Proteoform";
-var wtProteoformIdentifier = "PF00000000WT";
+var wtProteoformIdentifier = "PF_REFERENCE";
 
 window.onload = (_) => {
   initializeSequenceViewer();
@@ -720,6 +721,17 @@ function proteinViewerApplyStyle() {
       },
     }
   );
+  for (const [additionalStylePosition, additionalStyleSpec] of Object.entries(
+    SETTINGS._proteinViewerAddStyles
+  )) {
+    console.log(additionalStylePosition, additionalStyleSpec);
+    proteinViewer.addStyle(
+      {
+        resi: additionalStylePosition,
+      },
+      additionalStyleSpec
+    );
+  }
   proteinViewer.render();
 }
 
@@ -1615,6 +1627,78 @@ function openDialogTracks() {
       replaceMerge: ["series"],
     });
     sequenceViewer.resize();
+  });
+}
+
+/**
+ * Fires the SWAL event to display the highlight residues tool popup window.
+ */
+function openDialogHighlight() {
+  let positionsToHighlight = Object.keys(SETTINGS._proteinViewerAddStyles);
+  let color = "";
+  let style = "";
+  // Definition of the html content to display on the dialog.
+  let htmlContent =
+    `
+    <div>
+        <table class="table">
+            <tbody>
+                <tr>
+                    <th class="w-50 text-left">Property</th>
+                    <th class="w-50 text-left">Value</th>
+                </tr>
+                <tr>
+                    <td class="w-50 text-left">Color</td>
+                    <td class="w-50 text-left"><input id="tmp--color" type="color" value=""></td>
+                </tr>
+                <tr>
+                    <td class="w-50 text-left">Style</td>
+                    <td class="w-50 text-left">
+                    <select id="tmp--style" data-role="select">
+                      <option value="line">Line</option>
+                      <option value="sphere">Sphere</option>
+                      <option value="stick">Stick</option>
+                    </select>
+                </td>
+                </tr>
+                <tr>
+                    <td class="w-50 text-left">Positions to Highlight</td>
+                    <td class="w-50 text-left"><input id="tmp--resi-list" type="text" data-role="taginput" data-tag-trigger="Space" value="` +
+    positionsToHighlight +
+    `"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    `;
+  Swal.fire({
+    title: "Highlight Structure Positions",
+    width: "70%",
+    padding: "0.5em",
+    color: "#747474",
+    background: "#fafafc",
+    html: htmlContent,
+    backdrop: `
+      rgba(96, 113, 150, 0.4)
+      left top
+      no-repeat
+    `,
+    confirmButtonColor: "#39c093cc",
+  }).then((_) => {
+    let positionsToHighlight = document
+      .getElementById("tmp--resi-list")
+      .value.split(",");
+    let color = document.getElementById("tmp--color").value;
+    let style = document.getElementById("tmp--style").value;
+    SETTINGS._proteinViewerAddStyles = {};
+    for (let positionToHighlight of positionsToHighlight) {
+      SETTINGS._proteinViewerAddStyles[positionToHighlight] = {};
+      SETTINGS._proteinViewerAddStyles[positionToHighlight][style] = {
+        color: color,
+      };
+    }
+    proteinViewerApplyStyle();
+    proteinViewer.render();
   });
 }
 
