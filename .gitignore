@@ -2,3 +2,4 @@
 /musialweb/musialweb/__pycache__
 /musialweb/musialweb/session/*
 /musialweb/musialweb/tmp/*
+/musialweb/musialweb/.env
