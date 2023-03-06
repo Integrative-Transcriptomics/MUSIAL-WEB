@@ -894,7 +894,8 @@ function getSequences() {
         excludeConservedPositions: !$(
           "#download-data-include-conserved-positions"
         ).is(":checked"),
-        grouped: $("#download-data-group").is(":checked"),
+	filterVariantsBy: {},
+	grouped: $("#download-data-group").is(":checked"),
         inputFile: "",
         outputDirectory: "",
       };
@@ -1082,6 +1083,7 @@ function getVariantsTable() {
         excludeConservedPositions: !$(
           "#download-data-include-conserved-positions"
         ).is(":checked"),
+	filterVariantsBy: {},
         grouped: $("#download-data-group").is(":checked"),
         inputFile: "",
         outputDirectory: "",

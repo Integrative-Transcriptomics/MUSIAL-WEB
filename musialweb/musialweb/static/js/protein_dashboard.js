@@ -724,7 +724,6 @@ function proteinViewerApplyStyle() {
   for (const [additionalStylePosition, additionalStyleSpec] of Object.entries(
     SETTINGS._proteinViewerAddStyles
   )) {
-    console.log(additionalStylePosition, additionalStyleSpec);
     proteinViewer.addStyle(
       {
         resi: additionalStylePosition,
