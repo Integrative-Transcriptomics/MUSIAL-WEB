@@ -23,7 +23,7 @@
     >upload</a
   >
   <a
-    id="menu-link-explore"
+    id="menu-link-results"
     href="{{url_for('get_template_results')}}"
     class="app-bar-item text-upper"
     >results</a
@@ -31,7 +31,10 @@
 </div>
 <!-- Menu elements floating right -->
 <div class="app-bar-container ml-auto d-none d-flex-fs">
-  <i id="menu-active-session-indicator" class="p-2 fa-solid fa-square-rss"></i>
+  <i
+    id="menu-active-session-indicator"
+    class="p-2 fa-duotone fa-circle-notch"
+  ></i>
   <a
     id="menu-link-legal"
     href="{{url_for('get_template_legal')}}"
@@ -148,6 +151,20 @@
       without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
       PARTICULAR PURPOSE. See the GNU General Public License for more details.
       (<a href="http://www.gnu.org/licenses">http://www.gnu.org/licenses</a>)
+    </p>
+  </div>
+  <div class="remark m-4">
+    <h2 class="p-2 text-center">
+      <small>Cookie Usage</small>
+    </h2>
+    <p class="indent">
+      <b>We use a strictly necessary (http-only non-tracking) session cookie so that you can access your data!</b>
+      <ul>
+        <li>As long as you keep the cookie, you can return to MUSIAL and continue with your session/access your results.</li>
+        <li>Your data will not be accessible to other people.</li>
+        <li>No personalized data is collected or shared with third parties and you will not be tracked by this cookie.</li>
+        <li>The cookie will expire after five days and your data will be deleted.</li>
+      </ul>
     </p>
   </div>
   <div class="remark m-4">

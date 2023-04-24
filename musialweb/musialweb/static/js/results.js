@@ -13,16 +13,16 @@ axios
     if (response.data != SUCCESS_CODE) {
       $("#main-results").find("*").attr("disabled", true);
       Swal.fire({
-        title: "No Active Session",
-        html: `You have to be in an active session to use this page.`,
+        title: "No Results Obtainable",
+        html: `You must submit a request before you can access results.`,
         color: "#747474",
         background: "#fafafcd9",
         allowOutsideClick: true,
         allowEscapeKey: true,
         showConfirmButton: true,
         focusConfirm: true,
-        confirmButtonColor: "#39c093cc",
-        confirmButtonText: "START SESSION",
+        confirmButtonColor: "#6d81ad",
+        confirmButtonText: "Ok",
         backdrop: `
           rgba(239, 240, 248, 0.1)
           left top
@@ -363,7 +363,7 @@ function setTableToGenes() {
           if (row.getData().Structure == "True") {
             getProteinDashboard(row.getData().Name);
           } else {
-            displayWarningPopup(
+            displayWarning(
               "Currently, it is not possible to create a protein dashboard if no protein structure is provided."
             );
           }
@@ -727,13 +727,20 @@ function downloadOverviewTable() {
 
 function getSession() {
   displayLoader(
-    `Your request is being processed! Your files will be available shortly`
+    "Processing Request (Your files will be downloaded automatically)",
+    10e9
   );
-  axios.get(WWW + "/result", { responseType: "blob" }).then((response) => {
-    Swal.close();
-    handleResponseCode(response);
-    downloadBlob(response.data, "session.json.br");
-  });
+  axios
+    .get(WWW + "/result", { responseType: "blob" })
+    .then((response) => {
+      Swal.close();
+      handleResponseCode(response);
+      downloadBlob(response.data, "session.json.br");
+    })
+    .catch((error) => {
+      handleError(error);
+    })
+    .finally(hideLoader());
 }
 
 function getSequences() {
@@ -894,8 +901,8 @@ function getSequences() {
         excludeConservedPositions: !$(
           "#download-data-include-conserved-positions"
         ).is(":checked"),
-	filterVariantsBy: {},
-	grouped: $("#download-data-group").is(":checked"),
+        filterVariantsBy: {},
+        grouped: $("#download-data-group").is(":checked"),
         inputFile: "",
         outputDirectory: "",
       };
@@ -918,7 +925,8 @@ function getSequences() {
           .filter((e) => e !== "");
       }
       displayLoader(
-        `Your request is being processed! Your files will be available shortly`
+        "Processing Request (Your files will be downloaded automatically)",
+        10e9
       );
       axios
         .post(
@@ -939,7 +947,8 @@ function getSequences() {
         })
         .catch((error) => {
           handleError(error);
-        });
+        })
+        .finally(hideLoader());
     }
   });
 }
@@ -1083,7 +1092,7 @@ function getVariantsTable() {
         excludeConservedPositions: !$(
           "#download-data-include-conserved-positions"
         ).is(":checked"),
-	filterVariantsBy: {},
+        filterVariantsBy: {},
         grouped: $("#download-data-group").is(":checked"),
         inputFile: "",
         outputDirectory: "",
@@ -1107,7 +1116,8 @@ function getVariantsTable() {
           .filter((e) => e !== "");
       }
       displayLoader(
-        `Your request is being processed! Your files will be available shortly`
+        "Processing Request (Your files will be downloaded automatically)",
+        10e9
       );
       axios
         .post(WWW + "/download_tables", pako.deflate(JSON.stringify(request)), {
@@ -1123,9 +1133,9 @@ function getVariantsTable() {
           downloadBlob(response.data, "tables.zip");
         })
         .catch((error) => {
-          Swal.close();
           handleError(error);
-        });
+        })
+        .finally(hideLoader());
     }
   });
 }

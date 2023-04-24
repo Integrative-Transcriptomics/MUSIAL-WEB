@@ -39,7 +39,10 @@
 </div>
 <!-- Menu elements floating right -->
 <div class="app-bar-container ml-auto d-none d-flex-fs">
-  <i id="menu-active-session-indicator" class="p-2 fa-solid fa-square-rss"></i>
+  <i
+    id="menu-active-session-indicator"
+    class="p-2 fa-duotone fa-circle-notch"
+  ></i>
   <a
     id="menu-link-legal"
     href="{{url_for('get_template_legal')}}"
@@ -227,16 +230,23 @@
           <p class="text-upper text-leader2 text-center">legal</p>
           <p class="text-light">
             This website is free and open to all users and there is no login
-            requirement. If cookies are used, you will receive a consent form.
-            Our web service does not use tracking cookies and all submitted data
-            is kept confidential. You will find additional information on the
-            <a href="{{url_for('get_template_legal')}}">legal</a>
-            page.
+            requirement. All submitted data is kept confidential. You will find
+            additional information on the
+            <a href="{{url_for('get_template_legal')}}">legal</a> page.
+          </p>
+          <p>
+            <i
+              style="color: #bd8c61"
+              class="fa-duotone fa-cookie-bite fa-xl"
+            ></i>
+            We use a strictly necessary (http-only non-tracking) session cookie
+            so that you can access your data! By using MUSIAL you consent to
+            using this cookie.
           </p>
         </div>
       </div>
     </div>
+
+    {% endblock %}
   </div>
 </div>
-
-{% endblock %}

@@ -3,7 +3,7 @@ from flask import request, session, render_template, send_file
 from flask_session import Session
 from datetime import timedelta
 from dotenv import load_dotenv
-import json, zlib, os, subprocess, shutil, numpy, brotli, random, string
+import json, zlib, os, subprocess, shutil, numpy, brotli, random, string, re
 
 """ Load variables from local file system. """
 load_dotenv()
@@ -17,16 +17,13 @@ app.config["SESSION_USE_SIGNER"] = True
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=5.0)
 app.config["SESSION_FILE_THRESHOLD"] = 15000
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
-app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024  # Limit content lengths to 200 MB.
+app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024 * 1024  # Limit content lengths to 1 GB.
 """ Set API parameters. """
 api_parameters = {
     "SUCCESS_CODE": "0",  # Response return code for successful requests.
-    "ERROR_CODE": "1",  # Response return code for failed requests (due to server internal error).
-    "APPLICATION_ISSUE_CODE": "2",  # Response return code for failed requests (due to application error).
+    "FAILURE_CODE": "1",  # Response return code for failed requests (due to server internal error).
     "RESULT_KEY": os.getenv("RESULT_KEY"),
-    "APPLICATION_ERROR_LOG_KEY": os.getenv("APPLICATION_ERROR_LOG_KEY"),
-    "SERVER_ERROR_LOG_KEY": os.getenv("SERVER_ERROR_LOG_KEY"),
-    "APPLICATION_RUN_LOG_KEY": os.getenv("APPLICATION_RUN_LOG_KEY"),
+    "APPLICATION_LOG_KEY": os.getenv("APPLICATION_LOG_KEY"),
     "URL": os.getenv("URL"),
 }
 """ Set DEBUG to true in order to display log as console output. """
@@ -40,13 +37,13 @@ def has_session():
     """
     GET route to check whether an active session exists.
     """
-    if api_parameters["RESULT_KEY"] in session:
-        if session[api_parameters["RESULT_KEY"]] == "":
-            return api_parameters["APPLICATION_ISSUE_CODE"]
-        else:
-            return api_parameters["SUCCESS_CODE"]
+    if (
+        not api_parameters["RESULT_KEY"] in session
+        or session[api_parameters["RESULT_KEY"]] == ""
+    ):
+        return api_parameters["FAILURE_CODE"]
     else:
-        return api_parameters["ERROR_CODE"]
+        return api_parameters["SUCCESS_CODE"]
 
 
 @app.route("/start_session", methods=["POST"])
@@ -138,11 +135,13 @@ def start_session():
         stderr = stderr.decode(encoding="utf-8")
         # If any error was raised during MUSIAL, set response code to 1 (failed).
         if stderr != "":
-            response_code = api_parameters["APPLICATION_ISSUE_CODE"]
-            session[api_parameters["APPLICATION_ERROR_LOG_KEY"]] = stderr
+            response_code = api_parameters["FAILURE_CODE"]
+            session[api_parameters["APPLICATION_LOG_KEY"]] = (
+                remove_ansi(stdout) + "\n" + remove_ansi(stderr)
+            )
             if DEBUG:
-                print("\033[41m APPLICATION ERROR \033[0m")
-                print(session[api_parameters["APPLICATION_ERROR_LOG_KEY"]])
+                print("\033[41m ERROR \033[0m")
+                print(session[api_parameters["APPLICATION_LOG_KEY"]])
         # Else, parse and store output of MUSIAL.
         else:
             with open(
@@ -152,41 +151,35 @@ def start_session():
                 result = json_result_data
     # If any error is thrown by the server, set response code to 1 (failed).
     except Exception as e:
-        response_code = api_parameters["ERROR_CODE"]
-        session[api_parameters["SERVER_ERROR_LOG_KEY"]] = str(e)
+        response_code = api_parameters["FAILURE_CODE"]
+        session[api_parameters["APPLICATION_LOG_KEY"]] = remove_ansi(str(e))
         if DEBUG:
-            print("\033[41m SERVER ERROR \033[0m")
-            print(session[api_parameters["SERVER_ERROR_LOG_KEY"]])
+            print("\033[41m ERROR \033[0m")
+            print(session[api_parameters["APPLICATION_LOG_KEY"]])
     finally:
         # Remove temporary files, store results and log in session and return response code.
         shutil.rmtree("./musialweb/tmp/" + unique_hex_key)
         session[api_parameters["RESULT_KEY"]] = result
-        session[api_parameters["APPLICATION_RUN_LOG_KEY"]] = stdout
+        session[api_parameters["APPLICATION_LOG_KEY"]] = (
+            remove_ansi(stdout) + "\n" + remove_ansi(stderr)
+        )
         if DEBUG:
-            print("\033[46m APPLICATION LOG \033[0m")
-            print(session[api_parameters["APPLICATION_RUN_LOG_KEY"]])
+            print("\033[46m LOG \033[0m")
+            print(session[api_parameters["APPLICATION_LOG_KEY"]])
         return response_code
 
 
 @app.route("/log", methods=["GET"])
 def get_log():
     log = {}
-    if api_parameters["APPLICATION_RUN_LOG_KEY"] in session:
-        log[api_parameters["APPLICATION_RUN_LOG_KEY"]] = session[
-            api_parameters["APPLICATION_RUN_LOG_KEY"]
-        ]
-    if api_parameters["APPLICATION_ERROR_LOG_KEY"] in session:
-        log[api_parameters["APPLICATION_ERROR_LOG_KEY"]] = session[
-            api_parameters["APPLICATION_ERROR_LOG_KEY"]
-        ]
-    if api_parameters["SERVER_ERROR_LOG_KEY"] in session:
-        log[api_parameters["SERVER_ERROR_LOG_KEY"]] = session[
-            api_parameters["SERVER_ERROR_LOG_KEY"]
+    if api_parameters["APPLICATION_LOG_KEY"] in session:
+        log[api_parameters["APPLICATION_LOG_KEY"]] = session[
+            api_parameters["APPLICATION_LOG_KEY"]
         ]
     if len(log.keys()) > 0:
         return json.dumps(log)
     else:
-        return api_parameters["ERROR_CODE"]
+        return api_parameters["FAILURE_CODE"]
 
 
 @app.route("/get_samples_table", methods=["GET"])
@@ -194,7 +187,10 @@ def get_samples_table():
     """
     GET route to return sample information as JSON to display in tabular form.
     """
-    if api_parameters["RESULT_KEY"] in session:
+    if (
+        api_parameters["RESULT_KEY"] in session
+        and session[api_parameters["RESULT_KEY"]] != ""
+    ):
         row_data = []
         for sample_identifier in session[api_parameters["RESULT_KEY"]]["samples"]:
             sample_row_data = {
@@ -247,7 +243,7 @@ def get_samples_table():
             row_data.append(sample_row_data)
         return json.dumps(row_data)
     else:
-        return "1"
+        return api_parameters["FAILURE_CODE"]
 
 
 @app.route("/get_genes_table", methods=["GET"])
@@ -335,7 +331,7 @@ def get_genes_table():
             row_data.append(gene_row_data)
         return json.dumps(row_data)
     else:
-        return api_parameters["ERROR_CODE"]
+        return api_parameters["FAILURE_CODE"]
 
 
 @app.route("/get_variants_table", methods=["GET"])
@@ -394,7 +390,7 @@ def get_variants_table():
                 row_data.append(variant_row_data)
         return json.dumps(row_data)
     else:
-        return api_parameters["ERROR_CODE"]
+        return api_parameters["FAILURE_CODE"]
 
 
 @app.route("/get_feature_annotation", methods=["GET"])
@@ -440,7 +436,7 @@ def get_feature_annotation():
             }
         return json.dumps(data)
     else:
-        return api_parameters["ERROR_CODE"]
+        return api_parameters["FAILURE_CODE"]
 
 
 @app.route("/protein_dashboard", methods=["GET"])
@@ -458,7 +454,7 @@ def get_protein_dashboard():
             "protein_dashboard.html", data=target_data, target=target_identifier
         )
     else:
-        return api_parameters["ERROR_CODE"]
+        return api_parameters["FAILURE_CODE"]
 
 
 @app.route("/result", methods=["GET"])
@@ -483,11 +479,11 @@ def get_result():
                 as_attachment=True,
             )
     except Exception as e:
-        response_code = api_parameters["ERROR_CODE"]
-        session[api_parameters["SERVER_ERROR_LOG_KEY"]] = str(e)
+        response_code = api_parameters["FAILURE_CODE"]
+        session[api_parameters["APPLICATION_LOG_KEY"]] = remove_ansi(str(e))
         if DEBUG:
-            print("\033[41m SERVER ERROR \033[0m")
-            print(session[api_parameters["SERVER_ERROR_LOG_KEY"]])
+            print("\033[41m ERROR \033[0m")
+            print(session[api_parameters["APPLICATION_LOG_KEY"]])
         return response_code
     finally:
         shutil.rmtree("./musialweb/tmp/" + unique_hex_key)
@@ -577,11 +573,11 @@ def get_sequences():
         stderr = stderr.decode(encoding="utf-8")
         # If any error was raised during MUSIAL, set response code to 1 (failed).
         if stderr != "":
-            response_code = api_parameters["APPLICATION_ISSUE_CODE"]
-            session[api_parameters["APPLICATION_ERROR_LOG_KEY"]] = stderr
+            response_code = api_parameters["FAILURE_CODE"]
+            session[api_parameters["APPLICATION_LOG_KEY"]] = remove_ansi(stderr)
             if DEBUG:
-                print("\033[41m APPLICATION ERROR \033[0m")
-                print(session[api_parameters["APPLICATION_ERROR_LOG_KEY"]])
+                print("\033[41m ERROR \033[0m")
+                print(session[api_parameters["APPLICATION_LOG_KEY"]])
             return response_code
         # Else, compress output and send to client.
         else:
@@ -597,19 +593,21 @@ def get_sequences():
             )
     # If any error is thrown by the server, set response code to 1 (failed).
     except Exception as e:
-        response_code = api_parameters["ERROR_CODE"]
-        session[api_parameters["SERVER_ERROR_LOG_KEY"]] = str(e)
+        response_code = api_parameters["FAILURE_CODE"]
+        session[api_parameters["APPLICATION_LOG_KEY"]] = remove_ansi(str(e))
         if DEBUG:
-            print("\033[41m SERVER ERROR \033[0m")
-            print(session[api_parameters["SERVER_ERROR_LOG_KEY"]])
+            print("\033[41m ERROR \033[0m")
+            print(session[api_parameters["APPLICATION_LOG_KEY"]])
         return response_code
     finally:
         # Remove temporary files, store results and log in session and return response code.
         shutil.rmtree("./musialweb/tmp/" + unique_hex_key)
-        session[api_parameters["APPLICATION_RUN_LOG_KEY"]] = stdout
+        session[api_parameters["APPLICATION_LOG_KEY"]] = (
+            remove_ansi(stdout) + "\n" + remove_ansi(stderr)
+        )
         if DEBUG:
-            print("\033[46m APPLICATION LOG \033[0m")
-            print(session[api_parameters["APPLICATION_RUN_LOG_KEY"]])
+            print("\033[46m LOG \033[0m")
+            print(session[api_parameters["APPLICATION_LOG_KEY"]])
 
 
 @app.route("/download_tables", methods=["POST"])
@@ -696,11 +694,11 @@ def get_tables():
         stderr = stderr.decode(encoding="utf-8")
         # If any error was raised during MUSIAL, set response code to 1 (failed).
         if stderr != "":
-            response_code = api_parameters["APPLICATION_ISSUE_CODE"]
-            session[api_parameters["APPLICATION_ERROR_LOG_KEY"]] = stderr
+            response_code = api_parameters["FAILURE_CODE"]
+            session[api_parameters["APPLICATION_LOG_KEY"]] = remove_ansi(stderr)
             if DEBUG:
-                print("\033[41m APPLICATION ERROR \033[0m")
-                print(session[api_parameters["APPLICATION_ERROR_LOG_KEY"]])
+                print("\033[41m ERROR \033[0m")
+                print(session[api_parameters["APPLICATION_LOG_KEY"]])
             return response_code
         # Else, compress output and send to client.
         else:
@@ -716,19 +714,21 @@ def get_tables():
             )
     # If any error is thrown by the server, set response code to 1 (failed).
     except Exception as e:
-        response_code = api_parameters["ERROR_CODE"]
-        session[api_parameters["SERVER_ERROR_LOG_KEY"]] = str(e)
+        response_code = api_parameters["FAILURE_CODE"]
+        session[api_parameters["APPLICATION_LOG_KEY"]] = remove_ansi(str(e))
         if DEBUG:
-            print("\033[41m SERVER ERROR \033[0m")
-            print(session[api_parameters["SERVER_ERROR_LOG_KEY"]])
+            print("\033[41m ERROR \033[0m")
+            print(session[api_parameters["APPLICATION_LOG_KEY"]])
         return response_code
     finally:
         # Remove temporary files, store results and log in session and return response code.
         shutil.rmtree("./musialweb/tmp/" + unique_hex_key)
-        session[api_parameters["APPLICATION_RUN_LOG_KEY"]] = stdout
+        session[api_parameters["APPLICATION_LOG_KEY"]] = (
+            remove_ansi(stdout) + "\n" + remove_ansi(stderr)
+        )
         if DEBUG:
-            print("\033[46m APPLICATION LOG \033[0m")
-            print(session[api_parameters["APPLICATION_RUN_LOG_KEY"]])
+            print("\033[46m LOG \033[0m")
+            print(session[api_parameters["APPLICATION_LOG_KEY"]])
 
 
 @app.route("/example_data", methods=["GET"])
@@ -752,11 +752,11 @@ def get_example_session():
             result = json.load(example_session_file)
     # If any error is thrown by the server, set response code to 1 (failed).
     except Exception as e:
-        response_code = api_parameters["ERROR_CODE"]
-        session[api_parameters["SERVER_ERROR_LOG_KEY"]] = str(e)
+        response_code = api_parameters["FAILURE_CODE"]
+        session[api_parameters["APPLICATION_LOG_KEY"]] = remove_ansi(str(e))
         if DEBUG:
-            print("\033[41m SERVER ERROR \033[0m")
-            print(session[api_parameters["SERVER_ERROR_LOG_KEY"]])
+            print("\033[41m ERROR \033[0m")
+            print(session[api_parameters["APPLICATION_LOG_KEY"]])
     finally:
         session[api_parameters["RESULT_KEY"]] = result
         return response_code
@@ -767,3 +767,8 @@ def generate_random_string():
         random.SystemRandom().choice(string.ascii_letters + string.digits)
         for _ in range(10)
     )
+
+
+def remove_ansi(text):
+    ansi_remove_expression = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]")
+    return ansi_remove_expression.sub("", text)

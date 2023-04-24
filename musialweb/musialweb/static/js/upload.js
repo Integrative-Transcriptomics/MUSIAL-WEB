@@ -160,7 +160,7 @@ $("#input-parameter-min-coverage").on("change", function (event) {
   let oldValue = request.minCoverage;
   let newValue = undefined;
   let cancel = () => {
-    displayWarningPopup(
+    displayWarning(
       "Minimal variant call coverage is expected to be an integer greater than 0."
     );
     $("#input-parameter-min-coverage")[0].value = oldValue;
@@ -182,7 +182,7 @@ $("#input-parameter-min-quality").on("change", function (event) {
   let oldValue = request.minQuality;
   let newValue = undefined;
   let cancel = () => {
-    displayWarningPopup(
+    displayWarning(
       "Minimal variant call quality is expected to be an integer greater than 0."
     );
     $("#input-parameter-min-quality")[0].value = oldValue;
@@ -204,7 +204,7 @@ $("#input-parameter-min-hom-frequency").on("change", function (event) {
   let oldValue = request.minHomFrequency;
   let newValue = undefined;
   let cancel = () => {
-    displayWarningPopup(
+    displayWarning(
       "Minimal homozygous variant call frequency has to be an integer between 0 and 100."
     );
     $("#input-parameter-min-hom-frequency")[0].value = oldValue;
@@ -226,7 +226,7 @@ $("#input-parameter-min-het-frequency").on("change", function (event) {
   let oldValue = request.minHetFrequency;
   let newValue = undefined;
   let cancel = () => {
-    displayWarningPopup(
+    displayWarning(
       "Minimal heterozygous variant call frequency has to be an integer between 0 and 100 and less than the maximal heterozygous variant call frequency."
     );
     $("#input-parameter-min-het-frequency")[0].value = oldValue;
@@ -248,7 +248,7 @@ $("#input-parameter-max-het-frequency").on("change", function (event) {
   let oldValue = request.maxHetFrequency;
   let newValue = undefined;
   let cancel = () => {
-    displayWarningPopup(
+    displayWarning(
       "Maximal heterozygous variant call frequency has to be an integer between 0 and 100 and greater than the minimal heterozygous variant call frequency."
     );
     $("#input-parameter-max-het-frequency")[0].value = oldValue;
@@ -299,7 +299,8 @@ function checkCanSubmit() {
     isReferenceGenome &&
     isReferenceFeatures &&
     isSamples &&
-    (isFeatures || request.genomeAnalysis)
+    (isFeatures || request.genomeAnalysis) &&
+    $("#loader-container").length == 0
   ) {
     $("#upload-data-button")[0].disabled = false;
     canSubmit = true;
@@ -320,39 +321,13 @@ function readFile(file) {
   });
 }
 
-function startExampleSession() {
-  axios
-    .get(WWW + "/example_session")
-    .then((response) => {
-      handleResponseCode(response);
-      if (response.data == SUCCESS_CODE) {
-        Swal.fire({
-          icon: "success",
-          title: "Success",
-          confirmButtonColor: "#6d81ad",
-          html:
-            `You can view the example session results at the <a href="` +
-            WWW +
-            `/results">RESULTS</a> page.`,
-          color: "#747474",
-          background: "#fafafcd9",
-          backdrop: `
-                  rgba(239, 240, 248, 0.1)
-                  left top
-                  no-repeat
-                `,
-        }).then((_) => {
-          init();
-        });
-      }
-    })
-    .catch((error) => {
-      handleError(error);
-    });
-}
-
 async function submit() {
   if (canSubmit) {
+    displayLoader(
+      "Processing Request (You will be redirected once complete)",
+      10e9
+    );
+    checkCanSubmit();
     document.body.className = "wait";
     let sampleFiles = request.samples;
     request.samples = {};
@@ -406,69 +381,26 @@ async function submit() {
     request.minHetFrequency = request.minHetFrequency / 100;
     request.maxHetFrequency = request.maxHetFrequency / 100;
     document.body.className = "";
-    Swal.fire({
-      title: "We use a cookie so that you can access your data!",
-      iconHtml: `
-        <div id="cookie-consent-icon-container">
-          <i class='fa-solid fa-cookie'></i>
-          <i class='fa-solid fa-circle'></i>
-        <div>
-      `,
-      html: `
-        <ul id="cookie-consent-text-container">
-          <li>As long as you keep the cookie, you can return here and continue with your session.</li>
-          <li>Your data will not be accessible to other people.</li>
-          <li>No personalized data is collected or shared with third parties and you will not be tracked by this cookie.</li>
-          <li>The cookie will expire after five days and your data will be deleted.</li>
-        </ul>
-      `,
-      padding: "0.5em",
-      position: "bottom",
-      width: "100%",
-      color: "#747474",
-      background: "#fafafcd9",
-      showCancelButton: true,
-      cancelButtonColor: "#fe4848cc",
-      cancelButtonText: "Cancel",
-      confirmButtonColor: "#39c093cc",
-      confirmButtonText: "Consent and Submit Request",
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      backdrop: `
-          rgba(239, 240, 248, 0.1)
-          left top
-          no-repeat
-      `,
-    }).then((result) => {
-      document.body.className = "wait";
-      if (result.isConfirmed) {
-        displayLoader(
-          `Your request is being processed! You will be forwarded when the results are ready`
-        );
-        axios
-          .post(WWW + "/start_session", pako.deflate(JSON.stringify(request)), {
-            headers: {
-              "Content-Type": "application/octet-stream",
-              "Content-Encoding": "zlib",
-            },
-          })
-          .then((response) => {
-            handleResponseCode(response);
-            if (response.data == SUCCESS_CODE) {
-              window.location.href = WWW + "/results";
-            }
-          })
-          .catch((error) => {
-            handleError(error);
-          })
-          .finally((_) => {
-            document.body.className = "";
-            resetForm();
-          });
-      } else if (result.isDenied) {
+    axios
+      .post(WWW + "/start_session", pako.deflate(JSON.stringify(request)), {
+        headers: {
+          "Content-Type": "application/octet-stream",
+          "Content-Encoding": "zlib",
+        },
+      })
+      .then((response) => {
+        handleResponseCode(response);
+        if (response.data == SUCCESS_CODE) {
+          window.location.href = WWW + "/results";
+        }
+      })
+      .catch((error) => {
+        handleError(error);
+      })
+      .finally((_) => {
         document.body.className = "";
         resetForm();
-      }
-    });
+        hideLoader();
+      });
   }
 }
