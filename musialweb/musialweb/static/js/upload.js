@@ -95,58 +95,31 @@ $("#input-infer-proteoforms").on("change", function (event) {
   PROTEOFORM_ANALYSIS = $("#input-infer-proteoforms").is(":checked");
 });
 
-$("#input-reference-genome-excluded-positions").on("change", function (event) {
-  REQUEST.excludedPositions = {};
-  if (!$("#input-reference-genome-excluded-positions")[0].value) {
-    return;
-  }
-  let text = $("#input-reference-genome-excluded-positions")[0].value.split(
-    ";"
-  );
-  for (let entry of text) {
-    let splitEntry = entry.split(":");
-    if (!(splitEntry.length == 2)) {
-      continue;
-    }
-    let contig = entry.split(":")[0];
-    let positions = entry.split(":")[1].split(",");
-    if (
-      /^[a-zA-Z\_\-\.]+$/.test(contig) &&
-      positions.every((p) => {
-        return /^[0-9]+$/.test(p);
-      })
-    ) {
-      REQUEST.excludedPositions[contig] = positions.map((p) => parseInt(p));
-    }
-  }
-});
-
-$("#input-features-list").on("change", function (event) {
-  let specifiedFeatures = undefined;
-  let text = $("#input-features-list")[0].value.split(",");
-  if (
-    text.every((entry) => {
-      return /^[a-zA-Z\_\-]+\=[a-zA-Z0-9\_\-]+$/.test(entry);
-    })
-  ) {
-    specifiedFeatures = new Set(
-      $("#input-features-list")[0]
-        .value.split(",")
-        .filter((entry) => entry !== "")
-    );
-  }
-  if (specifiedFeatures !== undefined && specifiedFeatures.size > 0) {
-    REQUEST.features = Array.from(specifiedFeatures);
-  } else {
-    REQUEST.features = undefined;
-  }
+function observeFeatures(_, _, values) {
+  parseFeaturesInput(values);
   if (REQUEST.features !== undefined) {
     PASS_FEATURES = true;
   } else {
     PASS_FEATURES = false;
   }
   checkCanSubmit();
-});
+}
+
+function parseFeaturesInput(values) {
+  let features = undefined;
+  if (
+    values.every((entry) => {
+      return /^[a-zA-Z0-9\_\-]+\s[a-zA-Z0-9\_\-]+$/.test(entry);
+    })
+  ) {
+    features = new Set(values);
+  }
+  if (features !== undefined && features.size > 0) {
+    REQUEST.features = Array.from(features);
+  } else {
+    REQUEST.features = undefined;
+  }
+}
 
 $("#input-parameter-min-coverage").on("change", function (event) {
   let oldValue = REQUEST.minimalCoverage;
@@ -280,8 +253,11 @@ function resetForm() {
   ]) {
     Metro.getPlugin(document.getElementById(fileInputId), "file").clear();
   }
-  $("#input-features-list")[0].value = null;
-  $("#input-reference-genome-excluded-positions")[0].value = null;
+  Metro.getPlugin("#input-features-list", "taginput").clear();
+  Metro.getPlugin(
+    "#input-reference-genome-excluded-positions",
+    "taginput"
+  ).clear();
   PASS_REFERENCE_SEQUENCE = false;
   PASS_REFERENCE_FEATURES = false;
   PASS_SAMPLES = false;
@@ -332,6 +308,7 @@ async function submit() {
     );
     checkCanSubmit();
     document.body.className = "wait";
+    // Process samples input.
     let sampleFiles = REQUEST.samples;
     REQUEST.samples = {};
     for (let sampleFile of sampleFiles) {
@@ -345,27 +322,80 @@ async function submit() {
         REQUEST.samples[sampleName].vcfFile = response;
       });
     }
+    // Process reference sequence input.
     let referenceSequenceFile = REQUEST.referenceSequenceFile;
     await readFile(referenceSequenceFile).then((response) => {
       REQUEST.referenceSequenceFile = response;
     });
+    REQUEST.excludedPositions = {};
+    let excludedPositionsTags = Metro.getPlugin(
+      "#input-reference-genome-excluded-positions",
+      "taginput"
+    ).val();
+    for (let excludedPositionsTag of excludedPositionsTags) {
+      let excludedPositionsData = excludedPositionsTag.split(" ");
+      if (!(excludedPositionsData.length == 2)) {
+        continue;
+      }
+      let contig = excludedPositionsData[0];
+      let positions = excludedPositionsData[1].split(",");
+      if (
+        /^[a-zA-Z0-9\_\-\.]+$/.test(contig) &&
+        positions.every((p) => {
+          return /^([0-9]+|[0-9]+\-[0-9]+)$/.test(p);
+        })
+      ) {
+        positions = positions.filter((p) => {
+          if (p.includes("-")) {
+            let limits = p.split("-");
+            let start = parseInt(limits[0]);
+            let end = parseInt(limits[1]);
+            return start <= end;
+          } else {
+            return true;
+          }
+        });
+        if (!REQUEST.excludedPositions.hasOwnProperty(contig)) {
+          REQUEST.excludedPositions[contig] = [];
+        }
+        for (let position of positions) {
+          if (position.includes("-")) {
+            let limits = position.split("-");
+            let start = parseInt(limits[0]);
+            let end = parseInt(limits[1]);
+            for (let i = start; i <= end; i++) {
+              REQUEST.excludedPositions[contig].push(i);
+            }
+          } else {
+            REQUEST.excludedPositions[contig].push(parseInt(position));
+          }
+        }
+        REQUEST.excludedPositions[contig] = [
+          ...new Set(REQUEST.excludedPositions[contig]),
+        ];
+      }
+    }
+    // Process reference sequence features.
     let referenceFeaturesFile = REQUEST.referenceFeaturesFile;
     await readFile(referenceFeaturesFile).then((response) => {
       REQUEST.referenceFeaturesFile = response;
     });
-    let specifiedFeatures = REQUEST.features;
+    parseFeaturesInput(
+      Metro.getPlugin("#input-features-list", "taginput").val()
+    );
+    let features = REQUEST.features;
     REQUEST.features = {};
-    if (specifiedFeatures.length > 0) {
-      for (let specifiedFeature of specifiedFeatures) {
-        let matchAttribute = specifiedFeature.split("=")[0];
-        let matchValue = specifiedFeature.split("=")[1];
+    if (features.length > 0) {
+      for (let feature of features) {
+        let matchKey = feature.split(" ")[0];
+        let matchValue = feature.split(" ")[1];
         REQUEST.features[matchValue] = {
           annotations:
             matchValue in FEATURES_META_DATA
               ? FEATURES_META_DATA[matchValue]
               : {},
         };
-        REQUEST.features[matchValue]["match_" + matchAttribute] = matchValue;
+        REQUEST.features[matchValue]["match_" + matchKey] = matchValue;
         let matchedPdbFiles = [...PDB_FILES].filter(
           (file) => file.name.split(".")[0] === matchValue
         );
@@ -378,6 +408,7 @@ async function submit() {
         }
       }
     }
+    // Process call filter parameters.
     REQUEST.minimalHomozygousFrequency =
       REQUEST.minimalHomozygousFrequency / 100;
     REQUEST.minimalHeterozygousFrequency =

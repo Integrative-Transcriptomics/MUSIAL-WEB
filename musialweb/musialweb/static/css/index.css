@@ -164,11 +164,11 @@ body.swal2-shown > [aria-hidden="true"] {
 }
 
 .tag-light {
-  padding: 2px 2px 2px 2px;
+  padding: 4px;
   font-size: small;
   background-color: var(--background-color-primary);
   color: var(--text-color-secondary);
-  border-radius: 2px;
+  border-radius: 4px;
   text-transform: uppercase;
 }
 

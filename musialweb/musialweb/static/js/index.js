@@ -1,7 +1,7 @@
 SUCCESS_CODE = ""; // Code returned by the server for succ. requests.
 FAILURE_CODE = ""; // Code returned by the server for faulty requests.
-RESULT = ""; // Server session key to store results.
-LOG = ""; // Server session key to store application log.
+RESULT = ""; // Server session key to access results.
+LOG = ""; // Server session key to access application log.
 WWW = ""; // URL to access server.
 
 /**
@@ -25,9 +25,8 @@ function init() {
         if (response.data == FAILURE_CODE) {
           text = `No application log was retrievable from our server. This may be caused by:
           <ul>
-            <li>No log data is stored in your session.</li>
+            <li>No log data is stored for your session.</li>
             <li>Your session was deleted.</li>
-            <li>No connection to the server could be established.</li>
             <li>You have started the example session.</li>
           </ul>`;
         } else {
@@ -184,6 +183,11 @@ function checkForSession() {
     });
 }
 
+/**
+ *
+ * @param {*} html
+ * @returns
+ */
 function htmlToElement(html) {
   var template = document.createElement("template");
   html = html.trim(); // Never return a text node of whitespace as the result
@@ -191,8 +195,10 @@ function htmlToElement(html) {
   return template.content.firstChild;
 }
 
-/***
+/**
  *
+ * @param {*} text
+ * @param {*} timeout
  */
 function displayLoader(text, timeout) {
   var loaderContainer = document.createElement("div");
@@ -202,7 +208,7 @@ function displayLoader(text, timeout) {
     LOADING_GIF +
     `" style="height: 100px; width: 100px; pointer-events: none; user-select: none;">`;
   loaderContainer.style.cssText =
-    "position:absolute; right:1vh; bottom:1vh; width:100px; height:100px; opacity:1.0; z-index:10; background: transparent;";
+    "position:absolute; left:1vh; bottom:1vh; width:100px; height:100px; opacity:1.0; z-index:10; background: transparent;";
   document.body.appendChild(loaderContainer);
   Metro.toast.create(
     `<small>` + text + `</small>`,

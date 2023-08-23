@@ -92,25 +92,26 @@
             >FASTA</a
           >
           format file containing one or more contigs/chromosomes/plasmids to use
-          as the reference genome for the analysis. Ensure that the sequence
+          as the reference sequence for the analysis. Ensure that the sequence
           identifier (SeqID) is unique for each entry and matches the
           identifiers in the used variant call (.vcf) and generic feature format
-          (.gff) files. Example:
+          (.gff) files. <b>Format example:</b>
         </p>
         <p class="tag-info-text">
-          >SeqID ...
-          <br />CAGAACATAAAGATAGACTTGCTGACTAAGTAGTAAAGAGAAGAACGTTGTTTCAGGTAA
-          <br />GTTAAGATAGTGTCACGTAGACGCACCACCCGGGAAGAAGACAGTCTCGGACTTCACTCA
+          >NC_000962.3 Mycobacterium tuberculosis H37Rv, complete genome
+          <br />TTGACCGATGACCCCGGTTCAGGCTTCACCACAGTGTGGAACGCGGTCGTCTCCGAACTTAACGGCGACC
+          <br />CTAAGGTTGACGACGGACCCAGCAGTGATGCTAATCTCAGCGCTCCGCTGACCCCTCAGCAAAGGGCTTG
           <br />
-          ...
         </p>
       </div>
       <div class="p-5 text-left">
         <p>
-          <span class="tag-translucent">excluded positions</span> (Optional)
-          Specifies positions to be excluded from the analysis.
+          <span class="tag-translucent">excluded positions (optional)</span>
+          Specifies positions to be excluded from the analysis. Entries can be
+          added as tags in the input field by pressing enter.
+          <b>Format example:</b>
         </p>
-        <p class="tag-info-text">SeqID:3,11,42,512;SeqID:5,7,1024</p>
+        <p class="tag-info-text"><span class="tag-citation">NC_000962.3 1473246,12468-13016</span></p>
       </div>
     </div>
     <input
@@ -118,16 +119,21 @@
       type="file"
       data-role="file"
       data-button-title='<i class="fa-solid fa-file-arrow-up"></i>'
-      data-prepend="<small><span class='tag-light'>reference genome</span> (.fasta)<sup class='mandatory-tag'>*</sup></small>"
+      data-prepend="<small><span class='tag-light'>reference sequence</span> (.fasta)<sup class='mandatory-tag'>*</sup></small>"
       accept=".fasta,.fasta"
     />
-    <textarea
+    <br>
+    <label for="input-reference-genome-excluded-positions">
+      <small><span class='tag-light mt-4'>excluded positions</span></small>
+    </label>
+    <input
       id="input-reference-genome-excluded-positions"
-      class="mt-4"
+      class="mt-2"
       type="text"
-      data-role="textarea"
-      data-prepend="<small><span class='tag-light'>excluded positions</span></small>"
-    ></textarea>
+      data-role="taginput"
+      data-tag-trigger="Enter"
+    >
+    </input>
   </div>
 
   <div class="remark m-4">
@@ -146,7 +152,7 @@
     >
       <div class="p-5 text-left">
         <p>
-          <span class="tag-translucent">variant call files</span> One or more
+          <span class="tag-translucent">variant calls</span> One or more
           files in
           <a
             href="https://gatk.broadinstitute.org/hc/en-us/articles/360035531692-VCF-Variant-Call-Format"
@@ -158,42 +164,34 @@
           highest frequency in terms of number of reads is used. Ensure that the
           CHROM column's row values match any SeqID of the provided reference
           genome. Each filename will be used as the internal sample identifier.
-          Required fields can be derived from the example below. Example:
+          Required fields can be derived from the example below. <b>Format example:</b>
         </p>
         <p class="tag-info-text">
-          [HEADER LINES]
+          #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	ERR017782_pass
           <br />
-          #CHROM POS ID REF ALT QUAL FILTER INFO FORMAT SampleID
+          NC_000962.3	1534	.	T	C	1148.06	.	AC=2;AF=1.00;AN=2;DP=38;ExcessHet=0.0000;FS=0.000;MLEAC=2;MLEAF=1.00;MQ=60.00;QD=34.79;SOR=1.542	GT:AD:DP:GQ:PL	1/1:0,33:33:99:1162,99,0
           <br />
-          SeqID 6442 . G A 7243.77 . AC=2;AF=1.00;AN=2;DP=172 GT:AD:DP:GQ:PL
-          1/1:0,172:172:99:7272,515,0
-          <br />
-          SeqID 7179 . T C 9100.77 . AC=2;AF=1.00;AN=2;DP=215 GT:AD:DP:GQ:PL
-          1/1:0,215:215:99:9129,644,0
-          <br />
-          ...
+          NC_000962.3	1977	.	A	G	781.06	.	AC=2;AF=1.00;AN=2;DP=24;ExcessHet=0.0000;FS=0.000;MLEAC=2;MLEAF=1.00;MQ=59.88;QD=25.36;SOR=2.200	GT:AD:DP:GQ:PL	1/1:0,21:21:63:795,63,0
         </p>
       </div>
       <div class="p-5 text-left">
         <p>
-          <span class="tag-translucent">sample meta information</span>
-          (Optional) A file in
+          <span class="tag-translucent">sample meta information (optional)</span>
+          A file in
           <a href="https://docs.fileformat.com/spreadsheet/tsv/" target="_blank"
             >TSV</a
           >
           format format containing meta information to be added to sample
           entries. Column names and cell values can be arbitrary; the first
           column must contain sample identifiers that match a provided variant
-          call file. Example:
+          call file. <b>Format example:</b>
         </p>
         <p class="tag-info-text">
-          sampleID&#09;location&#09;year&#09;databank_accessor&#09;growth_condition
+          accession	strain	date	country	region	lineage
           <br />
-          Oddoda&#09;europe&#09;2022&#09;SAMN1&#09;pH7
+          ERR970409	G04126	1970-01-02	South Africa	Africa	D
           <br />
-          Ramron&#09;europe&#09;2022&#09;SAMN2&#09;pH7
-          <br />
-          ...
+          ERR234106	G00883	1970-01-02	Germany	Europe	L6
         </p>
       </div>
     </div>
@@ -235,54 +233,52 @@
     >
       <div class="p-5 text-left">
         <p>
-          <span class="tag-translucent">reference features</span> A file in
+          <span class="tag-translucent">reference sequence annotation</span> A file in
           <a
             href="https://www.ensembl.org/info/website/upload/gff.html?redirect=no"
             target="_blank"
             >GFF</a
           >
-          format, describing features of the provided reference genome. Ensure
+          format, describing features of the provided reference sequence. Ensure
           that the seqname cell entries match the SeqID values of the provided
-          reference genome. Example:
+          reference genome. <b>Format example:</b>
         </p>
         <p class="tag-info-text">
-          SeqID&emsp;Genbank&emsp;gene&emsp;2&emsp;1242&emsp;.&emsp;+&emsp;.&emsp;ID=gene-GENOME_0001;Name=idaR;gbkey=Gene;gene=idaR;gene_biotype=protein_coding;locus_tag=GENOME_0001
-          <br />
-          ...
+          NC_000962.3	RefSeq	region	1	4411532	.	+	.	ID=NC_000962.3:1..4411532;Dbxref=taxon:83332;gbkey=Src;genome=genomic;mol_type=genomic DNA;strain=H37Rv;type-material=type strain of Mycobacterium tuberculosis
+          <br>
+          NC_000962.3	RefSeq	gene	1	1524	.	+	.	ID=gene-Rv0001;Dbxref=GeneID:885041;Name=dnaA;experiment=DESCRIPTION:Mutation analysis%2C gene expression[PMID: 10375628];gbkey=Gene;gene=dnaA;gene_biotype=protein_coding;locus_tag=Rv0001
         </p>
       </div>
       <div class="p-5 text-left">
         <p>
           <span class="tag-translucent">features to analyze</span>
-          (Optional) One or more genes to be explicitly analyzed. If the field
-          is left empty, an analysis of the entire genome will be performed. The
-          gene information is extracted from the provided feature annotation
-          file; To assign a feature, a corresponding attribute key and value of
-          the annotation file must be provided. Example:
+          One or more features to be analyzed. The 
+          feature information is extracted from the provided
+          reference sequence annotation file; To assign a feature, a
+          corresponding attribute key and value of the annotation
+          file must be provided. Entries can be added as tags in
+          the input field by pressing enter. Full genome analysis
+          can be run by specifying whole regions as features.
+          <b>Format example:</b>
         </p>
-        <p class="tag-info-text">Name=idaR,locus_tag=GENOME_0001</p>
+        <p class="tag-info-text"><span class="tag-citation">Name katG</span>&nbsp;<span class="tag-citation">gbkey Src</span></p>
       </div>
       <div class="p-5 text-left">
         <p>
-          <span class="tag-translucent">feature meta information:</span>
-          (Optional) A file in
+          <span class="tag-translucent">feature meta information (optional)</span>
+          A file in
           <a href="https://docs.fileformat.com/spreadsheet/tsv/" target="_blank"
             >TSV</a
           >
-          format format containing meta information to be added to gene/feature
+          format containing meta information to be added to gene/feature
           entries. Column names and cell values can be arbitrary; the first
           column must contain gene identifiers that match a specified gene to
-          analyze. Example:
+          analyze. <b>Format example:</b>
         </p>
         <p class="tag-info-text">
-          geneID&#09;class&#09;structure_pdb_id&#09;function
+          name product molecular_function amr_relation
           <br />
-          IdaR&#09;outer membrane protein&#09;2STH&#09;ion uptake
-          <br />
-          GENOME_0001&#09;isomerase&#09;1HOT&#09;glucosamid 6-phosphate
-          deaminase
-          <br />
-          ...
+          katG Catalase-peroxidase antioxidant activity,oxidoreductase activity isoniazid
         </p>
       </div>
     </div>
@@ -291,22 +287,27 @@
       type="file"
       data-role="file"
       data-button-title='<i class="fa-solid fa-file-arrow-up"></i>'
-      data-prepend="<small><span class='tag-light'>genome annotatoin</span> (.gff)<sup class='mandatory-tag'>*</sup></small>"
+      data-prepend="<small><span class='tag-light'>reference sequence annotation</span> (.gff)<sup class='mandatory-tag'>*</sup></small>"
       accept=".gff,.gff3,.gff,gff3"
     />
-    <textarea
+    <br>
+    <label for="input-features-list">
+      <small><span class='tag-light'>features to analyze</span><sup class='mandatory-tag'>*</sup></small>
+    </label>
+    <input
       id="input-features-list"
-      class="mt-4"
+      class="mt-2"
       type="text"
-      data-role="textarea"
-      data-prepend="<small><span class='tag-light'>features to analyze</span><sup class='mandatory-tag'>*</sup></small>"
-    ></textarea>
+      data-role="taginput"
+      data-on-tag="observeFeatures"
+      data-tag-trigger="Enter"
+    ></input>
     <input
       id="input-features-meta"
       type="file"
       data-role="file"
       data-button-title='<i class="fa-solid fa-file-arrow-up"></i>'
-      data-prepend="<small><span class='tag-light'>gene meta information</span> (.tsv)</small>"
+      data-prepend="<small><span class='tag-light'>feature meta information</span> (.tsv)</small>"
       class="mt-4"
       accept=".csv,.tsv"
     />
@@ -330,7 +331,7 @@
     >
       <div class="p-5 text-left">
         <p>
-          <span class="tag-translucent">infer proteoform information</span>
+          <span class="tag-translucent">proteoform analysis</span>
           Set this option to infer aminoacid variants of specified features
           independent of provided
           <a
@@ -338,30 +339,29 @@
             target="_blank"
             >PDB</a
           >
-          files.
+          files. <b>This option should only be set, if all specified features are coding genes.</b>
         </p>
       </div>
       <div class="p-5 text-left">
         <p>
-          <span class="tag-translucent">protein structures</span>
-          (Optional) One or multiple files in
+          <span class="tag-translucent">protein structures (optional)</span>
+          One or multiple files in
           <a
             href="https://www.wwpdb.org/documentation/file-format-content/format33/v3.3.html"
             target="_blank"
             >PDB</a
           >
-          format. The file names have to match with specified genes to analyze
+          format. The file names have to match with specified features (values) to analyze
           and the corresponding structure will be assigned to the respective
           feature. Providing protein structures will trigger the inference of
-          aminoacid variants. Example:
+          aminoacid variants and proteoforms of the respective feature. <b>Format example:</b>
         </p>
         <p class="tag-info-text">
-          HEADER&emsp;...<br />
-          TITLE&emsp;...<br />
-          REMARK&emsp;1&emsp;...<br />
-          ATOM&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1&nbsp;&nbsp;N&nbsp;&nbsp;&nbsp;MET&nbsp;A&nbsp;&nbsp;&nbsp;1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-23.819&nbsp;-24.222&nbsp;&nbsp;&nbsp;8.665&nbsp;&nbsp;1.00&nbsp;&nbsp;0.84&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;N<br />
-          ATOM&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2&nbsp;&nbsp;CA&nbsp;&nbsp;MET&nbsp;A&nbsp;&nbsp;&nbsp;1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-23.394&nbsp;-23.056&nbsp;&nbsp;&nbsp;9.435&nbsp;&nbsp;1.00&nbsp;&nbsp;0.86&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C<br />
-          ...
+          HEADER
+          <br>
+          ATOM&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1&nbsp;&nbsp;N&nbsp;&nbsp;&nbsp;MET&nbsp;A&nbsp;&nbsp;&nbsp;1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;42.903&nbsp;&nbsp;&nbsp;4.355&nbsp;&nbsp;&nbsp;0.110&nbsp;&nbsp;1.00&nbsp;28.05&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;N  
+          <br>
+          ATOM&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2&nbsp;&nbsp;CA&nbsp;&nbsp;MET&nbsp;A&nbsp;&nbsp;&nbsp;1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;42.216&nbsp;&nbsp;&nbsp;5.583&nbsp;&nbsp;-0.321&nbsp;&nbsp;1.00&nbsp;28.05&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C  
         </p>
       </div>
     </div>
