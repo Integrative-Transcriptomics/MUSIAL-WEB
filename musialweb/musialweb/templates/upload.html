@@ -48,13 +48,12 @@
     class="app-bar-item text-upper"
     >results</a
   >
-</div>
-<!-- Menu elements floating right -->
-<div class="app-bar-container ml-auto d-none d-flex-fs">
-  <i
-    id="menu-active-session-indicator"
-    class="p-2 fa-duotone fa-circle-notch"
-  ></i>
+  <a
+    id="menu-link-upload"
+    href="{{url_for('get_template_help')}}"
+    class="app-bar-item text-upper"
+    >help</a
+  >
   <a
     id="menu-link-legal"
     href="{{url_for('get_template_legal')}}"
@@ -62,44 +61,17 @@
     >legal</a
   >
 </div>
+<!-- Menu elements floating right -->
+<div class="app-bar-container ml-auto d-none d-flex-fs">
+  <i id="menu-active-session-indicator" class="p-2 fa-duotone fa-database"></i>
+</div>
 
 {% endblock %} {% block content %}
 
 <div id="main-upload" class="main">
-  <ul class="h-menu m-4">
-    <div class="toolbar" data-role="buttongroup">
-      <span class="tag-dark text-upper">start session</span>
-      <button
-        onclick="submit()"
-        id="upload-data-button"
-        class="button small rounded text-upper"
-        disabled
-      >
-        submit request
-      </button>
-      <span
-        ><sup class="mandatory-tag">*</sup
-        ><sup class="toolbar-text"
-          >Mandatory fields must be filled in</sup
-        ></span
-      >
-      <!--
-      <span class="ml-2 mr-2 toolbar-text">or</span>
-      <input type="file" id="submit-session-input" />
-      <label
-        id="submit-session-button"
-        for="submit-session-input"
-        class="button small rounded text-upper"
-        disabled
-        >UPLOAD</label
-      >
-      <span class="ml-2 mr-2 toolbar-text">an existing session</span>
-      -->
-    </div>
-  </ul>
   <div class="remark m-4">
     <h3 class="p-2 text-left">
-      <small><i class="fa-solid fa-dna"></i> Reference Genome </small>
+      <small><i class="fa-solid fa-dna"></i> Reference Sequence </small>
       <i
         id="collapse-reference-genome"
         class="fa-solid fa-circle-info info-clickable float-right"
@@ -113,7 +85,7 @@
     >
       <div class="p-5 text-left">
         <p>
-          <span class="tag-translucent">reference genome</span>
+          <span class="tag-translucent">reference sequence</span>
           <a
             href="https://www.ncbi.nlm.nih.gov/genbank/fastaformat/"
             target="_blank"
@@ -263,7 +235,7 @@
     >
       <div class="p-5 text-left">
         <p>
-          <span class="tag-translucent">genome annotatoin</span> A file in
+          <span class="tag-translucent">reference features</span> A file in
           <a
             href="https://www.ensembl.org/info/website/upload/gff.html?redirect=no"
             target="_blank"
@@ -281,7 +253,7 @@
       </div>
       <div class="p-5 text-left">
         <p>
-          <span class="tag-translucent">genes to analyze</span>
+          <span class="tag-translucent">features to analyze</span>
           (Optional) One or more genes to be explicitly analyzed. If the field
           is left empty, an analysis of the entire genome will be performed. The
           gene information is extracted from the provided feature annotation
@@ -292,7 +264,7 @@
       </div>
       <div class="p-5 text-left">
         <p>
-          <span class="tag-translucent">gene meta information:</span>
+          <span class="tag-translucent">feature meta information:</span>
           (Optional) A file in
           <a href="https://docs.fileformat.com/spreadsheet/tsv/" target="_blank"
             >TSV</a
@@ -327,7 +299,7 @@
       class="mt-4"
       type="text"
       data-role="textarea"
-      data-prepend="<small><span class='tag-light'>genes to analyze</span></small>"
+      data-prepend="<small><span class='tag-light'>features to analyze</span><sup class='mandatory-tag'>*</sup></small>"
     ></textarea>
     <input
       id="input-features-meta"
@@ -343,7 +315,7 @@
   <div class="remark m-4">
     <h3 class="p-2 text-left">
       <small
-        ><i class="fa-solid fa-magnifying-glass"></i> Protein Analysis</small
+        ><i class="fa-solid fa-magnifying-glass"></i> Proteoform Analysis</small
       >
       <i
         id="collapse-protein"
@@ -495,14 +467,14 @@
         </tr>
         <tr>
           <td class="w-75 text-left">
-            Minimal Variant Call Quality (Phred scaled Error)
+            Minimal Variant Call Quality (Phred Scaled Error Probability)
           </td>
           <td>
             <input
               id="input-parameter-min-quality"
               type="text"
               data-role="input"
-              data-append="Phred Likelihood"
+              data-append="Phred Score"
               data-default-value="30"
             />
           </td>
@@ -551,6 +523,21 @@
         </tr>
       </tbody>
     </table>
+  </div>
+
+  <div class="remark m-4">
+    <button
+      onclick="submit()"
+      id="upload-data-button"
+      class="button small rounded text-upper"
+      disabled
+    >
+      submit request
+    </button>
+    <span
+      ><sup class="mandatory-tag">*</sup
+      ><sup class="toolbar-text">Mandatory fields must be filled in</sup></span
+    >
   </div>
 </div>
 

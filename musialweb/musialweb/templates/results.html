@@ -55,19 +55,22 @@
     class="app-bar-item text-upper active"
     >results</a
   >
-</div>
-<!-- Menu elements floating right -->
-<div class="app-bar-container ml-auto d-none d-flex-fs">
-  <i
-    id="menu-active-session-indicator"
-    class="p-2 fa-duotone fa-circle-notch"
-  ></i>
+  <a
+    id="menu-link-upload"
+    href="{{url_for('get_template_help')}}"
+    class="app-bar-item text-upper"
+    >help</a
+  >
   <a
     id="menu-link-legal"
     href="{{url_for('get_template_legal')}}"
     class="app-bar-item text-upper"
     >legal</a
   >
+</div>
+<!-- Menu elements floating right -->
+<div class="app-bar-container ml-auto d-none d-flex-fs">
+  <i id="menu-active-session-indicator" class="p-2 fa-duotone fa-database"></i>
 </div>
 
 {% endblock %} {% block content %}
