@@ -1,45 +1,44 @@
-var isReferenceGenome = false;
-var isReferenceFeatures = false;
-var isSamples = false;
-var isFeatures = false;
-var canSubmit = false;
-var inferProteoforms = true;
-var specifiedPdbFiles = [];
-var specifiedSamplesMeta = {};
-var specifiedFeaturesMeta = {};
-var hasSession = false;
-var request = {
-  minCoverage: 5,
-  minHomFrequency: 90,
-  minHetFrequency: 45,
-  maxHetFrequency: 55,
-  minQuality: 30,
-  referenceFASTA: "",
-  referenceGFF: "",
-  outputFile: "",
+var PASS_REFERENCE_SEQUENCE = false;
+var PASS_REFERENCE_FEATURES = false;
+var PASS_SAMPLES = false;
+var PASS_FEATURES = false;
+var CAN_SUBMIT = false;
+var PROTEOFORM_ANALYSIS = true;
+var PDB_FILES = [];
+var SAMPLE_META_DATA = {};
+var FEATURES_META_DATA = {};
+var HAS_SESSION = false;
+var REQUEST = {
+  minimalCoverage: 5,
+  minimalHomozygousFrequency: 90,
+  minimalHeterozygousFrequency: 45,
+  maximalHeterozygousFrequency: 55,
+  minimalQuality: 30,
+  referenceSequenceFile: undefined,
+  referenceFeaturesFile: undefined,
+  output: "",
   samples: {},
   features: {},
-  genomeAnalysis: true,
   excludedPositions: {},
 };
 
 $("#input-reference-genome").on("change", function (event) {
-  request.referenceFASTA = $("#input-reference-genome")[0].files[0];
-  if (request.referenceFASTA !== undefined) {
-    isReferenceGenome = true;
+  REQUEST.referenceSequenceFile = $("#input-reference-genome")[0].files[0];
+  if (REQUEST.referenceSequenceFile !== undefined) {
+    PASS_REFERENCE_SEQUENCE = true;
   } else {
-    isReferenceGenome = false;
+    PASS_REFERENCE_SEQUENCE = false;
   }
-  isReferenceGenome = true;
+  PASS_REFERENCE_SEQUENCE = true;
   checkCanSubmit();
 });
 
 $("#input-samples-files").on("change", function (event) {
-  request.samples = $("#input-samples-files")[0].files;
-  if (request.samples !== undefined) {
-    isSamples = true;
+  REQUEST.samples = $("#input-samples-files")[0].files;
+  if (REQUEST.samples !== undefined) {
+    PASS_SAMPLES = true;
   } else {
-    isSamples = false;
+    PASS_SAMPLES = false;
   }
   checkCanSubmit();
 });
@@ -48,12 +47,12 @@ $("#input-samples-meta").on("change", function (event) {
   $("#input-samples-meta").parse({
     config: {
       complete: function (results, _) {
-        specifiedSamplesMeta = {};
+        SAMPLE_META_DATA = {};
         let header = results.data[0].slice(1);
         for (let rowData of results.data.slice(1)) {
-          specifiedSamplesMeta[rowData[0]] = {};
+          SAMPLE_META_DATA[rowData[0]] = {};
           header.forEach((columnName, index) => {
-            specifiedSamplesMeta[rowData[0]][columnName] = rowData[index + 1];
+            SAMPLE_META_DATA[rowData[0]][columnName] = rowData[index + 1];
           });
         }
       },
@@ -62,11 +61,11 @@ $("#input-samples-meta").on("change", function (event) {
 });
 
 $("#input-features-file").on("change", function (event) {
-  request.referenceGFF = $("#input-features-file")[0].files[0];
-  if (request.referenceGFF !== undefined) {
-    isReferenceFeatures = true;
+  REQUEST.referenceFeaturesFile = $("#input-features-file")[0].files[0];
+  if (REQUEST.referenceFeaturesFile !== undefined) {
+    PASS_REFERENCE_FEATURES = true;
   } else {
-    isReferenceFeatures = false;
+    PASS_REFERENCE_FEATURES = false;
   }
   checkCanSubmit();
 });
@@ -75,12 +74,12 @@ $("#input-features-meta").on("change", function (event) {
   $("#input-features-meta").parse({
     config: {
       complete: function (results, _) {
-        specifiedFeaturesMeta = {};
+        FEATURES_META_DATA = {};
         let header = results.data[0].slice(1);
         for (let rowData of results.data.slice(1)) {
-          specifiedFeaturesMeta[rowData[0]] = {};
+          FEATURES_META_DATA[rowData[0]] = {};
           header.forEach((columnName, index) => {
-            specifiedFeaturesMeta[rowData[0]][columnName] = rowData[index + 1];
+            FEATURES_META_DATA[rowData[0]][columnName] = rowData[index + 1];
           });
         }
       },
@@ -89,15 +88,15 @@ $("#input-features-meta").on("change", function (event) {
 });
 
 $("#input-features-proteins").on("change", function (event) {
-  specifiedPdbFiles = $("#input-features-proteins")[0].files;
+  PDB_FILES = $("#input-features-proteins")[0].files;
 });
 
 $("#input-infer-proteoforms").on("change", function (event) {
-  inferProteoforms = $("#input-infer-proteoforms").is(":checked");
+  PROTEOFORM_ANALYSIS = $("#input-infer-proteoforms").is(":checked");
 });
 
 $("#input-reference-genome-excluded-positions").on("change", function (event) {
-  request.excludedPositions = {};
+  REQUEST.excludedPositions = {};
   if (!$("#input-reference-genome-excluded-positions")[0].value) {
     return;
   }
@@ -117,7 +116,7 @@ $("#input-reference-genome-excluded-positions").on("change", function (event) {
         return /^[0-9]+$/.test(p);
       })
     ) {
-      request.excludedPositions[contig] = positions.map((p) => parseInt(p));
+      REQUEST.excludedPositions[contig] = positions.map((p) => parseInt(p));
     }
   }
 });
@@ -125,13 +124,6 @@ $("#input-reference-genome-excluded-positions").on("change", function (event) {
 $("#input-features-list").on("change", function (event) {
   let specifiedFeatures = undefined;
   let text = $("#input-features-list")[0].value.split(",");
-  if (text == "") {
-    request.genomeAnalysis = true;
-    checkCanSubmit();
-    return;
-  } else {
-    request.genomeAnalysis = false;
-  }
   if (
     text.every((entry) => {
       return /^[a-zA-Z\_\-]+\=[a-zA-Z0-9\_\-]+$/.test(entry);
@@ -144,20 +136,20 @@ $("#input-features-list").on("change", function (event) {
     );
   }
   if (specifiedFeatures !== undefined && specifiedFeatures.size > 0) {
-    request.features = Array.from(specifiedFeatures);
+    REQUEST.features = Array.from(specifiedFeatures);
   } else {
-    request.features = undefined;
+    REQUEST.features = undefined;
   }
-  if (request.features !== undefined) {
-    isFeatures = true;
+  if (REQUEST.features !== undefined) {
+    PASS_FEATURES = true;
   } else {
-    isFeatures = false;
+    PASS_FEATURES = false;
   }
   checkCanSubmit();
 });
 
 $("#input-parameter-min-coverage").on("change", function (event) {
-  let oldValue = request.minCoverage;
+  let oldValue = REQUEST.minimalCoverage;
   let newValue = undefined;
   let cancel = () => {
     displayWarning(
@@ -171,15 +163,15 @@ $("#input-parameter-min-coverage").on("change", function (event) {
     cancel();
   }
   if (newValue > 0) {
-    request.minCoverage = newValue;
-    $("#input-parameter-min-coverage")[0].value = request.minCoverage;
+    REQUEST.minimalCoverage = newValue;
+    $("#input-parameter-min-coverage")[0].value = REQUEST.minimalCoverage;
   } else {
     cancel();
   }
 });
 
 $("#input-parameter-min-quality").on("change", function (event) {
-  let oldValue = request.minQuality;
+  let oldValue = REQUEST.minimalQuality;
   let newValue = undefined;
   let cancel = () => {
     displayWarning(
@@ -193,15 +185,15 @@ $("#input-parameter-min-quality").on("change", function (event) {
     cancel();
   }
   if (newValue > 0) {
-    request.minQuality = newValue;
-    $("#input-parameter-min-quality")[0].value = request.minQuality;
+    REQUEST.minimalQuality = newValue;
+    $("#input-parameter-min-quality")[0].value = REQUEST.minimalQuality;
   } else {
     cancel();
   }
 });
 
 $("#input-parameter-min-hom-frequency").on("change", function (event) {
-  let oldValue = request.minHomFrequency;
+  let oldValue = REQUEST.minimalHomozygousFrequency;
   let newValue = undefined;
   let cancel = () => {
     displayWarning(
@@ -215,15 +207,16 @@ $("#input-parameter-min-hom-frequency").on("change", function (event) {
     cancel();
   }
   if (newValue >= 0 && newValue <= 100) {
-    request.minHomFrequency = newValue;
-    $("#input-parameter-min-hom-frequency")[0].value = request.minHomFrequency;
+    REQUEST.minimalHomozygousFrequency = newValue;
+    $("#input-parameter-min-hom-frequency")[0].value =
+      REQUEST.minimalHomozygousFrequency;
   } else {
     cancel();
   }
 });
 
 $("#input-parameter-min-het-frequency").on("change", function (event) {
-  let oldValue = request.minHetFrequency;
+  let oldValue = REQUEST.minimalHeterozygousFrequency;
   let newValue = undefined;
   let cancel = () => {
     displayWarning(
@@ -236,16 +229,21 @@ $("#input-parameter-min-het-frequency").on("change", function (event) {
   } catch (error) {
     cancel();
   }
-  if (newValue >= 0 && newValue <= 100 && newValue <= request.maxHetFrequency) {
-    request.minHetFrequency = newValue;
-    $("#input-parameter-min-het-frequency")[0].value = request.minHetFrequency;
+  if (
+    newValue >= 0 &&
+    newValue <= 100 &&
+    newValue <= REQUEST.maximalHeterozygousFrequency
+  ) {
+    REQUEST.minimalHeterozygousFrequency = newValue;
+    $("#input-parameter-min-het-frequency")[0].value =
+      REQUEST.minimalHeterozygousFrequency;
   } else {
     cancel();
   }
 });
 
 $("#input-parameter-max-het-frequency").on("change", function (event) {
-  let oldValue = request.maxHetFrequency;
+  let oldValue = REQUEST.maximalHeterozygousFrequency;
   let newValue = undefined;
   let cancel = () => {
     displayWarning(
@@ -258,9 +256,14 @@ $("#input-parameter-max-het-frequency").on("change", function (event) {
   } catch (error) {
     cancel();
   }
-  if (newValue >= 0 && newValue <= 100 && newValue >= request.minHetFrequency) {
-    request.maxHetFrequency = newValue;
-    $("#input-parameter-max-het-frequency")[0].value = request.maxHetFrequency;
+  if (
+    newValue >= 0 &&
+    newValue <= 100 &&
+    newValue >= REQUEST.minimalHeterozygousFrequency
+  ) {
+    REQUEST.maximalHeterozygousFrequency = newValue;
+    $("#input-parameter-max-het-frequency")[0].value =
+      REQUEST.maximalHeterozygousFrequency;
   } else {
     cancel();
   }
@@ -279,34 +282,34 @@ function resetForm() {
   }
   $("#input-features-list")[0].value = null;
   $("#input-reference-genome-excluded-positions")[0].value = null;
-  isReferenceGenome = false;
-  isReferenceFeatures = false;
-  isSamples = false;
-  isFeatures = false;
-  specifiedPdbFiles = [];
-  specifiedSamplesMeta = {};
-  specifiedFeaturesMeta = {};
-  request.referenceFASTA = "";
-  request.referenceGFF = "";
-  request.outputFile = "";
-  request.samples = {};
-  request.features = {};
+  PASS_REFERENCE_SEQUENCE = false;
+  PASS_REFERENCE_FEATURES = false;
+  PASS_SAMPLES = false;
+  PASS_FEATURES = false;
+  PDB_FILES = [];
+  SAMPLE_META_DATA = {};
+  FEATURES_META_DATA = {};
+  REQUEST.referenceSequenceFile = "";
+  REQUEST.referenceFeaturesFile = "";
+  REQUEST.output = "";
+  REQUEST.samples = {};
+  REQUEST.features = {};
   checkCanSubmit();
 }
 
 function checkCanSubmit() {
   if (
-    isReferenceGenome &&
-    isReferenceFeatures &&
-    isSamples &&
-    (isFeatures || request.genomeAnalysis) &&
+    PASS_REFERENCE_SEQUENCE &&
+    PASS_REFERENCE_FEATURES &&
+    PASS_SAMPLES &&
+    PASS_FEATURES &&
     $("#loader-container").length == 0
   ) {
     $("#upload-data-button")[0].disabled = false;
-    canSubmit = true;
+    CAN_SUBMIT = true;
   } else {
     $("#upload-data-button")[0].disabled = true;
-    canSubmit = false;
+    CAN_SUBMIT = false;
   }
 }
 
@@ -322,67 +325,68 @@ function readFile(file) {
 }
 
 async function submit() {
-  if (canSubmit) {
+  if (CAN_SUBMIT) {
     displayLoader(
       "Processing Request (You will be redirected once complete)",
       10e9
     );
     checkCanSubmit();
     document.body.className = "wait";
-    let sampleFiles = request.samples;
-    request.samples = {};
+    let sampleFiles = REQUEST.samples;
+    REQUEST.samples = {};
     for (let sampleFile of sampleFiles) {
       let sampleName = sampleFile.name.split(".")[0];
-      request.samples[sampleName] = {
+      REQUEST.samples[sampleName] = {
         vcfFile: null,
         annotations:
-          sampleName in specifiedSamplesMeta
-            ? specifiedSamplesMeta[sampleName]
-            : {},
+          sampleName in SAMPLE_META_DATA ? SAMPLE_META_DATA[sampleName] : {},
       };
       await readFile(sampleFile).then((response) => {
-        request.samples[sampleName].vcfFile = response;
+        REQUEST.samples[sampleName].vcfFile = response;
       });
     }
-    let referenceFastaFile = request.referenceFASTA;
-    await readFile(referenceFastaFile).then((response) => {
-      request.referenceFASTA = response;
+    let referenceSequenceFile = REQUEST.referenceSequenceFile;
+    await readFile(referenceSequenceFile).then((response) => {
+      REQUEST.referenceSequenceFile = response;
     });
-    let referenceGffFile = request.referenceGFF;
-    await readFile(referenceGffFile).then((response) => {
-      request.referenceGFF = response;
+    let referenceFeaturesFile = REQUEST.referenceFeaturesFile;
+    await readFile(referenceFeaturesFile).then((response) => {
+      REQUEST.referenceFeaturesFile = response;
     });
-    let specifiedFeatures = request.features;
-    request.features = {};
+    let specifiedFeatures = REQUEST.features;
+    REQUEST.features = {};
     if (specifiedFeatures.length > 0) {
       for (let specifiedFeature of specifiedFeatures) {
         let matchAttribute = specifiedFeature.split("=")[0];
         let matchValue = specifiedFeature.split("=")[1];
-        request.features[matchValue] = {
+        REQUEST.features[matchValue] = {
           annotations:
-            matchValue in specifiedFeaturesMeta
-              ? specifiedFeaturesMeta[matchValue]
+            matchValue in FEATURES_META_DATA
+              ? FEATURES_META_DATA[matchValue]
               : {},
         };
-        request.features[matchValue]["MATCH_" + matchAttribute] = matchValue;
-        let matchedPdbFiles = [...specifiedPdbFiles].filter(
+        REQUEST.features[matchValue]["match_" + matchAttribute] = matchValue;
+        let matchedPdbFiles = [...PDB_FILES].filter(
           (file) => file.name.split(".")[0] === matchValue
         );
         if (matchedPdbFiles.length > 0) {
           await readFile(matchedPdbFiles[0]).then((response) => {
-            request.features[matchValue]["pdbFile"] = response;
+            REQUEST.features[matchValue]["pdbFile"] = response;
           });
         } else {
-          request.features[matchValue]["isCodingSequence"] = inferProteoforms;
+          REQUEST.features[matchValue]["coding"] = PROTEOFORM_ANALYSIS;
         }
       }
     }
-    request.minHomFrequency = request.minHomFrequency / 100;
-    request.minHetFrequency = request.minHetFrequency / 100;
-    request.maxHetFrequency = request.maxHetFrequency / 100;
+    REQUEST.minimalHomozygousFrequency =
+      REQUEST.minimalHomozygousFrequency / 100;
+    REQUEST.minimalHeterozygousFrequency =
+      REQUEST.minimalHeterozygousFrequency / 100;
+    REQUEST.maximalHeterozygousFrequency =
+      REQUEST.maximalHeterozygousFrequency / 100;
     document.body.className = "";
     axios
-      .post(WWW + "/start_session", pako.deflate(JSON.stringify(request)), {
+      .post(WWW + "/start_session", pako.deflate(JSON.stringify(REQUEST)), {
         headers: {
           "Content-Type": "application/octet-stream",
           "Content-Encoding": "zlib",

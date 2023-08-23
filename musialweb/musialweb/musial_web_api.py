@@ -2,6 +2,7 @@ from musialweb import app
 from flask import request, session, render_template, send_file
 from flask_session import Session
 from datetime import timedelta
+from operator import methodcaller
 from dotenv import load_dotenv
 import json, zlib, os, subprocess, shutil, numpy, brotli, random, string, re
 
@@ -76,16 +77,16 @@ def start_session():
         with open(
             "./musialweb/tmp/" + unique_hex_key + "/reference.fasta", "w+"
         ) as reference_fasta_file:
-            reference_fasta_file.write(json_request_data["referenceFASTA"])
-            json_request_data["referenceFASTA"] = (
+            reference_fasta_file.write(json_request_data["referenceSequenceFile"])
+            json_request_data["referenceSequenceFile"] = (
                 "./musialweb/tmp/" + unique_hex_key + "/reference.fasta"
             )
         # Write reference .gff3 to local file and set path in run specification.
         with open(
             "./musialweb/tmp/" + unique_hex_key + "/reference.gff3", "w+"
         ) as reference_gff3_file:
-            reference_gff3_file.write(json_request_data["referenceGFF"])
-            json_request_data["referenceGFF"] = (
+            reference_gff3_file.write(json_request_data["referenceFeaturesFile"])
+            json_request_data["referenceFeaturesFile"] = (
                 "./musialweb/tmp/" + unique_hex_key + "/reference.gff3"
             )
         # For each specified feature, write .pdb to local file and set path in run specification, if provided.
@@ -109,23 +110,23 @@ def start_session():
                 json_request_data["samples"][sample]["vcfFile"] = (
                     "./musialweb/tmp/" + unique_hex_key + "/" + sample + ".vcf"
                 )
-        # Write the adjusted request (i.e. used as MUSIAL run specification) to local file.
+        # Write the adjusted request (i.e. used as MUSIAL build configuration) to local file.
         with open(
-            "./musialweb/tmp/" + unique_hex_key + "/config.json", "w+"
-        ) as run_config_file:
-            json_request_data["MODULE"] = "BUILD"
-            json_request_data["outputFile"] = (
-                "./musialweb/tmp/" + unique_hex_key + "/out.vdict.json"
+            "./musialweb/tmp/" + unique_hex_key + "/configuration.json", "w+"
+        ) as build_configuration_file:
+            json_request_data["output"] = (
+                "./musialweb/tmp/" + unique_hex_key + "/output.json"
             )
-            json.dump([json_request_data], run_config_file)
+            json.dump(json_request_data, build_configuration_file)
         # Run MUSIAL on the specified data.
         process = subprocess.Popen(
             [
                 os.getenv("JAVA_PATH"),
                 "-jar",
-                "./musialweb/MUSIAL-v2.1.jar",
+                "./musialweb/MUSIAL-v2.2.jar",
+                "build",
                 "-c",
-                "./musialweb/tmp/" + unique_hex_key + "/config.json",
+                "./musialweb/tmp/" + unique_hex_key + "/configuration.json",
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -134,7 +135,21 @@ def start_session():
         stdout = stdout.decode(encoding="utf-8")
         stderr = stderr.decode(encoding="utf-8")
         # If any error was raised during MUSIAL, set response code to 1 (failed).
-        if stderr != "":
+        # Here, WARN and INFO entries from BioJava have to be filtered!
+        biojava_info_tag = "INFO  org.biojava.nbio"
+        biojava_warn_tag = "WARN  org.biojava.nbio"
+        if (
+            len(
+                list(
+                    filter(
+                        lambda e: (biojava_info_tag not in e)
+                        and (biojava_warn_tag not in e),
+                        list(filter(methodcaller("strip"), stderr.split("\n"))),
+                    )
+                )
+            )
+            > 0
+        ):
             response_code = api_parameters["FAILURE_CODE"]
             session[api_parameters["APPLICATION_LOG_KEY"]] = (
                 remove_ansi(stdout) + "\n" + remove_ansi(stderr)
@@ -145,7 +160,7 @@ def start_session():
         # Else, parse and store output of MUSIAL.
         else:
             with open(
-                "./musialweb/tmp/" + unique_hex_key + "/out.vdict.json", "r"
+                "./musialweb/tmp/" + unique_hex_key + "/output.json", "r"
             ) as run_out_file:
                 json_result_data = json.load(run_out_file)
                 result = json_result_data
