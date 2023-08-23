@@ -8,39 +8,60 @@ var tableCurrentSamples = [];
 var tableCurrentFeatures = [];
 
 axios
-  .get(WWW + "/has_session")
+  .get(_URL + "/session_status")
   .then((response) => {
-    if (response.data != SUCCESS_CODE) {
-      $("#main-results").find("*").attr("disabled", true);
-      Swal.fire({
-        title: "No Results Obtainable",
-        html: `You must submit a request before you can access results.`,
-        color: "#747474",
-        background: "#fafafcd9",
-        allowOutsideClick: true,
-        allowEscapeKey: true,
-        showConfirmButton: true,
-        focusConfirm: true,
-        confirmButtonColor: "#6d81ad",
-        confirmButtonText: "Ok",
-        backdrop: `
+    switch (String(response.data)) {
+      case SESSION_CODE_FAILED:
+        Swal.fire({
+          title: "Faulty Session Data",
+          html: `Your request failed. Please check your input data.
+            You can access the server log by clicking the <i class="fa-duotone fa-hexagon-exclamation"></i> icon.
+            If you cannot solve your problem, feel free to <a href='https://github.com/Integrative-Transcriptomics/MUSIAL-WEB/issues' target='_blank'>open an issue</a>.`,
+          color: "#747474",
+          background: "#fafafcd9",
+          allowOutsideClick: true,
+          allowEscapeKey: true,
+          showConfirmButton: true,
+          focusConfirm: true,
+          confirmButtonColor: "#6d81ad",
+          confirmButtonText: "Ok",
+          backdrop: `
           rgba(239, 240, 248, 0.1)
           left top
           no-repeat
         `,
-      }).then((_) => {
-        window.location.href = WWW + "/upload";
-      });
-    } else {
-      $("#main-results").find("*").attr("disabled", false);
-      table = new Tabulator("#main-results-content-table", {
-        placeholder: `Select Samples, Genes or Variants at <span class="tag-dark text-upper">display content</span>`,
-        maxHeight: "60vh",
-      });
+        });
+        break;
+      case SESSION_CODE_NONE:
+        Swal.fire({
+          title: "No Session Data",
+          iconHtml:
+            `<img src="` +
+            BACTERIA_GIF +
+            `" style="height: 100%; width: 100%; pointer-events: none; user-select: none;">`,
+          html:
+            `You must submit a request at the <a href='` +
+            _URL +
+            `/upload'>Upload</a> page before you can access any results.`,
+          color: "#747474",
+          background: "#fafafcd9",
+          allowOutsideClick: true,
+          allowEscapeKey: true,
+          showConfirmButton: true,
+          focusConfirm: true,
+          confirmButtonColor: "#6d81ad",
+          confirmButtonText: "Ok",
+          backdrop: `
+          rgba(239, 240, 248, 0.1)
+          left top
+          no-repeat
+        `,
+        });
+        break;
     }
   })
   .catch((error) => {
-    handleError(error);
+    displayError(error.message);
   });
 
 function setTableToSamples() {

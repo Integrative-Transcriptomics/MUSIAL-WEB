@@ -52,10 +52,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   background: var(--text-color-secondary);
 }
 
-body.wait * {
-  cursor: wait;
-}
-
 #menu {
   background-color: var(--color-primary);
   color: var(--background-color-primary);
@@ -90,11 +86,10 @@ body.wait * {
 }
 
 #menu-active-session-indicator {
-  background-color: transparent;
   border: none;
   text-decoration: none;
   margin-right: 10px;
-  font-size: large;
+  font-size: x-large;
   cursor: pointer;
 }
 
@@ -139,28 +134,11 @@ body.swal2-shown > [aria-hidden="true"] {
   background: var(--color-tertiary) !important;
 }
 
-.loader-toast {
+.custom-toast {
   position: absolute;
-  margin-bottom: 2vh;
-  left: auto !important;
-  right: 110px !important;
-  background-color: var(--color-primary);
-  color: var(--background-color-primary);
-}
-
-.loader-toast:after {
-  content: "";
-  position: absolute;
-  display: block;
-  width: 0;
-  z-index: 1;
-  border-style: solid;
-  border-radius: 4px;
-  border-width: 26px 29px 0 0;
-  border-color: var(--color-primary) transparent transparent transparent;
-  top: 27%;
-  right: -19px;
-  margin-top: -10px;
+  margin-bottom: 1vh;
+  background-color: var(--contrast-secondary);
+  color: black;
 }
 
 .tag-light {

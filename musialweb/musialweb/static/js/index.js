@@ -1,36 +1,46 @@
 SUCCESS_CODE = ""; // Code returned by the server for succ. requests.
 FAILURE_CODE = ""; // Code returned by the server for faulty requests.
-RESULT = ""; // Server session key to access results.
-LOG = ""; // Server session key to access application log.
-WWW = ""; // URL to access server.
+SESSION_CODE_NONE = ""; // Code indicating no active session.
+SESSION_CODE_ACTIVE = ""; // Code indicating an active session.
+SESSION_CODE_FAILED = ""; // Code indicating a failed session.
+RESULT_KEY = ""; // Server session key to access results.
+LOG_KEY = ""; // Server session key to access application log.
+_URL = ""; // URL to access server.
 
 /**
- *
+ * Initialize global application settings.
  */
 function init() {
+  // Store server response keys at client side.
   SUCCESS_CODE = API_PARAMETERS["SUCCESS_CODE"];
   FAILURE_CODE = API_PARAMETERS["FAILURE_CODE"];
-  RESULT = API_PARAMETERS["RESULT_KEY"];
-  LOG = API_PARAMETERS["APPLICATION_LOG_KEY"];
-  WWW = API_PARAMETERS["URL"];
-  checkForSession();
+  SESSION_CODE_NONE = API_PARAMETERS["SESSION_CODE_NONE"];
+  SESSION_CODE_ACTIVE = API_PARAMETERS["SESSION_CODE_ACTIVE"];
+  SESSION_CODE_FAILED = API_PARAMETERS["SESSION_CODE_FAILED"];
+  RESULT_KEY = API_PARAMETERS["RESULT_KEY"];
+  LOG_KEY = API_PARAMETERS["LOG_KEY"];
+  _URL = API_PARAMETERS["URL"];
+  // Check for session status.
+  sessionStatus();
+  // Display main component.
   $("#menu")[0].style.display = "flex";
   $(".main")[0].style.display = "block";
+  // Definition of function to retrieve application log.
   $("#menu-active-session-indicator").on("click", () => {
     axios
-      .get(WWW + "/log")
+      .get(_URL + "/log")
       .then((response) => {
         let text = "";
-        console.log(response);
         if (response.data == FAILURE_CODE) {
           text = `No application log was retrievable from our server. This may be caused by:
           <ul>
-            <li>No log data is stored for your session.</li>
+            <li>No log data being stored for your session.</li>
             <li>Your session was deleted.</li>
             <li>You have started the example session.</li>
           </ul>`;
         } else {
-          text = response.data[LOG];
+          console.log(response);
+          text = response.data[LOG_KEY];
         }
         Swal.fire({
           iconHtml: `<i style="color: #6d81ad;" class="fa-duotone fa-notebook fa-lg"></i>`,
@@ -43,7 +53,7 @@ function init() {
             `
           </div>
           `,
-          width: "60vw",
+          width: "50vw",
           padding: "0.5em",
           position: "center",
           showCancelButton: false,
@@ -61,58 +71,21 @@ function init() {
         });
       })
       .catch((error) => {
-        handleError(error);
+        displayError(error.message);
       });
   });
 }
 
 /**
+ * Displays a generic error message, if the MUSIAL web api returned an error code in the passed response.
  *
- * @param {*} response
+ * @param {String} text Optional text to display.
  */
-function handleResponseCode(response) {
-  if (response.data == FAILURE_CODE) {
-    Swal.fire({
-      iconHtml: `<i class="error-icon fa-duotone fa-triangle-exclamation"></i>`,
-      title: "Error",
-      confirmButtonColor: "#6d81ad",
-      color: "#747474",
-      background: "#fafafcd9",
-      backdrop: `
-            rgba(96, 113, 150, 0.4)
-            left top
-            no-repeat
-          `,
-      html: `
-        <div class="remark secondary text-left">
-            An error occurred.
-            Please check your input/session data.
-            You can access the server log by clicking the <i class="fa-duotone fa-circle-notch" style="color: #fe4848;"></i> icon.
-            If you cannot solve your problem, feel free to open an issue <a href='https://github.com/Integrative-Transcriptomics/MUSIAL/issues' target='_blan'>here</a>.
-        </div>
-      `,
-    });
+function displayError(text) {
+  const showText = true;
+  if (typeof text === "undefined") {
+    showText = false;
   }
-}
-
-/**
- *
- * @param {*} text
- */
-function displayWarning(text) {
-  Swal.fire({
-    iconHtml: `<i class="warning-icon fa-duotone fa-circle-info"></i>`,
-    title: "Caution",
-    confirmButtonColor: "#6d81ad",
-    text: text,
-  });
-}
-
-/**
- *
- * @param {*} error
- */
-function handleError(error) {
   Swal.fire({
     iconHtml: `<i class="error-icon fa-duotone fa-triangle-exclamation"></i>`,
     title: "Error",
@@ -127,24 +100,48 @@ function handleError(error) {
     html:
       `
         <div class="remark secondary text-left">
-            An error occurred.
-            Please check your input/session data.
-            You can access the server log by clicking the <i class="fa-duotone fa-circle-notch" style="color: #fe4848;"></i> icon.
-            If you cannot solve your problem, feel free to open an issue <a href='https://github.com/Integrative-Transcriptomics/MUSIAL/issues' target='_blan'>here</a>.
+            An error occurred. Please check your input/session data.
+            You can access the server log by clicking the <i class="fa-duotone fa-hexagon" style="color: #fe4848;"></i> icon.
+            If you cannot solve your problem, feel free to <a href='https://github.com/Integrative-Transcriptomics/MUSIAL-WEB/issues' target='_blan'>open an issue</a>.
         </div>
-        <div class="remark secondary text-left"><span class="input-info-tag">LOG:</span><br>
-            ` +
-      error.message +
-      `
-        </div>
-      `,
+      ` + showText
+        ? `<div class="remark secondary text-left"><span class="input-info-tag">LOG:</span><br>` +
+          text +
+          `</div>`
+        : ``,
   });
 }
 
 /**
+ * Displays the specific warning text as an alert.
  *
- * @param {*} blob
- * @param {*} name
+ * @param {String} text Message to display in the alert.
+ */
+function displayWarning(text) {
+  Swal.fire({
+    iconHtml: `<i class="warning-icon fa-duotone fa-circle-info"></i>`,
+    title: "Warning",
+    confirmButtonColor: "#6d81ad",
+    text: text,
+  });
+}
+
+/**
+ * Displays an error message, if the specified response yields a failure code as data.
+ *
+ * @param {JSON} response JSON format response of the MUSIAL web api.
+ */
+function handleResponse(response) {
+  if (response.data == FAILURE_CODE) {
+    displayError();
+  }
+}
+
+/**
+ * Provides a blob as a downloadable file.
+ *
+ * @param {Blob} blob The file-like blob object whose content is stored.
+ * @param {String} name The name of the file to store the specified blob.
  */
 function downloadBlob(blob, name) {
   var download_link = document.createElement("a");
@@ -155,50 +152,60 @@ function downloadBlob(blob, name) {
 }
 
 /**
- *
+ * Check for an active session and colorize the session indicator accordingly.
  */
-function checkForSession() {
-  let COLOR_NONE = "#eff0f8";
-  let COLOR_OK = "#39c093";
-  let COLOR_ERROR = "#fe4848";
+function sessionStatus() {
   axios
-    .get(WWW + "/has_session")
+    .get(_URL + "/session_status")
     .then((response) => {
-      if (response.data == SUCCESS_CODE) {
-        $("#menu-active-session-indicator")[0].style.color = COLOR_OK;
-        $("#menu-link-results").attr("disabled", false);
-      } else if (response.data == FAILURE_CODE) {
-        $("#menu-active-session-indicator")[0].style.color = COLOR_NONE;
-        $("#menu-link-results").attr("disabled", true);
-      } else if (response.data == APPLICATION_ISSUE_CODE) {
-        $("#menu-active-session-indicator")[0].style.color = COLOR_ERROR;
-        $("#menu-link-results").attr("disabled", true);
-      } else {
-        $("#menu-active-session-indicator")[0].style.color = COLOR_NONE;
-        $("#menu-link-results").attr("disabled", true);
+      switch (String(response.data)) {
+        case SESSION_CODE_ACTIVE:
+          $("#menu-active-session-indicator")[0].classList =
+            "p-2 fa-duotone fa-hexagon-check";
+          break;
+        case SESSION_CODE_FAILED:
+          $("#menu-active-session-indicator")[0].classList =
+            "p-2 fa-duotone fa-hexagon-exclamation";
+          break;
+        case SESSION_CODE_NONE:
+          $("#menu-active-session-indicator")[0].classList =
+            "p-2 fa-duotone fa-hexagon";
+          break;
       }
     })
     .catch((error) => {
-      handleError(error);
+      displayError(error.message);
     });
 }
 
 /**
+ * Converts a html string into a html node.
  *
- * @param {*} html
- * @returns
+ * @param {String} html String content of the html element to generate.
+ * @returns The html Node object defined by the specified string content.
  */
 function htmlToElement(html) {
   var template = document.createElement("template");
-  html = html.trim(); // Never return a text node of whitespace as the result
+  html = html.trim();
   template.innerHTML = html;
   return template.content.firstChild;
 }
 
 /**
+ * Displays a toast message at the bottom of the page.
  *
- * @param {*} text
- * @param {*} timeout
+ * @param {String} text Content to display.
+ * @param {Number} timeout Timeout to hide the toast.
+ */
+function displayToast(text, timeout) {
+  Metro.toast.create(text, () => {}, timeout, "custom-toast");
+}
+
+/**
+ * Deprecated method.
+ *
+ * @param {String} text Text to display by the loader animation.
+ * @param {Number} timeout Timeout of the loader animation in ms.
  */
 function displayLoader(text, timeout) {
   var loaderContainer = document.createElement("div");
@@ -212,14 +219,16 @@ function displayLoader(text, timeout) {
   document.body.appendChild(loaderContainer);
   Metro.toast.create(
     `<small>` + text + `</small>`,
-    () => {},
+    () => {
+      hideLoader();
+    },
     timeout,
-    "loader-toast"
+    "custom-toast"
   );
 }
 
 /**
- *
+ * Deprecated method.
  */
 function hideLoader() {
   $("#loader-container")[0].remove();

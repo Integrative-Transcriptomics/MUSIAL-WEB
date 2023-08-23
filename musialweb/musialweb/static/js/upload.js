@@ -1,3 +1,4 @@
+// Definition of constants.
 var PASS_REFERENCE_SEQUENCE = false;
 var PASS_REFERENCE_FEATURES = false;
 var PASS_SAMPLES = false;
@@ -18,10 +19,11 @@ var REQUEST = {
   referenceFeaturesFile: undefined,
   output: "",
   samples: {},
-  features: {},
+  features: [],
   excludedPositions: {},
 };
 
+// Definition of change observers to track if users can submit.
 $("#input-reference-genome").on("change", function (event) {
   REQUEST.referenceSequenceFile = $("#input-reference-genome")[0].files[0];
   if (REQUEST.referenceSequenceFile !== undefined) {
@@ -94,32 +96,6 @@ $("#input-features-proteins").on("change", function (event) {
 $("#input-infer-proteoforms").on("change", function (event) {
   PROTEOFORM_ANALYSIS = $("#input-infer-proteoforms").is(":checked");
 });
-
-function observeFeatures(_, _, values) {
-  parseFeaturesInput(values);
-  if (REQUEST.features !== undefined) {
-    PASS_FEATURES = true;
-  } else {
-    PASS_FEATURES = false;
-  }
-  checkCanSubmit();
-}
-
-function parseFeaturesInput(values) {
-  let features = undefined;
-  if (
-    values.every((entry) => {
-      return /^[a-zA-Z0-9\_\-]+\s[a-zA-Z0-9\_\-]+$/.test(entry);
-    })
-  ) {
-    features = new Set(values);
-  }
-  if (features !== undefined && features.size > 0) {
-    REQUEST.features = Array.from(features);
-  } else {
-    REQUEST.features = undefined;
-  }
-}
 
 $("#input-parameter-min-coverage").on("change", function (event) {
   let oldValue = REQUEST.minimalCoverage;
@@ -242,6 +218,43 @@ $("#input-parameter-max-het-frequency").on("change", function (event) {
   }
 });
 
+/**
+ * Sets a change observer for the feature list input.
+ *
+ * The function is called after the DOM generation of the resp. tag input and initializes
+ * a mutation observer of the parent node. This tracks all changes of added or deleted tags.
+ */
+function observeFeaturesList() {
+  new MutationObserver(() => {
+    let values = $("#input-features-list")[0]
+      .value.split(",")
+      .filter((e) => e != "");
+
+    let features = new Set();
+    if (
+      values.every((entry) => {
+        return /^[a-zA-Z0-9\_\-]+\s[a-zA-Z0-9\_\-]+$/.test(entry);
+      })
+    ) {
+      features = new Set(values);
+    }
+    if (features.size > 0) {
+      REQUEST.features = Array.from(features);
+      PASS_FEATURES = true;
+    } else {
+      REQUEST.features = [];
+      PASS_FEATURES = false;
+    }
+    checkCanSubmit();
+  }).observe($("#input-features-list")[0].parentNode, {
+    subtree: true,
+    childList: true,
+  });
+}
+
+/**
+ * Resets all input forms.
+ */
 function resetForm() {
   for (let fileInputId of [
     "input-reference-genome",
@@ -273,6 +286,9 @@ function resetForm() {
   checkCanSubmit();
 }
 
+/**
+ * Check whether users can submit their request.
+ */
 function checkCanSubmit() {
   if (
     PASS_REFERENCE_SEQUENCE &&
@@ -289,6 +305,12 @@ function checkCanSubmit() {
   }
 }
 
+/**
+ * Returns the content of a client side file as a string.
+ *
+ * @param {String} file Client side local file path.
+ * @returns Promise of the file content.
+ */
 function readFile(file) {
   return new Promise((resolve, reject) => {
     var fileReader = new FileReader();
@@ -300,15 +322,17 @@ function readFile(file) {
   });
 }
 
+/**
+ * Submits the user request.
+ */
 async function submit() {
   if (CAN_SUBMIT) {
-    displayLoader(
-      "Processing Request (You will be redirected once complete)",
-      10e9
-    );
-    checkCanSubmit();
-    document.body.className = "wait";
-    // Process samples input.
+    document.body.style.cursor = "wait";
+    /*
+    Process sample input:
+    Transforms all passed variant call format files into sample entries wrt. the MUSIAL build schema.
+    The contents of the single vcf files are parsed at the client side and stored in the resp. entry.
+     */
     let sampleFiles = REQUEST.samples;
     REQUEST.samples = {};
     for (let sampleFile of sampleFiles) {
@@ -322,7 +346,11 @@ async function submit() {
         REQUEST.samples[sampleName].vcfFile = response;
       });
     }
-    // Process reference sequence input.
+    /*
+    Process reference sequence input:
+    Parses the specified reference sequence at the client side and store its content in the resp. entry.
+    Validates and transforms all specified positions to exclude tags into single position lists per entry.
+     */
     let referenceSequenceFile = REQUEST.referenceSequenceFile;
     await readFile(referenceSequenceFile).then((response) => {
       REQUEST.referenceSequenceFile = response;
@@ -375,40 +403,41 @@ async function submit() {
         ];
       }
     }
-    // Process reference sequence features.
+    /*
+    Process reference feature input:
+    Parses the specified reference sequence annotation at the client side and store its content in the resp. entry.
+    Validates and transforms all specified feature tags into proper build configuration entries.
+     */
     let referenceFeaturesFile = REQUEST.referenceFeaturesFile;
     await readFile(referenceFeaturesFile).then((response) => {
       REQUEST.referenceFeaturesFile = response;
     });
-    parseFeaturesInput(
-      Metro.getPlugin("#input-features-list", "taginput").val()
-    );
     let features = REQUEST.features;
     REQUEST.features = {};
-    if (features.length > 0) {
-      for (let feature of features) {
-        let matchKey = feature.split(" ")[0];
-        let matchValue = feature.split(" ")[1];
-        REQUEST.features[matchValue] = {
-          annotations:
-            matchValue in FEATURES_META_DATA
-              ? FEATURES_META_DATA[matchValue]
-              : {},
-        };
-        REQUEST.features[matchValue]["match_" + matchKey] = matchValue;
-        let matchedPdbFiles = [...PDB_FILES].filter(
-          (file) => file.name.split(".")[0] === matchValue
-        );
-        if (matchedPdbFiles.length > 0) {
-          await readFile(matchedPdbFiles[0]).then((response) => {
-            REQUEST.features[matchValue]["pdbFile"] = response;
-          });
-        } else {
-          REQUEST.features[matchValue]["coding"] = PROTEOFORM_ANALYSIS;
-        }
+    for (let feature of features) {
+      let matchKey = feature.split(" ")[0];
+      let matchValue = feature.split(" ")[1];
+      REQUEST.features[matchValue] = {
+        annotations:
+          matchValue in FEATURES_META_DATA
+            ? FEATURES_META_DATA[matchValue]
+            : {},
+      };
+      REQUEST.features[matchValue]["match_" + matchKey] = matchValue;
+      let matchedPdbFiles = [...PDB_FILES].filter(
+        (file) => file.name.split(".")[0] === matchValue
+      );
+      if (matchedPdbFiles.length > 0) {
+        await readFile(matchedPdbFiles[0]).then((response) => {
+          REQUEST.features[matchValue]["pdbFile"] = response;
+        });
+      } else {
+        REQUEST.features[matchValue]["coding"] = PROTEOFORM_ANALYSIS;
       }
     }
-    // Process call filter parameters.
+    /*
+    Transform the specified variant call filter parameters to the correct format.
+    */
     REQUEST.minimalHomozygousFrequency =
       REQUEST.minimalHomozygousFrequency / 100;
     REQUEST.minimalHeterozygousFrequency =
@@ -416,26 +445,30 @@ async function submit() {
     REQUEST.maximalHeterozygousFrequency =
       REQUEST.maximalHeterozygousFrequency / 100;
     document.body.className = "";
+    // Send the request to the server.
+    document.body.style.cursor = "default";
+    displayToast(
+      "Request submitted. You will be redirected once complete.",
+      4000
+    );
     axios
-      .post(WWW + "/start_session", pako.deflate(JSON.stringify(REQUEST)), {
+      .post(_URL + "/start_session", pako.deflate(JSON.stringify(REQUEST)), {
         headers: {
           "Content-Type": "application/octet-stream",
           "Content-Encoding": "zlib",
         },
       })
       .then((response) => {
-        handleResponseCode(response);
+        handleResponse(response);
         if (response.data == SUCCESS_CODE) {
-          window.location.href = WWW + "/results";
+          window.location.href = _URL + "/results";
         }
       })
       .catch((error) => {
-        handleError(error);
+        displayError(error.message);
       })
-      .finally((_) => {
-        document.body.className = "";
+      .finally(() => {
         resetForm();
-        hideLoader();
       });
   }
 }
