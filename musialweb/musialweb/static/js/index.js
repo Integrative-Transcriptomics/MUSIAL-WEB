@@ -28,6 +28,7 @@ function init() {
             <li>No log data is stored in your session.</li>
             <li>Your session was deleted.</li>
             <li>No connection to the server could be established.</li>
+            <li>You have started the example session.</li>
           </ul>`;
         } else {
           text = response.data[LOG];
