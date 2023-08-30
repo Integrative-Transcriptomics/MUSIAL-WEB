@@ -1,11 +1,11 @@
 {% extends 'index.html' %} {% block styles %}
 <link
-  href="https://unpkg.com/tabulator-tables@5.4.2/dist/css/tabulator.min.css"
+  href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css"
   rel="stylesheet"
 />
 
 <link
-  href="https://unpkg.com/tabulator-tables@5.4.2/dist/css/tabulator_materialize.min.css"
+  href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator_materialize.min.css"
   rel="stylesheet"
 />
 
@@ -17,7 +17,7 @@
 {% endblock %} {% block scripts %}
 <script
   type="text/javascript"
-  src="https://unpkg.com/tabulator-tables@5.4.2/dist/js/tabulator.min.js"
+  src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"
 ></script>
 <script
   type="text/javascript"
@@ -78,25 +78,25 @@
 <div id="main-results" class="main">
   <ul class="h-menu m-4">
     <div class="toolbar" data-role="buttongroup">
-      <span class="tag-dark text-upper">display content</span>
+      <span class="tag-dark text-upper">display overview of</span>
       <button
         id="results-set-samples-table"
         class="button small rounded text-upper"
-        onclick="setTableToSamples()"
+        onclick="showSamplesInTable()"
       >
         samples
       </button>
       <button
-        id="results-set-genes-table"
+        id="results-set-features-table"
         class="button small rounded text-upper"
-        onclick="setTableToGenes()"
+        onclick="showFeaturesInTable()"
       >
-        genes
+        features
       </button>
       <button
         id="results-set-variants-table"
         class="button small rounded text-upper"
-        onclick="setTableToVariants()"
+        onclick="showVariantsInTable()"
       >
         variants
       </button>
@@ -295,7 +295,7 @@
       class="rounded download-tile"
       data-role="tile"
       data-size="medium"
-      onclick="getSession()"
+      onclick="downloadSessionStorage()"
     >
       <i class="icon fa-regular fa-file-code"></i>
       <span class="tag-translucent text-center branding-bar">Session</span>

@@ -28,7 +28,7 @@ function init() {
   // Definition of function to retrieve application log.
   $("#menu-active-session-indicator").on("click", () => {
     axios
-      .get(_URL + "/log")
+      .get(_URL + "/session_log")
       .then((response) => {
         let text = "";
         if (response.data == FAILURE_CODE) {

@@ -166,7 +166,7 @@ body.swal2-shown > [aria-hidden="true"] {
   font-size: small;
   background-color: var(--color-secondary);
   color: var(--text-color-secondary);
-  border-radius: 1px;
+  border-radius: 2px;
   text-transform: uppercase;
 }
 

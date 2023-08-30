@@ -328,6 +328,8 @@ function readFile(file) {
 async function submit() {
   if (CAN_SUBMIT) {
     document.body.style.cursor = "wait";
+    $("#upload-data-button")[0].disabled = true;
+    CAN_SUBMIT = false;
     /*
     Process sample input:
     Transforms all passed variant call format files into sample entries wrt. the MUSIAL build schema.
@@ -444,7 +446,6 @@ async function submit() {
       REQUEST.minimalHeterozygousFrequency / 100;
     REQUEST.maximalHeterozygousFrequency =
       REQUEST.maximalHeterozygousFrequency / 100;
-    document.body.className = "";
     // Send the request to the server.
     document.body.style.cursor = "default";
     displayToast(
@@ -452,7 +453,7 @@ async function submit() {
       4000
     );
     axios
-      .post(_URL + "/start_session", pako.deflate(JSON.stringify(REQUEST)), {
+      .post(_URL + "/session_start", pako.deflate(JSON.stringify(REQUEST)), {
         headers: {
           "Content-Type": "application/octet-stream",
           "Content-Encoding": "zlib",
