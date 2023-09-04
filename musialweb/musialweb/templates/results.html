@@ -178,15 +178,12 @@
     <div id="main-results-content-table"></div>
   </div>
   <div class="remark m-4">
-    <h3 class="p-2 text-left">
-      <small>Data Download</small>
-      <i
-        id="collapse-download"
-        class="fa-solid fa-circle-info info-clickable float-right"
-      ></i>
-    </h3>
+    <i
+      id="collapse-download"
+      class="fa-solid fa-circle-info info-clickable float-right"
+    ></i>
     <div
-      class="info-block mb-6"
+      class="info-block mb-6 mt-8"
       data-role="collapse"
       data-toggle-element="#collapse-download"
       data-collapsed="true"
@@ -280,49 +277,20 @@
         </ul>
       </div>
     </div>
-
-    <div
-      class="rounded download-tile"
-      data-role="tile"
-      data-size="medium"
-      onclick="downloadOverviewTable()"
-    >
-      <i class="icon fa-solid fa-table"></i>
-      <span class="tag-translucent text-center branding-bar"
-        >Overview Table</span
-      >
-    </div>
-
-    <div
-      class="rounded download-tile"
-      data-role="tile"
-      data-size="medium"
-      onclick="downloadSessionStorage()"
-    >
-      <i class="icon fa-regular fa-file-code"></i>
-      <span class="tag-translucent text-center branding-bar">Session</span>
-    </div>
-
-    <div
-      class="rounded download-tile"
-      data-role="tile"
-      data-size="medium"
-      onclick="getSequences()"
-    >
-      <i class="icon fa-solid fa-bars-staggered"></i>
-      <span class="tag-translucent text-center branding-bar">Sequences</span>
-    </div>
-
-    <div
-      class="rounded download-tile"
-      data-role="tile"
-      data-size="medium"
-      onclick="getVariantsTable( )"
-    >
-      <i class="icon fa-solid fa-table-cells"></i>
-      <span class="tag-translucent text-center branding-bar"
-        >Variants Table</span
-      >
+    <div class="toolbar" data-role="buttongroup">
+      <span class="tag-dark">download data</span>
+      <button class="button small rounded" onclick="downloadOverviewTable()">
+        Overview Table
+      </button>
+      <button class="button small rounded" onclick="downloadSessionStorage()">
+        Session Data
+      </button>
+      <button class="button small rounded" onclick="getSequences()">
+        Sequences
+      </button>
+      <button class="button small rounded" onclick="getVariantsTable()">
+        Variants Table
+      </button>
     </div>
   </div>
 </div>
