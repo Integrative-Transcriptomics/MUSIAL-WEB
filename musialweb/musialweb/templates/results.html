@@ -101,31 +101,8 @@
         variants
       </button>
     </div>
-    <div class="toolbar float-right" data-role="buttongroup">
-      <span class="tag-dark">group</span>
-      <select
-        id="results-table-group-field"
-        class="input-small"
-        data-role="select"
-        data-prepend="Field"
-        data-filter="false"
-      ></select>
-      <button
-        id="results-table-add-group-button"
-        class="button small rounded"
-        onclick="addTableGroup()"
-      >
-        <i class="fa-solid fa-plus"></i>
-      </button>
-      <button
-        id="results-table-reset-group-button"
-        class="button small rounded"
-        onclick="resetTableGroup()"
-      >
-        <i class="fa-solid fa-arrow-rotate-left"></i>
-      </button>
-    </div>
-    <div class="toolbar float-right" data-role="buttongroup">
+
+    <div class="toolbar" data-role="buttongroup">
       <span class="tag-dark">filter</span>
       <select
         id="results-table-filter-field"
@@ -147,7 +124,7 @@
         <option value=">">Greater</option>
         <option value=">=">Greater or Equal</option>
         <option value="!=">Unequal</option>
-        <option value="keywords">In</option>
+        <option value="keywords">Keyword</option>
       </select>
       <input
         id="results-table-filter-value"
@@ -167,6 +144,31 @@
         id="results-table-reset-filter-button"
         class="button small rounded"
         onclick="resetTableFilter()"
+      >
+        <i class="fa-solid fa-arrow-rotate-left"></i>
+      </button>
+    </div>
+
+    <div class="toolbar" data-role="buttongroup">
+      <span class="tag-dark">group</span>
+      <select
+        id="results-table-group-field"
+        class="input-small"
+        data-role="select"
+        data-prepend="Field"
+        data-filter="false"
+      ></select>
+      <button
+        id="results-table-add-group-button"
+        class="button small rounded"
+        onclick="addTableGroup()"
+      >
+        <i class="fa-solid fa-plus"></i>
+      </button>
+      <button
+        id="results-table-reset-group-button"
+        class="button small rounded"
+        onclick="resetTableGroup()"
       >
         <i class="fa-solid fa-arrow-rotate-left"></i>
       </button>

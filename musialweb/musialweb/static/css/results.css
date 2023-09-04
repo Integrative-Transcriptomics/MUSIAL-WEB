@@ -71,6 +71,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #main-results .toolbar .select {
   margin-left: 4px;
   margin-right: 4px;
+  min-width: 10vw !important;
 }
 
 #main-results .toolbar .input {

@@ -233,10 +233,9 @@ def session_data():
             stderr=subprocess.PIPE,
         )
         stdout, stderr = process.communicate()
-        stdout = stdout.decode(encoding="utf-8")
-        stderr = stderr.decode(encoding="utf-8")
+        stdout = stdout.decode()
+        stderr = stderr.decode()
         response.append(view_output_to_dict(stdout))
-        print(stdout)
 
         # (ii) Run MUSIAL on the specified data to view features.
         process = subprocess.Popen(
@@ -283,7 +282,7 @@ def session_data():
             print(session[api_parameters["LOG_KEY"]])
     finally:
         # Remove temporary files, store results and log in session and return response code.
-        # shutil.rmtree("./musialweb/tmp/" + unique_hex_key)
+        shutil.rmtree("./musialweb/tmp/" + unique_hex_key)
         session[api_parameters["LOG_KEY"]] = remove_ansi(stderr)
         if DEBUG:
             print("\033[46m LOG \033[0m")

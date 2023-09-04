@@ -94,24 +94,15 @@ axios
     displayError(error.message);
   });
 
-function constructTableColumns(columnFields) {
-  let columnDefinitions = [];
-  for (let columnField of columnFields) {
-    columnDefinitions.push({
-      title: columnField.replace(".", " "),
-      field: columnField,
-    });
-  }
-  return columnDefinitions;
-}
-
 function showTableContent(record) {
   if (_SESSION_DATA.hasData) {
     _OVERVIEW_TABLE = new Tabulator("#main-results-content-table", {
       nestedFieldSeparator: "$",
       movableColumns: true,
+      maxHeight: "50vh",
       columnDefaults: {
         width: "8vw",
+        tooltip: true,
       },
       columns: constructTableColumns(record.columns),
       data: record.records,
@@ -138,6 +129,85 @@ function showFeaturesInTable() {
 function showVariantsInTable() {
   showTableContent(_SESSION_DATA.variantsRecord);
   $("#results-set-variants-table").addClass("active-content");
+}
+
+function constructTableColumns(columnFields) {
+  let columnDefinitions = [];
+  let selectOptions = {};
+  for (let columnField of columnFields) {
+    let titleValue = columnField.split(/[._]+/).join(" ");
+    columnDefinitions.push({
+      title: titleValue,
+      field: columnField,
+      headerTooltip: true,
+    });
+    selectOptions[columnField] = titleValue;
+  }
+  Metro.getPlugin(
+    document.getElementById("results-table-group-field"),
+    "select"
+  ).data(selectOptions);
+  Metro.getPlugin(
+    document.getElementById("results-table-filter-field"),
+    "select"
+  ).data(selectOptions);
+  if (typeof _OVERVIEW_TABLE != "undefined") {
+    resetTableFilter();
+    resetTableGroup();
+  }
+  return columnDefinitions;
+}
+
+function addTableFilter() {
+  var filters = _OVERVIEW_TABLE.getFilters();
+  filters.push({
+    field: $("#results-table-filter-field")[0].value,
+    type: $("#results-table-filter-type")[0].value,
+    value: $("#results-table-filter-value")[0].value,
+  });
+  /*
+  if ($("#results-table-filter-field")[0].value == "Frequency[%]") {
+    tableFilter.push({
+      field: $("#results-table-filter-field")[0].value,
+      type: $("#results-table-filter-type")[0].value,
+      value: parseFloat($("#results-table-filter-value")[0].value),
+    });
+  } else if ($("#results-table-filter-type")[0].value == "keywords") {
+    tableFilter.push({
+      field: $("#results-table-filter-field")[0].value,
+      type: $("#results-table-filter-type")[0].value,
+      value: $("#results-table-filter-value")[0]
+        .value.replaceAll(";", " ")
+        .replaceAll(",", " "),
+    });
+  } else {
+    tableFilter.push({
+      field: $("#results-table-filter-field")[0].value,
+      type: $("#results-table-filter-type")[0].value,
+      value: $("#results-table-filter-value")[0].value,
+    });
+  }
+  */
+  _OVERVIEW_TABLE.setFilter(filters);
+  _OVERVIEW_TABLE.redraw(true);
+}
+
+function resetTableFilter() {
+  _OVERVIEW_TABLE.clearFilter();
+  _OVERVIEW_TABLE.redraw(true);
+}
+
+function addTableGroup() {
+  var groups = _OVERVIEW_TABLE.options.groupBy;
+  if (!groups) groups = [];
+  groups.push($("#results-table-group-field")[0].value);
+  _OVERVIEW_TABLE.setGroupBy(groups);
+  _OVERVIEW_TABLE.redraw(true);
+}
+
+function resetTableGroup() {
+  _OVERVIEW_TABLE.setGroupBy();
+  _OVERVIEW_TABLE.redraw(true);
 }
 
 function downloadSessionStorage() {
