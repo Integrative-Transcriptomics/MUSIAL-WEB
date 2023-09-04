@@ -92,6 +92,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   background-color: var(--color-primary);
 }
 
+#main-results-table {
+  min-height: 10vh;
+  max-height: 50vh;
+}
+
 #results-table-add-filter-button {
   background-color: var(--contrast-secondary) !important;
 }
@@ -106,6 +111,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #results-table-reset-group-button {
   background-color: var(--contrast-primary) !important;
+}
+
+#main-results-dashboard {
+  min-height: 10vh;
+  max-height: 50vh;
 }
 
 #results-table-download-button {
