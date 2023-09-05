@@ -88,13 +88,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 }
 
 .footer {
+  position: absolute;
   font-size: small;
+  bottom: 0;
+  left: 0;
+  width: 100vw;
+  background-color: var(--background-color-primary);
+  border-radius: 2px;
 }
 
 .footer div {
   padding: 10px;
-}
-
-.row {
-  margin-bottom: 10px;
 }
