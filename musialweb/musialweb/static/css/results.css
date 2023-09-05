@@ -92,11 +92,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   background-color: var(--color-primary);
 }
 
-#main-results-table {
-  min-height: 10vh;
-  max-height: 50vh;
-}
-
 #results-table-add-filter-button {
   background-color: var(--contrast-secondary) !important;
 }

@@ -1,7 +1,7 @@
 from musialweb import app
 from flask import request, session, render_template, send_file
 from flask_session import Session
-from datetime import timedelta
+from datetime import timedelta, datetime
 from operator import methodcaller
 from dotenv import load_dotenv
 from io import StringIO
@@ -25,14 +25,13 @@ app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024 * 1024  # Limit content lengths t
 SESSION_KEY_REFERENCE_SEQUENCE = "U0VTU0lPTl9LRVlfUkVGRVJFTkNFX1NFUVVFTkNF"
 SESSION_SATUS_KEY = "U0VTU0lPTl9TQVRVU19LRVk"
 """ Set API parameters. """
-api_parameters = {
+API_CODES = {
     "SUCCESS_CODE": "0",  # Response return code for successful requests.
     "FAILURE_CODE": "1",  # Response return code for failed requests (due to server internal error).
     "SESSION_CODE_NONE": "0",  # Response code indicating no active session.
     "SESSION_CODE_ACTIVE": "1",  # Response code  indicating an active session.
     "SESSION_CODE_FAILED": "2",  # Response code  indicating a failed session.
     "RESULT_KEY": os.getenv("RESULT_KEY"),
-    "LOG_KEY": os.getenv("LOG_KEY"),
     "URL": os.getenv("URL"),
 }
 """ Set DEBUG to true in order to display log as console output. """
@@ -47,7 +46,7 @@ def session_status():
     GET route to check whether an active session exists.
     """
     if not SESSION_SATUS_KEY in session:
-        return api_parameters["SESSION_CODE_NONE"]
+        return API_CODES["SESSION_CODE_NONE"]
     else:
         return session[SESSION_SATUS_KEY]
 
@@ -65,12 +64,12 @@ def session_start():
     user session, if successfull.
     """
     # Generate unique hex string to use as directory name in the local file system.
-    unique_hex_key = generate_random_string()
+    unique_hex_key = _generate_random_string()
     # Variables to store output of MUSIAL run.
     stdout = ""
     stderr = ""
     result = ""
-    response_code = api_parameters["SUCCESS_CODE"]
+    response_code = API_CODES["SUCCESS_CODE"]
     try:
         # Generate directory to store data temporary in the local file system.
         os.makedirs("./musialweb/tmp/" + unique_hex_key)
@@ -155,14 +154,12 @@ def session_start():
             )
             > 0
         ):
-            response_code = api_parameters["FAILURE_CODE"]
-            session[api_parameters["LOG_KEY"]] = (
-                remove_ansi(stdout) + "\n" + remove_ansi(stderr)
-            )
-            session[SESSION_SATUS_KEY] = api_parameters["SESSION_CODE_FAILED"]
+            response_code = API_CODES["FAILURE_CODE"]
+            session[SESSION_SATUS_KEY] = API_CODES["SESSION_CODE_FAILED"]
+            _log(_remove_ansi(stdout) + "\n" + _remove_ansi(stderr))
             if DEBUG:
                 print("\033[41m ERROR \033[0m")
-                print(session[api_parameters["LOG_KEY"]])
+                print(_remove_ansi(stdout) + "\n" + _remove_ansi(stderr))
         # Else, parse and store output of MUSIAL.
         else:
             with open(
@@ -172,41 +169,36 @@ def session_start():
                 result = json_result_data
     # If any error is thrown by the server, set response code to 1 (failed).
     except Exception as e:
-        response_code = api_parameters["FAILURE_CODE"]
-        session[api_parameters["LOG_KEY"]] = remove_ansi(str(e))
-        session[SESSION_SATUS_KEY] = api_parameters["SESSION_CODE_FAILED"]
+        response_code = API_CODES["FAILURE_CODE"]
+        session[SESSION_SATUS_KEY] = API_CODES["SESSION_CODE_FAILED"]
+        _log(_remove_ansi(str(e)))
         if DEBUG:
             print("\033[41m ERROR \033[0m")
-            print(session[api_parameters["LOG_KEY"]])
+            print(_remove_ansi(str(e)))
     finally:
         # Remove temporary files, store results and log in session and return response code.
         shutil.rmtree("./musialweb/tmp/" + unique_hex_key)
-        session[api_parameters["RESULT_KEY"]] = result
-        session[api_parameters["LOG_KEY"]] = (
-            remove_ansi(stdout) + "\n" + remove_ansi(stderr)
-        )
-        session[SESSION_SATUS_KEY] = api_parameters["SESSION_CODE_ACTIVE"]
+        session[API_CODES["RESULT_KEY"]] = result
+        session[SESSION_SATUS_KEY] = API_CODES["SESSION_CODE_ACTIVE"]
+        _log(_remove_ansi(stdout) + "\n" + _remove_ansi(stderr))
         if DEBUG:
             print("\033[46m LOG \033[0m")
-            print(session[api_parameters["LOG_KEY"]])
+            print(_remove_ansi(stdout) + "\n" + _remove_ansi(stderr))
         return response_code
 
 
-@app.route("/session_log", methods=["GET"])
-def session_log():
-    log = {}
-    if api_parameters["LOG_KEY"] in session:
-        log[api_parameters["LOG_KEY"]] = session[api_parameters["LOG_KEY"]]
-    if len(log.keys()) > 0:
-        return json.dumps(log)
+@app.route("/log", methods=["GET"])
+def log():
+    if "LOG" in session:
+        return session["LOG"]
     else:
-        return api_parameters["FAILURE_CODE"]
+        return API_CODES["FAILURE_CODE"]
 
 
 @app.route("/session_data", methods=["GET"])
 def session_data():
     # Generate unique hex string to use as directory name in the local file system.
-    unique_hex_key = generate_random_string()
+    unique_hex_key = _generate_random_string()
     # Variables to store output of MUSIAL run.
     stdout = ""
     stderr = ""
@@ -217,7 +209,7 @@ def session_data():
         with open(
             "./musialweb/tmp/" + unique_hex_key + "/results.json", "w+"
         ) as session_results:
-            session_results.write(json.dumps(session[api_parameters["RESULT_KEY"]]))
+            session_results.write(json.dumps(session[API_CODES["RESULT_KEY"]]))
 
         # (i) Run MUSIAL on the specified data to view samples.
         process = subprocess.Popen(
@@ -235,7 +227,9 @@ def session_data():
         stdout, stderr = process.communicate()
         stdout = stdout.decode()
         stderr = stderr.decode()
-        response.append(view_output_to_dict(stdout))
+        response.append(_view_output_to_dict(stdout))
+        if stderr != "":
+            _log("Error when retrieving sample data; " + _remove_ansi(stderr))
 
         # (ii) Run MUSIAL on the specified data to view features.
         process = subprocess.Popen(
@@ -253,7 +247,9 @@ def session_data():
         stdout, stderr = process.communicate()
         stdout = stdout.decode(encoding="utf-8")
         stderr = stderr.decode(encoding="utf-8")
-        response.append(view_output_to_dict(stdout))
+        response.append(_view_output_to_dict(stdout))
+        if stderr != "":
+            _log("Error when retrieving feature data; " + _remove_ansi(stderr))
 
         # (iii) Run MUSIAL on the specified data to view variants.
         process = subprocess.Popen(
@@ -271,22 +267,20 @@ def session_data():
         stdout, stderr = process.communicate()
         stdout = stdout.decode(encoding="utf-8")
         stderr = stderr.decode(encoding="utf-8")
-        response.append(view_output_to_dict(stdout))
-
+        response.append(_view_output_to_dict(stdout))
+        if stderr != "":
+            _log("Error when retrieving variants data; " + _remove_ansi(stderr))
     # If any error is thrown by the server, set response code to 1 (failed).
     except Exception as e:
-        response = api_parameters["FAILURE_CODE"]
-        session[api_parameters["LOG_KEY"]] = remove_ansi(str(e))
+        response = API_CODES["FAILURE_CODE"]
+        _log(_remove_ansi(str(e)))
         if DEBUG:
             print("\033[41m ERROR \033[0m")
-            print(session[api_parameters["LOG_KEY"]])
+            print(_remove_ansi(str(e)))
     finally:
         # Remove temporary files, store results and log in session and return response code.
         shutil.rmtree("./musialweb/tmp/" + unique_hex_key)
-        session[api_parameters["LOG_KEY"]] = remove_ansi(stderr)
-        if DEBUG:
-            print("\033[46m LOG \033[0m")
-            print(session[api_parameters["LOG_KEY"]])
+        _log("Retrieved session data.")
         return response
 
 
@@ -302,30 +296,33 @@ def example_session():
     """
     # Variables to store output of MUSIAL run.
     result = ""
-    response_code = api_parameters["SUCCESS_CODE"]
+    response_code = API_CODES["SUCCESS_CODE"]
     try:
         # Load static example session.
         with open(
             "./musialweb/static/resources/example_session.json", "r"
         ) as example_session_file:
             result = json.load(example_session_file)
-    # If any error is thrown by the server, set response code to 1 (failed).
+    # If any error is thrown by the server, set response code to failed.
     except Exception as e:
-        response_code = api_parameters["FAILURE_CODE"]
-        session[api_parameters["LOG_KEY"]] = remove_ansi(str(e))
+        response_code = API_CODES["FAILURE_CODE"]
+        session[SESSION_SATUS_KEY] = API_CODES["SESSION_CODE_FAILED"]
+        _log(_remove_ansi(str(e)))
         if DEBUG:
             print("\033[41m ERROR \033[0m")
-            print(session[api_parameters["LOG_KEY"]])
+            print(str(e))
     finally:
-        session[api_parameters["RESULT_KEY"]] = result
+        session[API_CODES["RESULT_KEY"]] = result
+        session[SESSION_SATUS_KEY] = API_CODES["SESSION_CODE_ACTIVE"]
+        _log("Example session initialized.")
         return response_code
 
 
 @app.route("/download_session_storage", methods=["GET"])
 def download_session_storage():
     # Generate unique hex string to use as directory name in the local file system.
-    unique_hex_key = generate_random_string()
-    response_code = api_parameters["SUCCESS_CODE"]
+    unique_hex_key = _generate_random_string()
+    response_code = API_CODES["SUCCESS_CODE"]
     try:
         # Generate directory to store data temporary in the local file system.
         os.mkdir("./musialweb/tmp/" + unique_hex_key)
@@ -335,7 +332,7 @@ def download_session_storage():
             # Write compressed session result.
             compressed_result.write(
                 brotli.compress(
-                    json.dumps(session[api_parameters["RESULT_KEY"]]).encode("utf-8")
+                    json.dumps(session[API_CODES["RESULT_KEY"]]).encode("utf-8")
                 )
             )
             return send_file(
@@ -343,35 +340,41 @@ def download_session_storage():
                 as_attachment=True,
             )
     except Exception as e:
-        response_code = api_parameters["FAILURE_CODE"]
-        session[api_parameters["LOG_KEY"]] = remove_ansi(str(e))
+        response_code = API_CODES["FAILURE_CODE"]
+        session[API_CODES["LOG_KEY"]] = _remove_ansi(str(e))
         if DEBUG:
             print("\033[41m ERROR \033[0m")
-            print(session[api_parameters["LOG_KEY"]])
+            print(session[API_CODES["LOG_KEY"]])
         return response_code
     # finally:
     #    shutil.rmtree("./musialweb/tmp/" + unique_hex_key)
 
 
-def generate_random_string():
+def _generate_random_string():
     return "".join(
         random.SystemRandom().choice(string.ascii_letters + string.digits)
         for _ in range(10)
     )
 
 
-def remove_ansi(text):
+def _remove_ansi(text):
     ansi_remove_expression = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]")
     return ansi_remove_expression.sub("", text)
 
 
-def view_output_to_dict(out):
+def _view_output_to_dict(out):
     # Remove MUSIAL view specific comment lines.
-    records = list(filter(lambda line: line != "", remove_ansi(out).split("\n")[4:]))
+    records = list(filter(lambda line: line != "", _remove_ansi(out).split("\n")[4:]))
     columns = records[0].split("\t")
     string_content = "\n".join(
-        list(filter(lambda line: line != "", remove_ansi(out).split("\n")[4:]))
+        list(filter(lambda line: line != "", _remove_ansi(out).split("\n")[4:]))
     )
     content_df = pd.read_csv(StringIO(string_content), sep="\t")
     records = content_df.to_dict(orient="records")
     return {"columns": columns, "records": records}
+
+
+def _log(content: str):
+    if not "LOG" in session:
+        session["LOG"] = ""
+    session["LOG"] += "> " + str(datetime.now()) + "<br/>" + content + "<br/>"

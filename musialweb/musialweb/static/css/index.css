@@ -90,7 +90,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   text-decoration: none;
   margin-right: 10px;
   font-size: x-large;
-  cursor: pointer;
 }
 
 body.swal2-shown > [aria-hidden="true"] {

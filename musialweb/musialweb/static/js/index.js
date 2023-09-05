@@ -4,7 +4,6 @@ SESSION_CODE_NONE = ""; // Code indicating no active session.
 SESSION_CODE_ACTIVE = ""; // Code indicating an active session.
 SESSION_CODE_FAILED = ""; // Code indicating a failed session.
 RESULT_KEY = ""; // Server session key to access results.
-LOG_KEY = ""; // Server session key to access application log.
 _URL = ""; // URL to access server.
 
 /**
@@ -18,62 +17,12 @@ function init() {
   SESSION_CODE_ACTIVE = API_PARAMETERS["SESSION_CODE_ACTIVE"];
   SESSION_CODE_FAILED = API_PARAMETERS["SESSION_CODE_FAILED"];
   RESULT_KEY = API_PARAMETERS["RESULT_KEY"];
-  LOG_KEY = API_PARAMETERS["LOG_KEY"];
   _URL = API_PARAMETERS["URL"];
   // Check for session status.
   sessionStatus();
   // Display main component.
   $("#menu")[0].style.display = "flex";
   $(".main")[0].style.display = "block";
-  // Definition of function to retrieve application log.
-  $("#menu-active-session-indicator").on("click", () => {
-    axios
-      .get(_URL + "/session_log")
-      .then((response) => {
-        let text = "";
-        if (response.data == FAILURE_CODE) {
-          text = `No application log was retrievable from our server. This may be caused by:
-          <ul>
-            <li>No log data being stored for your session.</li>
-            <li>Your session was deleted.</li>
-            <li>You have started the example session.</li>
-          </ul>`;
-        } else {
-          console.log(response);
-          text = response.data[LOG_KEY];
-        }
-        Swal.fire({
-          iconHtml: `<i style="color: #6d81ad;" class="fa-duotone fa-notebook fa-lg"></i>`,
-          title: "Application Log",
-          html:
-            `
-          <div class="p-2 text-ultralight text-left" style="white-space: pre-line; border-radius: 4px; background-color: #cbd0e0;">
-          ` +
-            text +
-            `
-          </div>
-          `,
-          width: "50vw",
-          padding: "0.5em",
-          position: "center",
-          showCancelButton: false,
-          grow: true,
-          heightAuto: true,
-          confirmButtonColor: "#6d81ad",
-          confirmButtonText: "Close",
-          color: "#747474",
-          background: "#fafafcd9",
-          backdrop: `
-            rgba(239, 240, 248, 0.1)
-            left top
-            no-repeat
-          `,
-        });
-      })
-      .catch((error) => {
-        displayError(error.message);
-      });
-  });
 }
 
 /**
@@ -199,38 +148,4 @@ function htmlToElement(html) {
  */
 function displayToast(text, timeout) {
   Metro.toast.create(text, () => {}, timeout, "custom-toast");
-}
-
-/**
- * Deprecated method.
- *
- * @param {String} text Text to display by the loader animation.
- * @param {Number} timeout Timeout of the loader animation in ms.
- */
-function displayLoader(text, timeout) {
-  var loaderContainer = document.createElement("div");
-  loaderContainer.id = "loader-container";
-  loaderContainer.innerHTML =
-    `<img src="` +
-    LOADING_GIF +
-    `" style="height: 100px; width: 100px; pointer-events: none; user-select: none;">`;
-  loaderContainer.style.cssText =
-    "position:absolute; left:1vh; bottom:1vh; width:100px; height:100px; opacity:1.0; z-index:10; background: transparent;";
-  document.body.appendChild(loaderContainer);
-  Metro.toast.create(
-    `<small>` + text + `</small>`,
-    () => {
-      hideLoader();
-    },
-    timeout,
-    "custom-toast"
-  );
-}
-
-/**
- * Deprecated method.
- */
-function hideLoader() {
-  $("#loader-container")[0].remove();
-  $(".loader-toast")[0].remove();
 }
