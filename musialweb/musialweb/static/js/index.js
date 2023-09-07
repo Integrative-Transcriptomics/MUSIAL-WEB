@@ -105,7 +105,7 @@ function downloadBlob(blob, name) {
  */
 function sessionStatus() {
   axios
-    .get(_URL + "/session_status")
+    .get(_URL + "/session/status")
     .then((response) => {
       switch (String(response.data)) {
         case SESSION_CODE_ACTIVE:

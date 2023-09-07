@@ -21,10 +21,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   flex-direction: column;
 }
 
-#main-results .h-menu {
-  background-color: var(--background-color-primary);
-}
-
 #main-results .remark {
   background-color: var(--background-color-tertiary);
 }
@@ -32,6 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #main-results .remark .info-clickable {
   float: right;
   color: var(--contrast-primary);
+  font-size: x-large;
 }
 
 #main-results .remark .info-block {
@@ -41,16 +38,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   color: var(--background-color-primary);
 }
 
-#main-results .remark i {
-  color: var(--color-primary);
-  font-size: x-large;
-}
-
-#main-results h3 small i {
-  color: var(--text-color-secondary) !important;
-  font-size: large !important;
-}
-
 #main-results .toolbar .button {
   margin-left: 4px;
   margin-right: 4px;
@@ -58,14 +45,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   color: var(--background-color-primary);
 }
 
-#main-results .toolbar .toolbar-tag {
-  margin-left: 4px;
-  margin-right: 4px;
-  padding: 2px 8px 2px 8px;
+#main-results .toolbar .button i {
   font-size: small;
-  background-color: var(--color-secondary);
-  color: var(--text-color-secondary);
-  border-radius: 1px;
+  color: var(--background-color-primary);
 }
 
 #main-results .toolbar .select {
@@ -92,36 +74,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   background-color: var(--color-primary);
 }
 
-#results-table-add-filter-button {
+.green-button {
   background-color: var(--contrast-secondary) !important;
 }
 
-#results-table-reset-filter-button {
+.red-button {
   background-color: var(--contrast-primary) !important;
 }
 
-#results-table-add-group-button {
-  background-color: var(--contrast-secondary) !important;
-}
-
-#results-table-reset-group-button {
-  background-color: var(--contrast-primary) !important;
-}
-
-#main-results-dashboard {
-  min-height: 10vh;
-  max-height: 50vh;
-}
-
-#results-table-download-button {
-  font-size: medium;
-}
-
-#results-extended-access-download-button {
-  margin-left: 4px;
-  margin-right: 4px;
-  background-color: var(--contrast-secondary);
-  color: var(--background-color-primary);
+#main-results-table {
+  margin-top: 1vh;
+  border-radius: 4px;
 }
 
 .data-download-copy-from-table-button {
@@ -134,45 +97,61 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 }
 
 .tabulator-col-title {
-  padding-left: 2vw;
+  padding-left: 1.5vw;
 }
 
 .tabulator-col-sorter {
   padding: 2px;
 }
 
-.tabulator-menu {
-  background-color: var(--background-color-secondary) !important;
+#main-results-dashboard {
+  height: 50vh;
 }
 
-.tabulator-popup {
-  background-color: rgba(227, 229, 237, 0.9) !important;
-  border-radius: 2px;
-  min-width: 20vw;
+.dashboard-container {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  top: 0;
+  left: 0;
 }
 
-.tabulator-popup-variants {
-  background-color: rgba(227, 229, 237, 0.9);
-  color: var(--text-color-secondary);
-  max-height: 10vh;
-  margin: 4px;
-  overflow-y: scroll;
+#main-results-dashboard-samples {
+  display: none;
 }
 
-.tabulator-structure-button {
-  text-decoration: none;
-  background-color: transparent;
-  border: none;
+#main-results-dashboard-samples-left {
+  position: absolute;
+  height: 90%;
+  width: 40%;
+  top: 10%;
+  left: 0;
 }
 
-.tabulator-structure-button i {
-  color: var(--color-tertiary) !important;
-  cursor: pointer;
+#main-results-dashboard-samples-mid {
+  position: absolute;
+  height: 90%;
+  min-height: 40vh;
+  width: 50%;
+  top: 10%;
+  left: 40%;
 }
 
-.tabulator-structure-button i:hover {
-  color: var(--color-primary) !important;
-  transition: 0.2s;
+#main-results-dashboard-samples-right {
+  position: absolute;
+  height: 90%;
+  min-height: 40vh;
+  width: 10%;
+  top: 10%;
+  left: 90%;
+}
+
+#main-results-dashboard-features {
+  display: none;
+}
+
+#main-results-dashboard-variants {
+  display: none;
 }
 
 .fa-xmark {
@@ -181,15 +160,4 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 li {
   padding-bottom: 4px;
-}
-
-.download-tile {
-  border-radius: 6px;
-  background-color: var(--color-tertiary);
-  display: inline-block;
-  margin: 10px;
-}
-
-.download-tile i {
-  color: var(--background-color-primary) !important;
 }

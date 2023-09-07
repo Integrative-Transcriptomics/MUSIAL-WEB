@@ -76,27 +76,27 @@
 {% endblock %} {% block content %}
 
 <div id="main-results" class="main">
-  <ul class="h-menu m-4">
+  <div class="remark m-4">
     <div class="toolbar" data-role="buttongroup">
       <span class="tag-dark text-upper">display overview of</span>
       <button
-        id="results-set-samples-table"
+        id="main-results-table-set-samples-button"
         class="button small rounded text-upper"
-        onclick="showSamplesInTable()"
+        onclick="showSamples()"
       >
         samples
       </button>
       <button
-        id="results-set-features-table"
+        id="main-results-table-set-features-button"
         class="button small rounded text-upper"
-        onclick="showFeaturesInTable()"
+        onclick="showFeatures()"
       >
         features
       </button>
       <button
-        id="results-set-variants-table"
+        id="main-results-table-set-variants-button"
         class="button small rounded text-upper"
-        onclick="showVariantsInTable()"
+        onclick="showVariants()"
       >
         variants
       </button>
@@ -105,14 +105,14 @@
     <div class="toolbar" data-role="buttongroup">
       <span class="tag-dark">filter</span>
       <select
-        id="results-table-filter-field"
+        id="main-results-table-filter-field"
         class="input-small"
         data-role="select"
         data-prepend="Field"
         data-filter="false"
       ></select>
       <select
-        id="results-table-filter-type"
+        id="main-results-table-filter-type"
         class="input-small"
         data-role="select"
         data-prepend="Type"
@@ -127,22 +127,20 @@
         <option value="keywords">Keyword</option>
       </select>
       <input
-        id="results-table-filter-value"
+        id="main-results-table-filter-value"
         type="text"
         class="input-small"
         data-role="input"
         data-prepend="Value"
       />
       <button
-        id="results-table-add-filter-button"
-        class="button small rounded"
+        class="button small rounded green-button"
         onclick="addTableFilter()"
       >
         <i class="fa-solid fa-plus"></i>
       </button>
       <button
-        id="results-table-reset-filter-button"
-        class="button small rounded"
+        class="button small rounded red-button"
         onclick="resetTableFilter()"
       >
         <i class="fa-solid fa-arrow-rotate-left"></i>
@@ -152,46 +150,120 @@
     <div class="toolbar" data-role="buttongroup">
       <span class="tag-dark">group</span>
       <select
-        id="results-table-group-field"
+        id="main-results-table-group-field"
         class="input-small"
         data-role="select"
         data-prepend="Field"
         data-filter="false"
       ></select>
       <button
-        id="results-table-add-group-button"
-        class="button small rounded"
+        class="button small rounded green-button"
         onclick="addTableGroup()"
       >
         <i class="fa-solid fa-plus"></i>
       </button>
       <button
-        id="results-table-reset-group-button"
-        class="button small rounded"
+        class="button small rounded red-button"
         onclick="resetTableGroup()"
       >
         <i class="fa-solid fa-arrow-rotate-left"></i>
       </button>
     </div>
-  </ul>
 
-  <div class="remark m-4">
     <div id="main-results-table"></div>
   </div>
 
   <div class="remark m-4">
-    <div id="main-results-dashboard"></div>
+    <div id="main-results-dashboard">
+      <div id="main-results-dashboard-samples" class="dashboard-container">
+        <div class="toolbar" data-role="buttongroup">
+          <span class="tag-dark">clustering</span>
+          <select
+            id="main-results-dashboard-samples-clustering-type"
+            class="input-small"
+            data-role="select"
+            data-prepend="Type"
+            data-filter="false"
+          >
+            <option value="allele">Allele</option>
+            <option value="proteoform">Proteoform</option>
+          </select>
+          <select
+            id="main-results-dashboard-samples-clustering-features"
+            class="input-small"
+            data-role="select"
+            data-prepend="Features"
+            data-filter="false"
+            multiple
+          ></select>
+          <button
+            class="button small rounded green-button"
+            onclick="dashboardSamplesClustering()"
+          >
+            <i class="fa-solid fa-play"></i>
+          </button>
+        </div>
+        <div class="toolbar" data-role="buttongroup">
+          <span class="tag-dark">correlation</span>
+          <select
+            id="main-results-dashboard-samples-correlation-1"
+            class="input-small"
+            data-role="select"
+            data-prepend="Field 1"
+            data-filter="false"
+          ></select>
+          <select
+            id="main-results-dashboard-samples-correlation-2"
+            class="input-small"
+            data-role="select"
+            data-prepend="Field 2"
+            data-filter="false"
+          ></select>
+          <select
+            id="main-results-dashboard-samples-correlation-test"
+            class="input-small"
+            data-role="select"
+            data-prepend="Test"
+            data-filter="false"
+          >
+            <option value="pearsonr">Pearson</option>
+            <option value="spearmanr">Spearman</option>
+            <option value="kendalltau">Kendall's tau</option>
+            <option value="cramer">Cramer's V</option>
+          </select>
+          <button
+            class="button small rounded green-button"
+            onclick="dashboardSamplesCorrelation()"
+          >
+            <i class="fa-solid fa-play"></i>
+          </button>
+        </div>
+        <div id="main-results-dashboard-samples-left"></div>
+        <div id="main-results-dashboard-samples-mid"></div>
+        <div id="main-results-dashboard-samples-right"></div>
+      </div>
+
+      <div
+        id="main-results-dashboard-features"
+        class="dashboard-container"
+      ></div>
+
+      <div
+        id="main-results-dashboard-variants"
+        class="dashboard-container"
+      ></div>
+    </div>
   </div>
 
   <div class="remark m-4">
     <i
-      id="collapse-download"
+      id="main-results-download-info"
       class="fa-solid fa-circle-info info-clickable float-right"
     ></i>
     <div
       class="info-block mb-6 mt-8"
       data-role="collapse"
-      data-toggle-element="#collapse-download"
+      data-toggle-element="#main-results-download-info"
       data-collapsed="true"
     >
       <div class="p-5 text-left">

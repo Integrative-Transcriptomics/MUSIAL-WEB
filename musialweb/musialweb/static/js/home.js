@@ -3,7 +3,7 @@
  */
 function getExampleData() {
   axios
-    .get(_URL + "/example_data", { responseType: "blob" })
+    .get(_URL + "/example/data", { responseType: "blob" })
     .then((response) => {
       handleResponse(response);
       downloadBlob(response.data, "example_data.zip");
@@ -18,7 +18,7 @@ function getExampleData() {
  */
 function startExampleSession() {
   axios
-    .get(_URL + "/example_session")
+    .get(_URL + "/example/session")
     .then((response) => {
       handleResponse(response);
       if (response.data == SUCCESS_CODE) {

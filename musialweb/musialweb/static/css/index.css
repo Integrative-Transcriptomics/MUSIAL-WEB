@@ -26,7 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   --background-color-primary: #eff0f8;
   --background-color-secondary: #e4e5ed;
   --background-color-tertiary: #fafafc;
-  --color-primary: rgb(96, 113, 150);
+  --color-primary: #607196;
   --color-secondary: #cbd0e0;
   --color-tertiary: #6d81ad;
   --color-quarternary: #9ba6bd;
@@ -206,17 +206,6 @@ body.swal2-shown > [aria-hidden="true"] {
   color: var(--text-color-secondary) !important;
   font-size: small;
   border-radius: 4px;
-}
-
-#cookie-consent-icon-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: transparent;
-}
-
-#cookie-consent-text-container {
-  text-align: left;
 }
 
 .fa-cookie {

@@ -453,7 +453,7 @@ async function submit() {
       4000
     );
     axios
-      .post(_URL + "/session_start", pako.deflate(JSON.stringify(REQUEST)), {
+      .post(_URL + "/session/start", pako.deflate(JSON.stringify(REQUEST)), {
         headers: {
           "Content-Type": "application/octet-stream",
           "Content-Encoding": "zlib",
