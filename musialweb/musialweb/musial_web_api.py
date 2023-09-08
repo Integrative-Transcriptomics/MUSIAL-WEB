@@ -416,6 +416,7 @@ def clc_sample_clustering():
     json_request_data = json.loads(json_string_request_data)
     features = json_request_data["features"]
     form_type = json_request_data["type"]
+    m = json_request_data["metric"]
     # Collect variants from sequence alignment per feature.
     feature_variants = {}
     storage = session[API_CODES["RESULT_KEY"]]
@@ -470,7 +471,7 @@ def clc_sample_clustering():
     finally:
         shutil.rmtree("./tmp/" + unique_hex_key)
     # Assert variants to samples.
-    samples_variants = []
+    profile_variants = []
     response = {}
     for sample in storage["samples"]:
         profile = []
@@ -481,21 +482,25 @@ def clc_sample_clustering():
             ]
             profile.append(form_type + "." + feature + "." + form_name)
             variants += feature_variants[feature][form_name]
-        response[sample] = {"profile": ":".join(profile), "variants": variants}
-        samples_variants.append(variants)
-    samples_variants_flat = list(set(np.ravel(samples_variants)))
+        profile = ":".join(profile)
+        if profile in response:
+            response[profile]["samples"].append(sample)
+        else:
+            response[profile] = {"samples": [sample], "variants": variants}
+        profile_variants.append(variants)
+    profile_variants_flat = list(set(np.ravel(profile_variants)))
     int_transform = {
-        samples_variants_flat[i]: i for i in range(len(samples_variants_flat))
+        profile_variants_flat[i]: i for i in range(len(profile_variants_flat))
     }
-    samples_variants_transform = [
-        list(map(lambda v: int_transform[v], sample_variants))
-        for sample_variants in samples_variants
+    profile_variants_transform = [
+        list(map(lambda v: int_transform[v], profile_variant))
+        for profile_variant in profile_variants
     ]
-    umap_model = UMAP(n_neighbors=10, metric="hamming", min_dist=1.0)
-    embedding = umap_model.fit_transform(samples_variants_transform)
+    umap_model = UMAP(n_neighbors=10, metric=m, min_dist=1.0)
+    embedding = umap_model.fit_transform(profile_variants_transform)
     index = 0
-    for sample in storage["samples"]:
-        response[sample]["transform"] = [
+    for profile in response:
+        response[profile]["transform"] = [
             float(embedding[index][0]),
             float(embedding[index][1]),
         ]

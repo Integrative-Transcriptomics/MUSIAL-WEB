@@ -56,6 +56,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   min-width: 10vw !important;
 }
 
+#main-results .toolbar .multiple {
+  min-width: 25vw !important;
+}
+
 #main-results .toolbar .input {
   margin-left: 4px;
   margin-right: 4px;
