@@ -6,6 +6,7 @@ var _SESSION_DATA = {
   variantsRecord: {},
 };
 var _CHARTS = [];
+var _CHART_OBSERVERS = [];
 var tableDefinition = undefined;
 var tableData = undefined;
 var tableActiveType = undefined;
@@ -116,6 +117,7 @@ function showContent(record) {
       },
       columns: constructTableColumns(record.columns),
       data: record.records,
+      selectable: 1,
     });
     $("#main-results-table-set-samples-button").removeClass("active-content");
     $("#main-results-table-set-features-button").removeClass("active-content");
@@ -123,7 +125,14 @@ function showContent(record) {
     $("#main-results-dashboard-samples").hide();
     $("#main-results-dashboard-features").hide();
     $("#main-results-dashboard-variants").hide();
-    _CHARTS = [];
+    for (let chart_observer of _CHART_OBSERVERS) {
+      chart_observer.disconnect();
+    }
+    for (let chart of _CHARTS) {
+      chart.dispose();
+    }
+    _CHARTS.length = 0;
+    _CHART_OBSERVERS.length = 0;
     return true;
   } else {
     return false;
@@ -375,7 +384,135 @@ function dashboardSamplesClustering() {
 function showFeatures() {
   if (showContent(_SESSION_DATA.featuresRecord)) {
     $("#main-results-table-set-features-button").addClass("active-content");
+    $("#main-results-dashboard-features").show();
+    constructEChartInstance(
+      $("#main-results-dashboard-features-left")[0],
+      _SESSION_DATA.featuresRecord.dashboard.overview_parallel
+    );
+    constructEChartInstance(
+      $("#main-results-dashboard-features-right")[0],
+      _SESSION_DATA.featuresRecord.dashboard.forms_parallel
+    );
+    let featureSelectOptions = {};
+    for (let featureRecord of _SESSION_DATA.featuresRecord.records) {
+      featureSelectOptions[featureRecord.name] = featureRecord.name;
+    }
+    Metro.getPlugin(
+      document.getElementById("main-results-dashboard-features-forms-feature"),
+      "select"
+    ).data(featureSelectOptions);
+    Metro.getPlugin(
+      document.getElementById("main-results-dashboard-features-detail-feature"),
+      "select"
+    ).data(featureSelectOptions);
   }
+}
+
+function dashboardFeaturesForms() {
+  var REQUEST = {
+    type: Metro.getPlugin(
+      "#main-results-dashboard-features-forms-type",
+      "select"
+    ).val(),
+    feature: Metro.getPlugin(
+      "#main-results-dashboard-features-forms-feature",
+      "select"
+    ).val(),
+  };
+  _CHARTS[1].showLoading({
+    color: "#6d81ad",
+    text: "Loading...",
+    maskColor: "rgb(250, 250, 252, 0.8)",
+  });
+  axios
+    .post(_URL + "/calc/feature_forms", pako.deflate(JSON.stringify(REQUEST)), {
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "Content-Encoding": "zlib",
+      },
+    })
+    .then((response) => {
+      let titleText =
+        REQUEST.feature +
+        " " +
+        REQUEST.type.charAt(0).toUpperCase() +
+        REQUEST.type.slice(1) +
+        " Overview";
+      let computeMax = (index, step) =>
+        Math.ceil(
+          Math.max(
+            ...response.data[0].map((series) => {
+              return series.data[0][index];
+            })
+          ) / step
+        ) * step;
+      _CHARTS[1].hideLoading();
+      _CHARTS[1].setOption({
+        title: [
+          {
+            top: "0",
+            left: 0,
+            text: titleText,
+            textStyle: { fontWeight: "lighter", fontStyle: "oblique" },
+          },
+        ],
+        parallelAxis: [
+          {
+            dim: 0,
+            name: "Substitutions",
+            min: 0,
+            max: computeMax(0, 10),
+          },
+          {
+            dim: 1,
+            name: "Insertions",
+            min: 0,
+            max: computeMax(1, 10),
+          },
+          {
+            dim: 2,
+            name: "Deletions",
+            min: 0,
+            max: computeMax(2, 10),
+          },
+          {
+            dim: 3,
+            name: "Variable Positions (%)",
+            min: 0.0,
+            max: computeMax(3, 2),
+          },
+          {
+            dim: 4,
+            name: "Frequency (%)",
+            min: 0.0,
+            max: computeMax(4, 10),
+          },
+        ],
+        series: response.data[0],
+      });
+    })
+    .catch((error) => {
+      displayError(error.message);
+    })
+    .finally(() => {
+      _CHARTS[1].hideLoading();
+    });
+}
+
+function dashboardFeaturesDetail() {
+  var type = Metro.getPlugin(
+    "#main-results-dashboard-features-detail-type",
+    "select"
+  ).val();
+  var target = Metro.getPlugin(
+    "#main-results-dashboard-features-detail-feature",
+    "select"
+  ).val();
+  var dashboard = window.open(
+    _URL + "/ext/feature_detail?type=" + type + "&target=" + target,
+    "_blank"
+  );
+  dashboard.location;
 }
 
 function showVariants() {
@@ -386,7 +523,7 @@ function showVariants() {
 
 function constructTableColumns(columnFields) {
   let columnDefinitions = [];
-  let selectOptions = {};
+  let propertySelectOptions = {};
   for (let columnField of columnFields) {
     let titleValue = columnField
       .split(/[._]+/)
@@ -406,6 +543,18 @@ function constructTableColumns(columnFields) {
             : "reference";
         },
       });
+    } else if (
+      columnField.startsWith("frequency") ||
+      columnField.startsWith("variable")
+    ) {
+      columnDefinitions.push({
+        title: titleValue,
+        field: columnField,
+        headerTooltip: true,
+        formatter: function (cell, formatterParams, onRendered) {
+          return parseFloat(cell.getValue()).toFixed(2) + " %";
+        },
+      });
     } else {
       columnDefinitions.push({
         title: titleValue,
@@ -413,24 +562,24 @@ function constructTableColumns(columnFields) {
         headerTooltip: true,
       });
     }
-    selectOptions[columnField] = titleValue;
+    propertySelectOptions[columnField] = titleValue;
   }
   Metro.getPlugin(
     document.getElementById("main-results-table-group-field"),
     "select"
-  ).data(selectOptions);
+  ).data(propertySelectOptions);
   Metro.getPlugin(
     document.getElementById("main-results-table-filter-field"),
     "select"
-  ).data(selectOptions);
+  ).data(propertySelectOptions);
   Metro.getPlugin(
     document.getElementById("main-results-dashboard-samples-correlation-1"),
     "select"
-  ).data(selectOptions);
+  ).data(propertySelectOptions);
   Metro.getPlugin(
     document.getElementById("main-results-dashboard-samples-correlation-2"),
     "select"
-  ).data(selectOptions);
+  ).data(propertySelectOptions);
   if (typeof _OVERVIEW_TABLE != "undefined") {
     resetTableFilter();
     resetTableGroup();
@@ -445,14 +594,16 @@ function constructEChartInstance(element, option) {
     width: "auto",
     height: "auto",
   });
-  new ResizeObserver((entries) => {
+  var chart_observer = new ResizeObserver((entries) => {
     chart.resize({
       width: entries[0].width,
       height: entries[0].height,
     });
-  }).observe(element);
+  });
+  chart_observer.observe(element);
   chart.setOption(option);
   _CHARTS.push(chart);
+  _CHART_OBSERVERS.push(chart_observer);
 }
 
 function addTableFilter() {
@@ -504,7 +655,6 @@ function downloadSessionStorage() {
   axios
     .get(_URL + "/download_session_storage", { responseType: "blob" })
     .then((response) => {
-      console.log(response);
       downloadBlob(response.data, "storage.json.br");
     })
     .catch((error) => {

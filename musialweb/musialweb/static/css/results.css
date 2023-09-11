@@ -108,6 +108,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   padding: 2px;
 }
 
+.tabulator-selected {
+  font-style: bold;
+  background-color: var(--color-secondary) !important;
+  border-radius: 4px;
+}
+
 #main-results-dashboard {
   height: 50vh;
 }
@@ -152,6 +158,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #main-results-dashboard-features {
   display: none;
+}
+
+#main-results-dashboard-features-left {
+  position: absolute;
+  height: 90%;
+  width: 50%;
+  top: 10%;
+  left: 0;
+}
+
+#main-results-dashboard-features-right {
+  position: absolute;
+  height: 90%;
+  width: 50%;
+  top: 10%;
+  left: 50%;
 }
 
 #main-results-dashboard-variants {

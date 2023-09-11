@@ -1,5 +1,5 @@
 from musialweb import app
-from flask import request, session, send_file
+from flask import request, session, send_file, render_template
 from flask_session import Session
 from datetime import timedelta, datetime
 from operator import methodcaller
@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from io import StringIO
 from Bio import SeqIO
 from umap.umap_ import UMAP
-import json, zlib, os, subprocess, shutil, brotli, random, string, re, base64, warnings
+import json, zlib, os, subprocess, shutil, brotli, random, string, re, math
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -181,7 +181,7 @@ def session_start():
             print(_remove_ansi(str(e)))
     finally:
         # Remove temporary files, store results and log in session and return response code.
-        shutil.rmtree("./tmp/" + unique_hex_key)
+        # shutil.rmtree("./tmp/" + unique_hex_key)
         session[API_CODES["RESULT_KEY"]] = result
         session[SESSION_KEY_STATUS] = API_CODES["SESSION_CODE_ACTIVE"]
         _log(_remove_ansi(stdout) + "\n" + _remove_ansi(stderr))
@@ -243,7 +243,9 @@ def session_data():
         stdout, stderr = process.communicate()
         stdout = stdout.decode(encoding="utf-8")
         stderr = stderr.decode(encoding="utf-8")
-        response.append(_view_output_to_dict(stdout))
+        feature_df, feature_records = _view_features_output_to_dict(stdout)
+        session[SESSION_KEY_FEATURES_DF] = feature_df
+        response.append(feature_records)
         if stderr != "":
             _log("Error when retrieving feature data; " + _remove_ansi(stderr))
 
@@ -352,6 +354,222 @@ def download_session_storage():
         return response_code
     # finally:
     #    shutil.rmtree("./tmp/" + unique_hex_key)
+
+
+def _generate_random_string():
+    return "".join(
+        random.SystemRandom().choice(string.ascii_letters + string.digits)
+        for _ in range(10)
+    )
+
+
+def _remove_ansi(text):
+    ansi_remove_expression = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]")
+    return ansi_remove_expression.sub("", text)
+
+
+def _view_samples_output_to_dict(out):
+    # Remove MUSIAL view specific comment lines.
+    records = list(filter(lambda line: line != "", _remove_ansi(out).split("\n")[4:]))
+    columns = records[0].split("\t")
+    string_content = "\n".join(
+        list(filter(lambda line: line != "", _remove_ansi(out).split("\n")[4:]))
+    )
+    content_df = pd.read_csv(StringIO(string_content), sep="\t")
+    records = content_df.to_dict(orient="records")
+    return content_df, {
+        "columns": columns,
+        "records": records,
+        "dashboard": {
+            "variants_area": _construct_samples_variants_area(content_df),
+            "clustering_scatter": _construct_samples_clustering_scatter(),
+            "correlation_bar": _construct_samples_correlation_bar(),
+        },
+    }
+
+
+def _construct_samples_variants_area(df):
+    substitution_counts, substitution_bins, _ = plt.hist(
+        df["number_of_substitutions"],
+        bins=min([20, df["number_of_substitutions"].max()]),
+        range=(0, df["number_of_substitutions"].max()),
+    )
+    insertion_counts, insertion_bins, _ = plt.hist(
+        df["number_of_insertions"],
+        bins=min([20, df["number_of_insertions"].max()]),
+        range=(0, df["number_of_insertions"].max()),
+    )
+    deletion_counts, deletion_bins, _ = plt.hist(
+        df["number_of_deletions"],
+        bins=min([20, df["number_of_deletions"].max()]),
+        range=(0, df["number_of_deletions"].max()),
+    )
+    return {
+        "title": {
+            "top": "0",
+            "left": 0,
+            "text": "Binned Sample Count by No. Variants",
+            "textStyle": {"fontWeight": "lighter", "fontStyle": "oblique"},
+        },
+        "legend": {"selectedMode": False, "right": "5%"},
+        "grid": [
+            {"top": "10%", "left": "10%", "height": "24%", "width": "85%"},
+            {"top": "39%", "left": "10%", "height": "24%", "width": "85%"},
+            {"top": "68%", "left": "10%", "height": "24%", "width": "85%"},
+        ],
+        "xAxis": [
+            {
+                "type": "category",
+                "gridIndex": 0,
+                "data": [round(value) for value in substitution_bins],
+            },
+            {
+                "type": "category",
+                "gridIndex": 1,
+                "data": [round(value) for value in insertion_bins],
+            },
+            {
+                "type": "category",
+                "gridIndex": 2,
+                "data": [round(value) for value in deletion_bins],
+                "name": "No. Variants",
+                "nameLocation": "center",
+                "nameGap": "25",
+            },
+        ],
+        "yAxis": [
+            {"type": "value", "gridIndex": 0},
+            {
+                "type": "value",
+                "gridIndex": 1,
+                "name": "No. Samples",
+                "nameLocation": "center",
+                "nameGap": "45",
+            },
+            {"type": "value", "gridIndex": 2},
+        ],
+        "series": [
+            {
+                "name": "Substitutions",
+                "type": "bar",
+                "symbol": "none",
+                "itemStyle": {"color": "#6d81ad", "borderRadius": 2},
+                "data": list(substitution_counts),
+                "xAxisIndex": 0,
+                "yAxisIndex": 0,
+            },
+            {
+                "name": "Insertions",
+                "type": "bar",
+                "symbol": "none",
+                "itemStyle": {"color": "#39c093", "borderRadius": 2},
+                "data": list(insertion_counts),
+                "xAxisIndex": 1,
+                "yAxisIndex": 1,
+            },
+            {
+                "name": "Deletions",
+                "type": "bar",
+                "symbol": "none",
+                "itemStyle": {"color": "#fe4848", "borderRadius": 2},
+                "data": list(deletion_counts),
+                "xAxisIndex": 2,
+                "yAxisIndex": 2,
+            },
+        ],
+    }
+
+
+def _construct_samples_correlation_bar():
+    return {
+        "title": [
+            {
+                "top": "0",
+                "left": 0,
+                "text": "Correlation Test",
+                "textStyle": {"fontWeight": "lighter", "fontStyle": "oblique"},
+            },
+            {
+                "top": "5%",
+                "left": "center",
+                "text": "P-value: N/A",
+                "textStyle": {
+                    "fontWeight": "bold",
+                    "fontStyle": "normal",
+                    "fontSize": 12,
+                },
+            },
+        ],
+        "grid": [
+            {"top": "15%", "left": "30%", "height": "80%", "width": "70%"},
+        ],
+        "xAxis": [{"type": "category", "gridIndex": 0}],
+        "yAxis": [
+            {
+                "type": "value",
+                "gridIndex": 0,
+                "min": -1,
+                "max": 1,
+                "splitNumber": 10,
+                "splitLine": {"lineStyle": {"type": "dashed"}},
+                "name": "Test Value",
+                "nameLocation": "center",
+                "nameGap": "40",
+            }
+        ],
+        "series": [
+            {
+                "name": "Test",
+                "type": "bar",
+                "data": [0.0],
+                "xAxisIndex": 0,
+                "yAxisIndex": 0,
+                "itemStyle": {"color": "#6d81ad", "borderRadius": 2},
+            }
+        ],
+    }
+
+
+def _construct_samples_clustering_scatter():
+    return {
+        "title": [
+            {
+                "top": "0",
+                "left": 0,
+                "text": "UMAP Clustering",
+                "textStyle": {"fontWeight": "lighter", "fontStyle": "oblique"},
+            },
+        ],
+        "grid": [
+            {"top": "10%", "left": "8%", "height": "75%", "width": "89%"},
+        ],
+        "xAxis": [
+            {
+                "type": "value",
+                "gridIndex": 0,
+                "name": "UMAP 1",
+                "nameLocation": "center",
+                "nameGap": "45",
+            }
+        ],
+        "yAxis": [
+            {
+                "type": "value",
+                "gridIndex": 0,
+                "name": "UMAP 2",
+                "nameLocation": "center",
+                "nameGap": "45",
+            }
+        ],
+        "series": [
+            {
+                "name": "UMAP Clustering",
+                "type": "scatter",
+                "xAxisIndex": 0,
+                "yAxisIndex": 0,
+            }
+        ],
+    }
 
 
 @app.route("/calc/sample_correlation", methods=["POST"])
@@ -508,19 +726,7 @@ def clc_sample_clustering():
     return response
 
 
-def _generate_random_string():
-    return "".join(
-        random.SystemRandom().choice(string.ascii_letters + string.digits)
-        for _ in range(10)
-    )
-
-
-def _remove_ansi(text):
-    ansi_remove_expression = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]")
-    return ansi_remove_expression.sub("", text)
-
-
-def _view_samples_output_to_dict(out):
+def _view_features_output_to_dict(out):
     # Remove MUSIAL view specific comment lines.
     records = list(filter(lambda line: line != "", _remove_ansi(out).split("\n")[4:]))
     columns = records[0].split("\t")
@@ -529,209 +735,272 @@ def _view_samples_output_to_dict(out):
     )
     content_df = pd.read_csv(StringIO(string_content), sep="\t")
     records = content_df.to_dict(orient="records")
-    # Construct EChart option for variants counts.
-    substitution_counts, substitution_bins, _ = plt.hist(
-        content_df["number_of_substitutions"],
-        bins=min([20, content_df["number_of_substitutions"].max()]),
-        range=(0, content_df["number_of_substitutions"].max()),
-    )
-    insertion_counts, insertion_bins, _ = plt.hist(
-        content_df["number_of_insertions"],
-        bins=min([20, content_df["number_of_insertions"].max()]),
-        range=(0, content_df["number_of_insertions"].max()),
-    )
-    deletion_counts, deletion_bins, _ = plt.hist(
-        content_df["number_of_deletions"],
-        bins=min([20, content_df["number_of_deletions"].max()]),
-        range=(0, content_df["number_of_deletions"].max()),
-    )
     return content_df, {
         "columns": columns,
         "records": records,
         "dashboard": {
-            "variants_area": _construct_samples_variants_area(
-                list(substitution_counts),
-                [round(value) for value in substitution_bins],
-                list(insertion_counts),
-                [round(value) for value in insertion_bins],
-                list(deletion_counts),
-                [round(value) for value in deletion_bins],
-            ),
-            "clustering_scatter": _construct_samples_clustering_scatter(),
-            "correlation_bar": _construct_samples_correlation_bar(),
+            "overview_parallel": _construct_features_overview_parallel(content_df),
+            "forms_parallel": _construct_features_forms_parallel(),
         },
     }
 
 
-def _construct_samples_variants_area(
-    c_substitution, b_substitution, c_insertions, b_insertions, c_deletions, b_deletions
-):
+def _construct_features_overview_parallel(df):
+    data_df = df.loc[
+        :,
+        [
+            "number_of_alleles",
+            "number_of_proteoforms",
+            "number_of_substitutions",
+            "number_of_insertions",
+            "number_of_deletions",
+            "variable_positions",
+        ],
+    ]
+    series = []
+    names = list(df["name"].to_numpy())
+    name_index = 0
+    for entry in data_df.to_numpy():
+        series.append(
+            {
+                "type": "parallel",
+                "data": [list(entry)],
+                "smooth": 0.1,
+                "lineStyle": {
+                    "width": 2,
+                    "opacity": 0.8,
+                },
+                "name": names[name_index],
+            }
+        )
+        name_index += 1
     return {
         "title": {
             "top": "0",
             "left": 0,
-            "text": "Binned Sample Count by No. Variants",
+            "text": "Features Overview",
             "textStyle": {"fontWeight": "lighter", "fontStyle": "oblique"},
         },
-        "legend": {"selectedMode": False, "right": "5%"},
-        "grid": [
-            {"top": "10%", "left": "10%", "height": "24%", "width": "85%"},
-            {"top": "39%", "left": "10%", "height": "24%", "width": "85%"},
-            {"top": "68%", "left": "10%", "height": "24%", "width": "85%"},
-        ],
-        "xAxis": [
+        "parallel": {"right": 200},
+        "parallelAxis": [
             {
-                "type": "category",
-                "gridIndex": 0,
-                "data": b_substitution,
+                "dim": 0,
+                "name": "Alleles",
+                "max": math.ceil(int(data_df["number_of_alleles"].max()) / 10) * 10,
             },
             {
-                "type": "category",
-                "gridIndex": 1,
-                "data": b_insertions,
+                "dim": 1,
+                "name": "Proteoforms",
+                "max": math.ceil(int(data_df["number_of_proteoforms"].max()) / 10) * 10,
             },
             {
-                "type": "category",
-                "gridIndex": 2,
-                "data": b_deletions,
-                "name": "No. Variants",
-                "nameLocation": "center",
-                "nameGap": "25",
-            },
-        ],
-        "yAxis": [
-            {"type": "value", "gridIndex": 0},
-            {
-                "type": "value",
-                "gridIndex": 1,
-                "name": "No. Samples",
-                "nameLocation": "center",
-                "nameGap": "45",
-            },
-            {"type": "value", "gridIndex": 2},
-        ],
-        "series": [
-            {
+                "dim": 2,
                 "name": "Substitutions",
-                "type": "bar",
-                "symbol": "none",
-                "itemStyle": {"color": "#6d81ad", "borderRadius": 2},
-                "data": c_substitution,
-                "xAxisIndex": 0,
-                "yAxisIndex": 0,
+                "max": math.ceil(int(data_df["number_of_substitutions"].max()) / 10)
+                * 10,
             },
             {
+                "dim": 3,
                 "name": "Insertions",
-                "type": "bar",
-                "symbol": "none",
-                "itemStyle": {"color": "#39c093", "borderRadius": 2},
-                "data": c_insertions,
-                "xAxisIndex": 1,
-                "yAxisIndex": 1,
+                "max": math.ceil(int(data_df["number_of_insertions"].max()) / 10) * 10,
             },
             {
+                "dim": 4,
                 "name": "Deletions",
-                "type": "bar",
-                "symbol": "none",
-                "itemStyle": {"color": "#fe4848", "borderRadius": 2},
-                "data": c_deletions,
-                "xAxisIndex": 2,
-                "yAxisIndex": 2,
+                "max": math.ceil(int(data_df["number_of_deletions"].max()) / 10) * 10,
+            },
+            {
+                "dim": 5,
+                "name": "Variable Positions (%)",
+                "max": max(
+                    10, math.ceil(int(data_df["variable_positions"].max()) / 10) * 10
+                ),
             },
         ],
+        "visualMap": {
+            "show": True,
+            "dimension": 5,
+            "min": 0.0,
+            "max": 10.0,
+            "inRange": {"color": ["#9ba6bd", "#6d81ad", "#fe4848"]},
+            "outOfRange": {"color": ["#ff0887"]},
+            "orient": "horizontal",
+            "bottom": 0,
+            "left": "center",
+            "text": ["10%", "Variable Positions 0%"],
+        },
+        "legend": {
+            "type": "scroll",
+            "orient": "vertical",
+            "top": 30,
+            "right": 40,
+            "align": "right",
+            "icon": "none",
+            "backgroundColor": "#e4e5ed",
+            "borderRadius": 4,
+            "selector": True,
+            "selectorLabel": {
+                "fontSize": 8,
+            },
+        },
+        "series": series,
     }
 
 
-def _construct_samples_correlation_bar():
+def _construct_features_forms_parallel():
     return {
-        "title": [
+        "title": {
+            "top": "0",
+            "left": 0,
+            "text": "Forms Overview",
+            "textStyle": {"fontWeight": "lighter", "fontStyle": "oblique"},
+        },
+        "parallel": {"right": 200},
+        "parallelAxis": [
             {
-                "top": "0",
-                "left": 0,
-                "text": "Correlation Test",
-                "textStyle": {"fontWeight": "lighter", "fontStyle": "oblique"},
+                "dim": 0,
+                "name": "Substitutions",
             },
             {
-                "top": "5%",
-                "left": "center",
-                "text": "P-value: N/A",
-                "textStyle": {
-                    "fontWeight": "bold",
-                    "fontStyle": "normal",
-                    "fontSize": 12,
+                "dim": 1,
+                "name": "Insertions",
+            },
+            {
+                "dim": 2,
+                "name": "Deletions",
+            },
+            {
+                "dim": 3,
+                "name": "Variable Positions (%)",
+            },
+            {
+                "dim": 4,
+                "name": "Frequency (%)",
+            },
+        ],
+        "visualMap": {
+            "show": True,
+            "dimension": 3,
+            "min": 0.0,
+            "max": 10.0,
+            "inRange": {"color": ["#9ba6bd", "#6d81ad", "#fe4848"]},
+            "outOfRange": {"color": ["#ff0887"]},
+            "orient": "horizontal",
+            "bottom": 0,
+            "left": "center",
+            "text": ["10%", "Variable Positions 0%"],
+        },
+        "legend": {
+            "type": "scroll",
+            "orient": "vertical",
+            "top": 30,
+            "right": 40,
+            "align": "right",
+            "icon": "none",
+            "backgroundColor": "#e4e5ed",
+            "borderRadius": 4,
+            "selector": True,
+            "selectorLabel": {
+                "fontSize": 8,
+            },
+        },
+        "series": [
+            {
+                "type": "parallel",
+                "smooth": 0.1,
+                "lineStyle": {
+                    "width": 2,
+                    "opacity": 0.8,
                 },
-            },
-        ],
-        "grid": [
-            {"top": "15%", "left": "30%", "height": "80%", "width": "70%"},
-        ],
-        "xAxis": [{"type": "category", "gridIndex": 0}],
-        "yAxis": [
-            {
-                "type": "value",
-                "gridIndex": 0,
-                "min": -1,
-                "max": 1,
-                "splitNumber": 10,
-                "splitLine": {"lineStyle": {"type": "dashed"}},
-                "name": "Test Value",
-                "nameLocation": "center",
-                "nameGap": "40",
-            }
-        ],
-        "series": [
-            {
-                "name": "Test",
-                "type": "bar",
-                "data": [0.0],
-                "xAxisIndex": 0,
-                "yAxisIndex": 0,
-                "itemStyle": {"color": "#6d81ad", "borderRadius": 2},
             }
         ],
     }
 
 
-def _construct_samples_clustering_scatter():
-    return {
-        "title": [
-            {
-                "top": "0",
-                "left": 0,
-                "text": "UMAP Clustering",
-                "textStyle": {"fontWeight": "lighter", "fontStyle": "oblique"},
-            },
-        ],
-        "grid": [
-            {"top": "10%", "left": "8%", "height": "75%", "width": "89%"},
-        ],
-        "xAxis": [
-            {
-                "type": "value",
-                "gridIndex": 0,
-                "name": "UMAP 1",
-                "nameLocation": "center",
-                "nameGap": "45",
-            }
-        ],
-        "yAxis": [
-            {
-                "type": "value",
-                "gridIndex": 0,
-                "name": "UMAP 2",
-                "nameLocation": "center",
-                "nameGap": "45",
-            }
-        ],
-        "series": [
-            {
-                "name": "UMAP Clustering",
-                "type": "scatter",
-                "xAxisIndex": 0,
-                "yAxisIndex": 0,
-            }
-        ],
-    }
+@app.route("/ext/feature_detail", methods=["GET"])
+def ext_feature_detail():
+    form_type = request.args.get("type")
+    target = request.args.get("target")
+    if (
+        API_CODES["RESULT_KEY"] in session
+        and target in session[API_CODES["RESULT_KEY"]]["features"]
+        and (
+            form_type == "allele"
+            or session[API_CODES["RESULT_KEY"]]["features"][target]["type"] == "coding"
+        )
+    ):
+        return render_template(
+            "ext_feature_detail.html",
+            data=session[API_CODES["RESULT_KEY"]]["features"][target],
+            target=target,
+        )
+    else:
+        print(target)
+        print(API_CODES["RESULT_KEY"] in session)
+        print(target in session[API_CODES["RESULT_KEY"]]["features"])
+        print(
+            form_type == "allele"
+            or session[API_CODES["RESULT_KEY"]]["features"][target]["type"] == "coding"
+        )
+        return API_CODES["FAILURE_CODE"]
+
+
+@app.route("/calc/feature_forms", methods=["POST"])
+def clc_feature_forms():
+    # Inflate the request data and transform into python dictionary.
+    inflated_request_data = zlib.decompress(request.data)
+    json_string_request_data = inflated_request_data.decode("utf8")
+    json_request_data = json.loads(json_string_request_data)
+    storage = session[API_CODES["RESULT_KEY"]]
+    form_type = json_request_data["type"]
+    feature = json_request_data["feature"]
+    status = "0"
+    series = []
+    meta_data = []
+    try:
+        if (
+            form_type == "proteoform"
+            and storage["features"][feature]["type"] != "coding"
+        ):
+            series = []
+            meta_data = []
+            status = "1"
+        else:
+            for form_entry in storage["features"][feature][form_type + "s"].values():
+                meta_data.append(
+                    {
+                        "name": form_entry["name"],
+                        "variants": form_entry["annotations"]["variants"],
+                    }
+                )
+                series.append(
+                    {
+                        "type": "parallel",
+                        "data": [
+                            [
+                                int(
+                                    form_entry["annotations"]["number_of_substitutions"]
+                                ),
+                                int(form_entry["annotations"]["number_of_insertions"]),
+                                int(form_entry["annotations"]["number_of_deletions"]),
+                                float(form_entry["annotations"]["variable_positions"]),
+                                float(form_entry["annotations"]["frequency"]),
+                            ]
+                        ],
+                        "smooth": 0.1,
+                        "lineStyle": {
+                            "width": 0.8,
+                            "opacity": 0.8,
+                        },
+                        "name": form_entry["name"],
+                    }
+                )
+    except Exception as e:
+        series = []
+        meta_data = []
+        status = "1"
+        print(e)
+    return [series, meta_data, status]
 
 
 def _view_output_to_dict(out):

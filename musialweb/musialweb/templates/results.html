@@ -143,7 +143,7 @@
         class="button small rounded red-button"
         onclick="resetTableFilter()"
       >
-        <i class="fa-solid fa-arrow-rotate-left"></i>
+        <i class="fa-solid fa-trash"></i>
       </button>
     </div>
 
@@ -166,7 +166,7 @@
         class="button small rounded red-button"
         onclick="resetTableGroup()"
       >
-        <i class="fa-solid fa-arrow-rotate-left"></i>
+        <i class="fa-solid fa-trash"></i>
       </button>
     </div>
 
@@ -217,7 +217,7 @@
             class="button small rounded green-button"
             onclick="dashboardSamplesClustering()"
           >
-            <i class="fa-solid fa-play"></i>
+            <i class="fa-solid fa-arrow-turn-down-right"></i>
           </button>
         </div>
         <div class="toolbar" data-role="buttongroup">
@@ -252,7 +252,7 @@
             class="button small rounded green-button"
             onclick="dashboardSamplesCorrelation()"
           >
-            <i class="fa-solid fa-play"></i>
+            <i class="fa-solid fa-arrow-turn-down-right"></i>
           </button>
         </div>
         <div id="main-results-dashboard-samples-left"></div>
@@ -260,10 +260,62 @@
         <div id="main-results-dashboard-samples-right"></div>
       </div>
 
-      <div
-        id="main-results-dashboard-features"
-        class="dashboard-container"
-      ></div>
+      <div id="main-results-dashboard-features" class="dashboard-container">
+        <div class="toolbar" data-role="buttongroup">
+          <span class="tag-dark">forms</span>
+          <select
+            id="main-results-dashboard-features-forms-type"
+            class="input-small"
+            data-role="select"
+            data-prepend="Type"
+            data-filter="false"
+          >
+            <option value="allele">Allele</option>
+            <option value="proteoform">Proteoform</option>
+          </select>
+          <select
+            id="main-results-dashboard-features-forms-feature"
+            class="input-small"
+            data-role="select"
+            data-prepend="Feature"
+            data-filter="false"
+          ></select>
+          <button
+            class="button small rounded green-button"
+            onclick="dashboardFeaturesForms()"
+          >
+            <i class="fa-solid fa-arrow-turn-down-right"></i>
+          </button>
+        </div>
+        <div class="toolbar" data-role="buttongroup">
+          <span class="tag-dark">detail</span>
+          <select
+            id="main-results-dashboard-features-detail-type"
+            class="input-small"
+            data-role="select"
+            data-prepend="Type"
+            data-filter="false"
+          >
+            <option value="allele">Allele</option>
+            <option value="proteoform">Proteoform</option>
+          </select>
+          <select
+            id="main-results-dashboard-features-detail-feature"
+            class="input-small"
+            data-role="select"
+            data-prepend="Feature"
+            data-filter="false"
+          ></select>
+          <button
+            class="button small rounded green-button"
+            onclick="dashboardFeaturesDetail()"
+          >
+            <i class="fa-solid fa-plus"></i>
+          </button>
+        </div>
+        <div id="main-results-dashboard-features-left"></div>
+        <div id="main-results-dashboard-features-right"></div>
+      </div>
 
       <div
         id="main-results-dashboard-variants"
