@@ -176,84 +176,97 @@
   <div class="remark m-4">
     <div id="main-results-dashboard">
       <div id="main-results-dashboard-samples" class="dashboard-container">
-        <div class="toolbar" data-role="buttongroup">
-          <span class="tag-dark">clustering</span>
-          <select
-            id="main-results-dashboard-samples-clustering-type"
-            class="input-small"
-            data-role="select"
-            data-prepend="Type"
-            data-filter="false"
-          >
-            <option value="allele">Allele</option>
-            <option value="proteoform">Proteoform</option>
-          </select>
-          <select
-            id="main-results-dashboard-samples-clustering-metric"
-            class="input-small"
-            data-role="select"
-            data-prepend="Metric"
-            data-filter="false"
-          >
-            <option value="hamming">Hamming</option>
-            <option value="jaccard">Jaccard</option>
-            <option value="dice">Dice</option>
-            <option value="russellrao">Russel-Rao</option>
-            <option value="kulsinski">Kulsinski</option>
-            <option value="rogerstanimoto">Rogers-Tanimoto</option>
-            <option value="sokalmichener">Sokal-Michener</option>
-            <option value="sokalsneath">Sokal-Sneath</option>
-            <option value="yule">Yule</option>
-          </select>
-          <select
-            id="main-results-dashboard-samples-clustering-features"
-            class="input-small"
-            data-role="select"
-            data-prepend="Features"
-            data-filter="false"
-            multiple
-          ></select>
-          <button
-            class="button small rounded green-button"
-            onclick="dashboardSamplesClustering()"
-          >
-            <i class="fa-solid fa-arrow-turn-down-right"></i>
-          </button>
-        </div>
-        <div class="toolbar" data-role="buttongroup">
-          <span class="tag-dark">correlation</span>
-          <select
-            id="main-results-dashboard-samples-correlation-1"
-            class="input-small"
-            data-role="select"
-            data-prepend="Field 1"
-            data-filter="false"
-          ></select>
-          <select
-            id="main-results-dashboard-samples-correlation-2"
-            class="input-small"
-            data-role="select"
-            data-prepend="Field 2"
-            data-filter="false"
-          ></select>
-          <select
-            id="main-results-dashboard-samples-correlation-test"
-            class="input-small"
-            data-role="select"
-            data-prepend="Test"
-            data-filter="false"
-          >
-            <option value="pearsonr">Pearson</option>
-            <option value="spearmanr">Spearman</option>
-            <option value="kendalltau">Kendall's tau</option>
-            <option value="cramer">Cramer's V</option>
-          </select>
-          <button
-            class="button small rounded green-button"
-            onclick="dashboardSamplesCorrelation()"
-          >
-            <i class="fa-solid fa-arrow-turn-down-right"></i>
-          </button>
+        <div class="toolbar-container">
+          <div class="toolbar" data-role="buttongroup">
+            <span class="tag-dark">overview</span>
+            <select
+              id="main-results-dashboard-samples-overview-field"
+              class="input-small"
+              data-role="select"
+              data-prepend="Field"
+              data-filter="false"
+              data-on-item-select="dashboardSamplesOverview"
+            ></select>
+          </div>
+          <div class="toolbar" data-role="buttongroup">
+            <span class="tag-dark">clustering</span>
+            <select
+              id="main-results-dashboard-samples-clustering-type"
+              class="input-small"
+              data-role="select"
+              data-prepend="Type"
+              data-filter="false"
+            >
+              <option value="allele">Allele</option>
+              <option value="proteoform">Proteoform</option>
+            </select>
+            <select
+              id="main-results-dashboard-samples-clustering-metric"
+              class="input-small"
+              data-role="select"
+              data-prepend="Metric"
+              data-filter="false"
+            >
+              <option value="hamming">Hamming</option>
+              <option value="jaccard">Jaccard</option>
+              <option value="dice">Dice</option>
+              <option value="russellrao">Russel-Rao</option>
+              <option value="kulsinski">Kulsinski</option>
+              <option value="rogerstanimoto">Rogers-Tanimoto</option>
+              <option value="sokalmichener">Sokal-Michener</option>
+              <option value="sokalsneath">Sokal-Sneath</option>
+              <option value="yule">Yule</option>
+            </select>
+            <select
+              id="main-results-dashboard-samples-clustering-features"
+              class="input-small"
+              data-role="select"
+              data-prepend="Features"
+              data-filter="false"
+              multiple
+            ></select>
+            <button
+              class="button small rounded green-button"
+              onclick="dashboardSamplesClustering()"
+            >
+              <i class="fa-solid fa-arrow-turn-down-right"></i>
+            </button>
+          </div>
+          <div class="toolbar" data-role="buttongroup">
+            <span class="tag-dark">correlation</span>
+            <select
+              id="main-results-dashboard-samples-correlation-1"
+              class="input-small"
+              data-role="select"
+              data-prepend="Field 1"
+              data-filter="false"
+            ></select>
+            <select
+              id="main-results-dashboard-samples-correlation-2"
+              class="input-small"
+              data-role="select"
+              data-prepend="Field 2"
+              data-filter="false"
+            ></select>
+            <select
+              id="main-results-dashboard-samples-correlation-test"
+              class="input-small"
+              data-role="select"
+              data-prepend="Test"
+              data-filter="false"
+            >
+              <option value="pearsonr">Pearson</option>
+              <option value="spearmanr">Spearman</option>
+              <option value="kendalltau">Kendall's tau</option>
+              <option value="cramer">Cramer's V</option>
+            </select>
+            <button
+              class="button small rounded green-button"
+              onclick="dashboardSamplesCorrelation()"
+            >
+              <i class="fa-solid fa-arrow-turn-down-right"></i>
+            </button>
+          </div>
         </div>
         <div id="main-results-dashboard-samples-left"></div>
         <div id="main-results-dashboard-samples-mid"></div>
@@ -262,17 +275,7 @@
 
       <div id="main-results-dashboard-features" class="dashboard-container">
         <div class="toolbar" data-role="buttongroup">
-          <span class="tag-dark">forms</span>
-          <select
-            id="main-results-dashboard-features-forms-type"
-            class="input-small"
-            data-role="select"
-            data-prepend="Type"
-            data-filter="false"
-          >
-            <option value="allele">Allele</option>
-            <option value="proteoform">Proteoform</option>
-          </select>
+          <span class="tag-dark">froms</span>
           <select
             id="main-results-dashboard-features-forms-feature"
             class="input-small"
@@ -288,28 +291,15 @@
           </button>
         </div>
         <div class="toolbar" data-role="buttongroup">
-          <span class="tag-dark">detail</span>
+          <span class="tag-dark">proteoforms</span>
           <select
-            id="main-results-dashboard-features-detail-type"
-            class="input-small"
-            data-role="select"
-            data-prepend="Type"
-            data-filter="false"
-          >
-            <option value="allele">Allele</option>
-            <option value="proteoform">Proteoform</option>
-          </select>
-          <select
-            id="main-results-dashboard-features-detail-feature"
+            id="main-results-dashboard-features-proteoforms-feature"
             class="input-small"
             data-role="select"
             data-prepend="Feature"
             data-filter="false"
           ></select>
-          <button
-            class="button small rounded green-button"
-            onclick="dashboardFeaturesDetail()"
-          >
+          <button class="button small rounded green-button">
             <i class="fa-solid fa-plus"></i>
           </button>
         </div>

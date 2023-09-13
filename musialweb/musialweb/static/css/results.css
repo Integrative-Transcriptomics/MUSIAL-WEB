@@ -21,59 +21,60 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   flex-direction: column;
 }
 
-#main-results .remark {
+.remark {
   background-color: var(--background-color-tertiary);
 }
 
-#main-results .remark .info-clickable {
+.remark .info-clickable {
   float: right;
   color: var(--contrast-primary);
   font-size: x-large;
 }
 
-#main-results .remark .info-block {
+.remark .info-block {
   background-color: rgba(96, 113, 150, 0.6);
   border-radius: 2px;
   box-shadow: 1px 1px 6px var(--text-color-secondary);
   color: var(--background-color-primary);
 }
 
-#main-results .toolbar .button {
+.toolbar .button {
   margin-left: 4px;
   margin-right: 4px;
   background-color: var(--color-quarternary);
   color: var(--background-color-primary);
 }
 
-#main-results .toolbar .button i {
+.toolbar .button i {
   font-size: small;
   color: var(--background-color-primary);
 }
 
-#main-results .toolbar .select {
+.toolbar .select {
   margin-left: 4px;
   margin-right: 4px;
   min-width: 10vw !important;
 }
 
-#main-results .toolbar .multiple {
-  min-width: 25vw !important;
+.toolbar .multiple {
+  min-width: 11vw !important;
+  max-width: 11vw !important;
 }
 
-#main-results .toolbar .input {
+.toolbar .input {
   margin-left: 4px;
   margin-right: 4px;
 }
 
-#main-results .toolbar .input button {
+.toolbar .input button {
   background-color: transparent;
 }
 
-#main-results .toolbar .input button:hover {
+.toolbar .input button:hover {
   background-color: transparent;
 }
 
-#main-results .toolbar .button:hover {
+.toolbar .button:hover {
   transition: 0.2s;
   background-color: var(--color-primary);
 }

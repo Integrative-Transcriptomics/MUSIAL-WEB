@@ -145,7 +145,7 @@ function showSamples() {
     $("#main-results-dashboard-samples").show();
     constructEChartInstance(
       $("#main-results-dashboard-samples-left")[0],
-      _SESSION_DATA.samplesRecord.dashboard.variants_area
+      _SESSION_DATA.samplesRecord.dashboard.overview_area
     );
     constructEChartInstance(
       $("#main-results-dashboard-samples-mid")[0],
@@ -165,7 +165,195 @@ function showSamples() {
       ),
       "select"
     ).data(featureSelectOptions);
+    dashboardSamplesOverview(
+      "number_of_substitutions",
+      {
+        innerText: "substitutions",
+      },
+      {}
+    );
   }
+}
+
+function dashboardSamplesOverview(val, option, item) {
+  let counts = _SESSION_DATA.samplesRecord.counts[val];
+  let axisTitle =
+    option.innerText.charAt(0).toUpperCase() + option.innerText.slice(1);
+  let axisData = Array.from(Object.keys(counts));
+  if (val.startsWith("number_of_")) {
+    axisData = [...Array(Math.max(...axisData) + 1).keys()].map((x) =>
+      String(x)
+    );
+  }
+  let seriesData = [];
+  for (const [key, value] of Object.entries(counts)) {
+    seriesData.push([axisData.indexOf(key), value]);
+  }
+  _CHARTS[0].setOption({
+    xAxis: [
+      {
+        type: "category",
+        gridIndex: 0,
+        data: axisData,
+        name: axisTitle,
+        nameLocation: "center",
+        nameGap: "25",
+      },
+    ],
+    tooltip: {
+      trigger: "axis",
+      formatter: (params, ticket, callback) => {
+        console.log(params);
+        return (
+          "<b>" +
+          axisTitle +
+          ":</b> " +
+          params[0].axisValue +
+          "<br/><b>No. Samples:</b> " +
+          params[0].value[1]
+        );
+      },
+    },
+    series: [
+      {
+        name: axisTitle,
+        type: "line",
+        symbol: "none",
+        smooth: true,
+        lineStyle: { color: "#6d81ad", width: 1 },
+        areaStyle: { color: "#9ba6bd" },
+        data: seriesData,
+        xAxisIndex: 0,
+        yAxisIndex: 0,
+      },
+    ],
+  });
+}
+
+function dashboardSamplesClustering() {
+  var REQUEST = {
+    type: Metro.getPlugin(
+      "#main-results-dashboard-samples-clustering-type",
+      "select"
+    ).val(),
+    metric: Metro.getPlugin(
+      "#main-results-dashboard-samples-clustering-metric",
+      "select"
+    ).val(),
+    features: Metro.getPlugin(
+      "#main-results-dashboard-samples-clustering-features",
+      "select"
+    ).val(),
+  };
+  _CHARTS[1].showLoading({
+    color: "#6d81ad",
+    text: "Loading...",
+    maskColor: "rgb(250, 250, 252, 0.8)",
+  });
+  axios
+    .post(
+      _URL + "/calc/sample_clustering",
+      pako.deflate(JSON.stringify(REQUEST)),
+      {
+        headers: {
+          "Content-Type": "application/octet-stream",
+          "Content-Encoding": "zlib",
+        },
+      }
+    )
+    .then((response) => {
+      const umap = [];
+      const profiles = Object.keys(response.data);
+      if (response.data !== "1") {
+        for (let profileId in response.data) {
+          umap.push(response.data[profileId]["transform"]);
+        }
+        _CHARTS[1].hideLoading();
+        _CHARTS[1].setOption({
+          tooltip: {
+            trigger: "item",
+            triggerOn: "mousemove",
+            formatter: (params) => {
+              let profile = profiles[params.dataIndex];
+              return (
+                "<b>Profile:</b><br/>" +
+                profile
+                  .split(":")
+                  .map((p) => {
+                    let fields = p.split(".");
+                    return fields[1] + " " + fields[2];
+                  })
+                  .join("<br/>") +
+                "<br/><b>No. Samples:</b> " +
+                response.data[profile]["samples"].length
+              );
+            },
+          },
+          toolbox: {
+            feature: {
+              dataZoom: {
+                icon: {
+                  zoom: "M13.7 2.3C10.5-.8 5.5-.8 2.3 2.3s-3.1 8.2 0 11.3L164.7 176H72c-4.4 0-8 3.6-8 8s3.6 8 8 8H184c4.4 0 8-3.6 8-8V72c0-4.4-3.6-8-8-8s-8 3.6-8 8v92.7L13.7 2.3zm612.7 0L464 164.7V72c0-4.4-3.6-8-8-8s-8 3.6-8 8V184c0 4.4 3.6 8 8 8H568c4.4 0 8-3.6 8-8s-3.6-8-8-8H475.3L637.7 13.7c3.1-3.1 3.1-8.2 0-11.3s-8.2-3.1-11.3 0zM320 176a80 80 0 1 1 0 160 80 80 0 1 1 0-160zm0 176a96 96 0 1 0 0-192 96 96 0 1 0 0 192zm136 96c4.4 0 8-3.6 8-8V347.3L626.3 509.7c3.1 3.1 8.2 3.1 11.3 0s3.1-8.2 0-11.3L475.3 336H568c4.4 0 8-3.6 8-8s-3.6-8-8-8H456c-4.4 0-8 3.6-8 8V440c0 4.4 3.6 8 8 8zm-272 0c4.4 0 8-3.6 8-8V328c0-4.4-3.6-8-8-8H72c-4.4 0-8 3.6-8 8s3.6 8 8 8h92.7L2.3 498.3c-3.1 3.1-3.1 8.2 0 11.3s8.2 3.1 11.3 0L176 347.3V440c0 4.4 3.6 8 8 8z",
+                  back: "M328 32c-4.4 0-8 3.6-8 8s3.6 8 8 8H452.7L256 244.7 59.3 48H184c4.4 0 8-3.6 8-8s-3.6-8-8-8H40c-4.4 0-8 3.6-8 8V184c0 4.4 3.6 8 8 8s8-3.6 8-8V59.3L244.7 256 48 452.7V328c0-4.4-3.6-8-8-8s-8 3.6-8 8V472c0 4.4 3.6 8 8 8H184c4.4 0 8-3.6 8-8s-3.6-8-8-8H59.3L256 267.3 452.7 464H328c-4.4 0-8 3.6-8 8s3.6 8 8 8H472c4.4 0 8-3.6 8-8V328c0-4.4-3.6-8-8-8s-8 3.6-8 8V452.7L267.3 256 464 59.3V184c0 4.4 3.6 8 8 8s8-3.6 8-8V40c0-4.4-3.6-8-8-8H328z",
+                },
+              },
+              /*myFeature1: {
+                show: true,
+                title: "Deselect All",
+                icon: "M256 16a240 240 0 1 1 0 480 240 240 0 1 1 0-480zm0 496A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM178.3 178.3c-3.1 3.1-3.1 8.2 0 11.3L244.7 256l-66.3 66.3c-3.1 3.1-3.1 8.2 0 11.3s8.2 3.1 11.3 0L256 267.3l66.3 66.3c3.1 3.1 8.2 3.1 11.3 0s3.1-8.2 0-11.3L267.3 256l66.3-66.3c3.1-3.1 3.1-8.2 0-11.3s-8.2-3.1-11.3 0L256 244.7l-66.3-66.3c-3.1-3.1-8.2-3.1-11.3 0z",
+                onclick: () => {
+                  _CHARTS[1].dispatchAction({
+                    type: "unselect",
+                    seriesIndex: 0,
+                    dataIndex: Array.from(Array(profiles.length).keys()),
+                  });
+                },
+              },*/
+            },
+          },
+          series: [
+            {
+              name: "UMAP Clustering",
+              type: "scatter",
+              xAxisIndex: 0,
+              yAxisIndex: 0,
+              data: umap,
+              itemStyle: {
+                color: "#444444",
+              },
+              /*selectedMode: "multiple",
+              select: {
+                itemStyle: {
+                  color: "#39c093",
+                  shadowColor: "#39c093",
+                  shadowBlur: 5,
+                },
+              },*/
+              symbolSize: (_, params) => {
+                let profile = profiles[params.dataIndex];
+                let size = response.data[profile]["samples"].length;
+                if (size == 1) {
+                  return 4;
+                } else {
+                  return Math.round(Math.log10(Math.max(10, size))) * 4;
+                }
+              },
+            },
+          ],
+        });
+        /*_CHARTS[1].dispatchAction({
+          type: "unselect",
+          seriesIndex: 0,
+          dataIndex: Array.from(Array(profiles.length).keys()),
+        });*/
+      }
+    })
+    .catch((error) => {
+      displayError(error.message);
+    })
+    .finally(() => {
+      _CHARTS[1].hideLoading();
+    });
 }
 
 function dashboardSamplesCorrelation() {
@@ -255,132 +443,6 @@ function dashboardSamplesCorrelation() {
     });
 }
 
-function dashboardSamplesClustering() {
-  var REQUEST = {
-    type: Metro.getPlugin(
-      "#main-results-dashboard-samples-clustering-type",
-      "select"
-    ).val(),
-    metric: Metro.getPlugin(
-      "#main-results-dashboard-samples-clustering-metric",
-      "select"
-    ).val(),
-    features: Metro.getPlugin(
-      "#main-results-dashboard-samples-clustering-features",
-      "select"
-    ).val(),
-  };
-  _CHARTS[1].showLoading({
-    color: "#6d81ad",
-    text: "Loading...",
-    maskColor: "rgb(250, 250, 252, 0.8)",
-  });
-  axios
-    .post(
-      _URL + "/calc/sample_clustering",
-      pako.deflate(JSON.stringify(REQUEST)),
-      {
-        headers: {
-          "Content-Type": "application/octet-stream",
-          "Content-Encoding": "zlib",
-        },
-      }
-    )
-    .then((response) => {
-      const umap = [];
-      const profiles = Object.keys(response.data);
-      if (response.data !== "1") {
-        for (let profileId in response.data) {
-          umap.push(response.data[profileId]["transform"]);
-        }
-        _CHARTS[1].hideLoading();
-        _CHARTS[1].setOption({
-          tooltip: {
-            trigger: "item",
-            triggerOn: "mousemove",
-            formatter: (params) => {
-              let profile = profiles[params.dataIndex];
-              return (
-                "<b>Profile</b><br/>" +
-                profile
-                  .split(":")
-                  .map((p) => {
-                    let fields = p.split(".");
-                    return fields[1] + " " + fields[2];
-                  })
-                  .join("<br/>") +
-                "<br/><b>Samples</b> " +
-                response.data[profile]["samples"].length
-              );
-            },
-          },
-          toolbox: {
-            feature: {
-              dataZoom: {
-                icon: {
-                  zoom: "M13.7 2.3C10.5-.8 5.5-.8 2.3 2.3s-3.1 8.2 0 11.3L164.7 176H72c-4.4 0-8 3.6-8 8s3.6 8 8 8H184c4.4 0 8-3.6 8-8V72c0-4.4-3.6-8-8-8s-8 3.6-8 8v92.7L13.7 2.3zm612.7 0L464 164.7V72c0-4.4-3.6-8-8-8s-8 3.6-8 8V184c0 4.4 3.6 8 8 8H568c4.4 0 8-3.6 8-8s-3.6-8-8-8H475.3L637.7 13.7c3.1-3.1 3.1-8.2 0-11.3s-8.2-3.1-11.3 0zM320 176a80 80 0 1 1 0 160 80 80 0 1 1 0-160zm0 176a96 96 0 1 0 0-192 96 96 0 1 0 0 192zm136 96c4.4 0 8-3.6 8-8V347.3L626.3 509.7c3.1 3.1 8.2 3.1 11.3 0s3.1-8.2 0-11.3L475.3 336H568c4.4 0 8-3.6 8-8s-3.6-8-8-8H456c-4.4 0-8 3.6-8 8V440c0 4.4 3.6 8 8 8zm-272 0c4.4 0 8-3.6 8-8V328c0-4.4-3.6-8-8-8H72c-4.4 0-8 3.6-8 8s3.6 8 8 8h92.7L2.3 498.3c-3.1 3.1-3.1 8.2 0 11.3s8.2 3.1 11.3 0L176 347.3V440c0 4.4 3.6 8 8 8z",
-                  back: "M328 32c-4.4 0-8 3.6-8 8s3.6 8 8 8H452.7L256 244.7 59.3 48H184c4.4 0 8-3.6 8-8s-3.6-8-8-8H40c-4.4 0-8 3.6-8 8V184c0 4.4 3.6 8 8 8s8-3.6 8-8V59.3L244.7 256 48 452.7V328c0-4.4-3.6-8-8-8s-8 3.6-8 8V472c0 4.4 3.6 8 8 8H184c4.4 0 8-3.6 8-8s-3.6-8-8-8H59.3L256 267.3 452.7 464H328c-4.4 0-8 3.6-8 8s3.6 8 8 8H472c4.4 0 8-3.6 8-8V328c0-4.4-3.6-8-8-8s-8 3.6-8 8V452.7L267.3 256 464 59.3V184c0 4.4 3.6 8 8 8s8-3.6 8-8V40c0-4.4-3.6-8-8-8H328z",
-                },
-              },
-              /*myFeature1: {
-                show: true,
-                title: "Deselect All",
-                icon: "M256 16a240 240 0 1 1 0 480 240 240 0 1 1 0-480zm0 496A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM178.3 178.3c-3.1 3.1-3.1 8.2 0 11.3L244.7 256l-66.3 66.3c-3.1 3.1-3.1 8.2 0 11.3s8.2 3.1 11.3 0L256 267.3l66.3 66.3c3.1 3.1 8.2 3.1 11.3 0s3.1-8.2 0-11.3L267.3 256l66.3-66.3c3.1-3.1 3.1-8.2 0-11.3s-8.2-3.1-11.3 0L256 244.7l-66.3-66.3c-3.1-3.1-8.2-3.1-11.3 0z",
-                onclick: () => {
-                  _CHARTS[1].dispatchAction({
-                    type: "unselect",
-                    seriesIndex: 0,
-                    dataIndex: Array.from(Array(profiles.length).keys()),
-                  });
-                },
-              },*/
-            },
-          },
-          series: [
-            {
-              name: "UMAP Clustering",
-              type: "scatter",
-              xAxisIndex: 0,
-              yAxisIndex: 0,
-              data: umap,
-              itemStyle: {
-                color: "#444444",
-              },
-              /*selectedMode: "multiple",
-              select: {
-                itemStyle: {
-                  color: "#39c093",
-                  shadowColor: "#39c093",
-                  shadowBlur: 5,
-                },
-              },*/
-              symbolSize: (_, params) => {
-                let profile = profiles[params.dataIndex];
-                let size = response.data[profile]["samples"].length;
-                if (size == 1) {
-                  return 4;
-                } else {
-                  return Math.round(Math.log10(Math.max(10, size))) * 4;
-                }
-              },
-            },
-          ],
-        });
-        /*_CHARTS[1].dispatchAction({
-          type: "unselect",
-          seriesIndex: 0,
-          dataIndex: Array.from(Array(profiles.length).keys()),
-        });*/
-      }
-    })
-    .catch((error) => {
-      displayError(error.message);
-    })
-    .finally(() => {
-      _CHARTS[1].hideLoading();
-    });
-}
-
 function showFeatures() {
   if (showContent(_SESSION_DATA.featuresRecord)) {
     $("#main-results-table-set-features-button").addClass("active-content");
@@ -391,7 +453,7 @@ function showFeatures() {
     );
     constructEChartInstance(
       $("#main-results-dashboard-features-right")[0],
-      _SESSION_DATA.featuresRecord.dashboard.forms_parallel
+      _SESSION_DATA.featuresRecord.dashboard.forms_sunburst
     );
     let featureSelectOptions = {};
     for (let featureRecord of _SESSION_DATA.featuresRecord.records) {
@@ -402,7 +464,9 @@ function showFeatures() {
       "select"
     ).data(featureSelectOptions);
     Metro.getPlugin(
-      document.getElementById("main-results-dashboard-features-detail-feature"),
+      document.getElementById(
+        "main-results-dashboard-features-proteoforms-feature"
+      ),
       "select"
     ).data(featureSelectOptions);
   }
@@ -410,10 +474,6 @@ function showFeatures() {
 
 function dashboardFeaturesForms() {
   var REQUEST = {
-    type: Metro.getPlugin(
-      "#main-results-dashboard-features-forms-type",
-      "select"
-    ).val(),
     feature: Metro.getPlugin(
       "#main-results-dashboard-features-forms-feature",
       "select"
@@ -425,70 +485,109 @@ function dashboardFeaturesForms() {
     maskColor: "rgb(250, 250, 252, 0.8)",
   });
   axios
-    .post(_URL + "/calc/feature_forms", pako.deflate(JSON.stringify(REQUEST)), {
-      headers: {
-        "Content-Type": "application/octet-stream",
-        "Content-Encoding": "zlib",
-      },
-    })
+    .post(
+      _URL + "/calc/forms_sunburst",
+      pako.deflate(JSON.stringify(REQUEST)),
+      {
+        headers: {
+          "Content-Type": "application/octet-stream",
+          "Content-Encoding": "zlib",
+        },
+      }
+    )
     .then((response) => {
-      let titleText =
-        REQUEST.feature +
-        " " +
-        REQUEST.type.charAt(0).toUpperCase() +
-        REQUEST.type.slice(1) +
-        " Overview";
-      let computeMax = (index, step) =>
-        Math.ceil(
-          Math.max(
-            ...response.data[0].map((series) => {
-              return series.data[0][index];
-            })
-          ) / step
-        ) * step;
       _CHARTS[1].hideLoading();
       _CHARTS[1].setOption({
-        title: [
+        title: {
+          top: "0",
+          left: 0,
+          text: response.data[0].name + " Forms",
+          textStyle: { fontWeight: "lighter", fontStyle: "oblique" },
+        },
+        tooltip: {
+          position: ["0%", "10%"],
+          formatter: (params, ticket, callback) => {
+            var content = "";
+            if (params.data.dataIndex == 0) {
+              return;
+            } else {
+              content = "<b>" + params.data.level + "</b> " + params.data.name;
+            }
+            if (params.data.hasOwnProperty("annotations")) {
+              for (var [key, value] of Object.entries(
+                params.data["annotations"]
+              )) {
+                let keyText = key
+                  .replace("number_of_", "")
+                  .replace("_positions", " Positions")
+                  .replace("_stops", " Stops");
+                content +=
+                  `</br>` +
+                  keyText.charAt(0).toUpperCase() +
+                  keyText.slice(1) +
+                  " ";
+                if (key == "variable_positions" || key == "frequency") {
+                  content += value + "%";
+                } else if (key == "novel_stops") {
+                  content += value.split(":").join(", ");
+                } else if (key == "variants") {
+                  content += value;
+                } else {
+                  content += value;
+                }
+              }
+            }
+            return content;
+          },
+        },
+        visualMap: {
+          show: true,
+          type: "piecewise",
+          pieces: [
+            { min: 1, max: 2, color: "#e4e5ed", label: "No Variants" },
+            {
+              min: 2,
+              max: 3,
+              color: "#6d81ad",
+              label: "< 1% Variable Positions",
+            },
+            {
+              min: 3,
+              max: 4,
+              color: "#FFB000",
+              label: "< 10% Variable Positions",
+            },
+            {
+              min: 4,
+              max: 5,
+              color: "#DC267F",
+              label: "≥ 10% Variable Positions",
+            },
+          ],
+          orient: "horizontal",
+          bottom: 0,
+          left: "center",
+          seriesIndex: 1,
+          selectedMode: false,
+        },
+        series: [
           {
-            top: "0",
-            left: 0,
-            text: titleText,
-            textStyle: { fontWeight: "lighter", fontStyle: "oblique" },
+            type: "sunburst",
+            data: [response.data[0]],
+            top: "10%",
+            bottom: "10%",
+            animationDurationUpdate: 750,
+            emphasis: {
+              focus: "descendant",
+            },
+            label: {
+              show: false,
+            },
+            radius: [0, "85%"],
+            clockwise: false,
+            sort: (node1, node2) => {},
           },
         ],
-        parallelAxis: [
-          {
-            dim: 0,
-            name: "Substitutions",
-            min: 0,
-            max: computeMax(0, 10),
-          },
-          {
-            dim: 1,
-            name: "Insertions",
-            min: 0,
-            max: computeMax(1, 10),
-          },
-          {
-            dim: 2,
-            name: "Deletions",
-            min: 0,
-            max: computeMax(2, 10),
-          },
-          {
-            dim: 3,
-            name: "Variable Positions (%)",
-            min: 0.0,
-            max: computeMax(3, 2),
-          },
-          {
-            dim: 4,
-            name: "Frequency (%)",
-            min: 0.0,
-            max: computeMax(4, 10),
-          },
-        ],
-        series: response.data[0],
       });
     })
     .catch((error) => {
@@ -565,11 +664,16 @@ function constructTableColumns(columnFields) {
     propertySelectOptions[columnField] = titleValue;
   }
   Metro.getPlugin(
+    document.getElementById("main-results-table-filter-field"),
+    "select"
+  ).data(propertySelectOptions);
+  delete propertySelectOptions["name"];
+  Metro.getPlugin(
     document.getElementById("main-results-table-group-field"),
     "select"
   ).data(propertySelectOptions);
   Metro.getPlugin(
-    document.getElementById("main-results-table-filter-field"),
+    document.getElementById("main-results-dashboard-samples-overview-field"),
     "select"
   ).data(propertySelectOptions);
   Metro.getPlugin(
