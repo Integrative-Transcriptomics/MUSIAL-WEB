@@ -221,9 +221,8 @@
               id="main-results-dashboard-samples-clustering-features"
               class="input-small"
               data-role="select"
-              data-prepend="Features"
+              data-prepend="Feature"
               data-filter="false"
-              multiple
             ></select>
             <button
               class="button small rounded green-button"
@@ -275,7 +274,7 @@
 
       <div id="main-results-dashboard-features" class="dashboard-container">
         <div class="toolbar" data-role="buttongroup">
-          <span class="tag-dark">froms</span>
+          <span class="tag-dark">forms</span>
           <select
             id="main-results-dashboard-features-forms-feature"
             class="input-small"
@@ -299,7 +298,10 @@
             data-prepend="Feature"
             data-filter="false"
           ></select>
-          <button class="button small rounded green-button">
+          <button
+            class="button small rounded green-button"
+            onclick="dashboardFeaturesProteoforms()"
+          >
             <i class="fa-solid fa-plus"></i>
           </button>
         </div>
@@ -307,10 +309,9 @@
         <div id="main-results-dashboard-features-right"></div>
       </div>
 
-      <div
-        id="main-results-dashboard-variants"
-        class="dashboard-container"
-      ></div>
+      <div id="main-results-dashboard-variants" class="dashboard-container">
+        <div id="main-results-dashboard-variants-top"></div>
+      </div>
     </div>
   </div>
 

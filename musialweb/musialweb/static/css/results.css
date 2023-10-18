@@ -181,6 +181,23 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   display: none;
 }
 
+#main-results-dashboard-variants-top {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  top: 5%;
+  left: 0;
+}
+
+#main-results-dashboard-variants-bottom {
+  position: absolute;
+  height: 50%;
+  width: 100%;
+  top: 50%;
+  left: 0;
+  background-color: beige;
+}
+
 .fa-xmark {
   color: var(--text-color-secondary) !important;
 }

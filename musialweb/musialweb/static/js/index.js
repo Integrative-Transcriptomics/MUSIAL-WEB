@@ -27,14 +27,8 @@ function init() {
 
 /**
  * Displays a generic error message, if the MUSIAL web api returned an error code in the passed response.
- *
- * @param {String} text Optional text to display.
  */
-function displayError(text) {
-  const showText = true;
-  if (typeof text === "undefined") {
-    showText = false;
-  }
+function displayError() {
   Swal.fire({
     iconHtml: `<i class="error-icon fa-duotone fa-triangle-exclamation"></i>`,
     title: "Error",
@@ -50,14 +44,12 @@ function displayError(text) {
       `
         <div class="remark secondary text-left">
             An error occurred. Please check your input/session data.
-            You can access the server log by clicking the <i class="fa-duotone fa-hexagon" style="color: #fe4848;"></i> icon.
-            If you cannot solve your problem, feel free to <a href='https://github.com/Integrative-Transcriptomics/MUSIAL-WEB/issues' target='_blan'>open an issue</a>.
+            You can access the server log <a href='` +
+      _URL +
+      `/log' target='_blank'>here</a>.
+            If you cannot solve your problem, feel free to <a href='https://github.com/Integrative-Transcriptomics/MUSIAL-WEB/issues' target='_blank'>open an issue on GitHub</a>.
         </div>
-      ` + showText
-        ? `<div class="remark secondary text-left"><span class="input-info-tag">LOG:</span><br>` +
-          text +
-          `</div>`
-        : ``,
+      `,
   });
 }
 
@@ -81,7 +73,8 @@ function displayWarning(text) {
  * @param {JSON} response JSON format response of the MUSIAL web api.
  */
 function handleResponse(response) {
-  if (response.data == FAILURE_CODE) {
+  console.log(response);
+  if (response.code == FAILURE_CODE) {
     displayError();
   }
 }
@@ -107,7 +100,7 @@ function sessionStatus() {
   axios
     .get(_URL + "/session/status")
     .then((response) => {
-      switch (String(response.data)) {
+      switch (String(response.data.code)) {
         case SESSION_CODE_ACTIVE:
           $("#menu-active-session-indicator")[0].classList =
             "p-2 fa-duotone fa-hexagon-check";

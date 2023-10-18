@@ -101,7 +101,7 @@ const AMINO_ACID_COLOR = {
   "*": "#FF0099", // TER
   "-": "#3c3c3c", // Gap
 };
-var proteinViewer; // 3DMol.js `viewer` instance.
+var _STRUCTURE_VIEW; // 3DMol.js `viewer` instance.
 var sequenceViewer; // EChart.js `echart` instance.
 var observerSequenceViewer; // `ResizeObserver` instance to adjust width and height of `sequenceViewer`.
 var positionViewer; // EChart.js `echart` instance.
@@ -171,7 +171,7 @@ var STATE = {
               ? DATA.proteoforms[proteoformKey].samples.length
               : 0;
             let proteoformSamplePercentage = (
-              (proteoformNoSamples / STATE.noSamples) *
+              (proteoformNoSamples / STATE.NO_SAMPLES) *
               100
             ).toFixed(1);
             return d.value + " [" + proteoformSamplePercentage + "%]";
@@ -609,6 +609,8 @@ var wtProteoformLabel = wtPrefix + " Proteoform";
 var wtProteoformIdentifier = "PF_REFERENCE";
 
 window.onload = (_) => {
+  console.log(DATA);
+
   initializeSequenceViewer();
   observerSequenceViewer = new ResizeObserver((entries) => {
     sequenceViewer.resize({
@@ -635,14 +637,17 @@ window.onload = (_) => {
  * Initializes the protein viewer component.
  */
 function initializeProteinViewer() {
-  proteinViewer = $3Dmol.createViewer($("#musialweb-protein-dashboard-3dmol"), {
-    backgroundColor: "#FAFAFC",
-    antialias: true,
-    cartoonQuality: 6,
-  });
-  proteinViewer.addModel(DATA.structure, "pdb");
-  proteinViewerApplyStyle();
-  proteinViewer.setHoverable(
+  _STRUCTURE_VIEW = $3Dmol.createViewer(
+    $("#musialweb-protein-dashboard-3dmol"),
+    {
+      backgroundColor: "#FAFAFC",
+      antialias: true,
+      cartoonQuality: 6,
+    }
+  );
+  _STRUCTURE_VIEW.addModel(DATA.structure, "pdb");
+  _structureViewApplyStyle();
+  _STRUCTURE_VIEW.setHoverable(
     {
       // Empty object -> trigger hovering on all atoms.
     },
@@ -675,34 +680,35 @@ function initializeProteinViewer() {
     },
     (atom) => {
       if (atom.hover_label) {
-        proteinViewer.removeLabel(atom.hover_label);
-        proteinViewer.removeShape(atom.hover_sphere);
+        _STRUCTURE_VIEW.removeLabel(atom.hover_label);
+        _STRUCTURE_VIEW.removeShape(atom.hover_sphere);
         delete atom.hover_label;
         delete atom.hover_sphere;
-        proteinViewer.render();
+        _STRUCTURE_VIEW.render();
       }
     }
   );
-  proteinViewer.setHoverDuration(100);
-  proteinViewer.zoomTo();
-  proteinViewer.render();
+  _STRUCTURE_VIEW.setHoverDuration(100);
+  _STRUCTURE_VIEW.zoomTo();
+  _STRUCTURE_VIEW.render();
 }
 
 /**
  * Applies cartoon style with color based on No. variants to the protein viewer.
  */
-function proteinViewerApplyStyle() {
-  proteinViewer.setStyle(
+function _structureViewApplyStyle() {
+  _STRUCTURE_VIEW.setStyle(
     {
       // Select all residues.
     },
     {
       cartoon: {
         colorfunc: (atom) => {
-          let noVariants =
-            STATE.sequenceViewerEChartOption.series[1].data.filter((v) => {
+          let noVariants = STATE.SEQUENCE_VIEW_OPTION.series[1].data.filter(
+            (v) => {
               return v[0] === atom.resi + "+0";
-            })[0][1];
+            }
+          )[0][1];
           let clr = "#E7E7E4";
           if (noVariants == 2) {
             clr = "#9c73af";
@@ -724,14 +730,14 @@ function proteinViewerApplyStyle() {
   for (const [additionalStylePosition, additionalStyleSpec] of Object.entries(
     SETTINGS._proteinViewerAddStyles
   )) {
-    proteinViewer.addStyle(
+    _STRUCTURE_VIEW.addStyle(
       {
         resi: additionalStylePosition,
       },
       additionalStyleSpec
     );
   }
-  proteinViewer.render();
+  _STRUCTURE_VIEW.render();
 }
 
 /**
@@ -743,7 +749,7 @@ function inferSecondaryStructureAnnotation() {
   let currentSecStruc = "";
   let segmentStart = "";
   let segmentEnd = "";
-  proteinViewer.getInternalState().models[0].atoms.forEach((atom) => {
+  _STRUCTURE_VIEW.getInternalState().models[0].atoms.forEach((atom) => {
     if (atom.resn != "DUM") {
       if (atom.ss !== currentSecStruc) {
         if (currentSecStruc !== "") {
@@ -792,7 +798,7 @@ function inferSecondaryStructureAnnotation() {
       sequenceViewerAddAnnotation(label, segments, "Bottom", color);
     }
   }
-  sequenceViewer.setOption(STATE.sequenceViewerEChartOption, {
+  sequenceViewer.setOption(STATE.SEQUENCE_VIEW_OPTION, {
     replaceMerge: ["series"],
   });
   sequenceViewer.resize();
@@ -802,9 +808,9 @@ function inferSecondaryStructureAnnotation() {
  * Highlights a specific residue (determined by the residue index/position) of the currently displayed protein model.
  */
 function proteinViewerHighlightPosition(position) {
-  proteinViewerApplyStyle();
+  _structureViewApplyStyle();
   if (position != undefined && position != null) {
-    proteinViewer.addStyle(
+    _STRUCTURE_VIEW.addStyle(
       {
         resi: position.split("+")[0],
       },
@@ -816,7 +822,7 @@ function proteinViewerHighlightPosition(position) {
       }
     );
   }
-  proteinViewer.render();
+  _STRUCTURE_VIEW.render();
 }
 
 /**
@@ -829,19 +835,21 @@ function initializeSequenceViewer() {
   );
   // Reset any stored information and reset echart option object in STATE.
   STATE.positionInformation = {};
-  STATE.metaInformation = {};
-  STATE.noSamples = 0;
-  STATE.noProteoforms = 0;
-  STATE.sequenceViewerEChartOption.xAxis[0].data = []; // Index 0 -> Heatmap with per sample, per position variants.
-  STATE.sequenceViewerEChartOption.yAxis[0].data = [];
-  STATE.sequenceViewerEChartOption.series[0].data = [];
-  STATE.sequenceViewerEChartOption.xAxis[1].data = []; // Index 1 -> No. variants track on top.
-  STATE.sequenceViewerEChartOption.series[1].data = [];
-  STATE.sequenceViewerEChartOption.yAxis[2].data = []; // Index 2 -> Sample frequency track on the right.
-  STATE.sequenceViewerEChartOption.series[2].data = [];
-  STATE.sequenceViewerEChartOption.xAxis[3].data = []; // Index 3 -> Custom tracks.
-  STATE.sequenceViewerEChartOption.series =
-    STATE.sequenceViewerEChartOption.series.splice(0, 3); // Remove all annotation tracks.
+  STATE.META_INFORMATION = {};
+  STATE.NO_SAMPLES = 0;
+  STATE.NO_FORMS = 0;
+  STATE.SEQUENCE_VIEW_OPTION.xAxis[0].data = []; // Index 0 -> Heatmap with per sample, per position variants.
+  STATE.SEQUENCE_VIEW_OPTION.yAxis[0].data = [];
+  STATE.SEQUENCE_VIEW_OPTION.series[0].data = [];
+  STATE.SEQUENCE_VIEW_OPTION.xAxis[1].data = []; // Index 1 -> No. variants track on top.
+  STATE.SEQUENCE_VIEW_OPTION.series[1].data = [];
+  STATE.SEQUENCE_VIEW_OPTION.yAxis[2].data = []; // Index 2 -> Sample frequency track on the right.
+  STATE.SEQUENCE_VIEW_OPTION.series[2].data = [];
+  STATE.SEQUENCE_VIEW_OPTION.xAxis[3].data = []; // Index 3 -> Custom tracks.
+  STATE.SEQUENCE_VIEW_OPTION.series = STATE.SEQUENCE_VIEW_OPTION.series.splice(
+    0,
+    3
+  ); // Remove all annotation tracks.
   // Initialize temp. variables.
   var position = 1;
   var chainSequence = DATA.translatedNucleotideSequence;
@@ -972,7 +980,7 @@ function initializeSequenceViewer() {
         );
       }
     });
-  STATE.noProteoforms = filteredProteoformKeys.length + 1;
+  STATE.NO_FORMS = filteredProteoformKeys.length + 1;
 
   // Add information about wild type gene proteoform.
   for (let content of chainSequence.split("")) {
@@ -1025,29 +1033,29 @@ function initializeSequenceViewer() {
   filteredProteoformKeys.push(wtProteoformLabel);
 
   // Set y-axis label data.
-  STATE.sequenceViewerEChartOption.yAxis[0].data = filteredProteoformKeys;
-  STATE.sequenceViewerEChartOption.yAxis[0].name =
-    "Proteoforms (m = " + STATE.noProteoforms + ")";
-  STATE.sequenceViewerEChartOption.yAxis[2].data = filteredProteoformKeys;
+  STATE.SEQUENCE_VIEW_OPTION.yAxis[0].data = filteredProteoformKeys;
+  STATE.SEQUENCE_VIEW_OPTION.yAxis[0].name =
+    "Proteoforms (m = " + STATE.NO_FORMS + ")";
+  STATE.SEQUENCE_VIEW_OPTION.yAxis[2].data = filteredProteoformKeys;
 
   // Sort positions in ascending order and add information to EChart series and x-axis.
   let i = 0;
   for (let position of Object.keys(STATE.positionInformation).sort(
     sortPositions
   )) {
-    STATE.sequenceViewerEChartOption.xAxis[0].data.push(position);
-    STATE.sequenceViewerEChartOption.xAxis[1].data.push(position);
-    STATE.sequenceViewerEChartOption.xAxis[3].data.push(position);
+    STATE.SEQUENCE_VIEW_OPTION.xAxis[0].data.push(position);
+    STATE.SEQUENCE_VIEW_OPTION.xAxis[1].data.push(position);
+    STATE.SEQUENCE_VIEW_OPTION.xAxis[3].data.push(position);
     for (let [proteoform, variant] of Object.entries(
       STATE.positionInformation[position]
     )) {
-      STATE.sequenceViewerEChartOption.series[0].data.push([
+      STATE.SEQUENCE_VIEW_OPTION.series[0].data.push([
         i,
         filteredProteoformKeys.indexOf(proteoform),
         AMINO_ACID_ENCODING[variant],
       ]);
     }
-    STATE.sequenceViewerEChartOption.series[1].data.push([
+    STATE.SEQUENCE_VIEW_OPTION.series[1].data.push([
       position,
       Object.keys(computePositionComposition(position)).length - 1,
     ]);
@@ -1068,10 +1076,10 @@ function initializeSequenceViewer() {
       noSamples = DATA.proteoforms[proteoformKey].samples.length;
     }
     totalCounts.push(noSamples);
-    STATE.noSamples += noSamples;
+    STATE.NO_SAMPLES += noSamples;
   }
-  STATE.sequenceViewerEChartOption.series[2].data = totalCounts.map((v) =>
-    (v / STATE.noSamples).toFixed(4)
+  STATE.SEQUENCE_VIEW_OPTION.series[2].data = totalCounts.map((v) =>
+    (v / STATE.NO_SAMPLES).toFixed(4)
   );
 
   // Add any existing annotation tracks.
@@ -1086,12 +1094,12 @@ function initializeSequenceViewer() {
     }
   });
 
-  STATE.sequenceViewerEChartOption.tooltip.formatter = (content) => {
+  STATE.SEQUENCE_VIEW_OPTION.tooltip.formatter = (content) => {
     if (content.seriesIndex === 0) {
       showPositionInformation(content);
     }
   };
-  sequenceViewer.setOption(STATE.sequenceViewerEChartOption, {
+  sequenceViewer.setOption(STATE.SEQUENCE_VIEW_OPTION, {
     notMerge: true,
   });
   sequenceViewer.resize();
@@ -1104,27 +1112,27 @@ function initializeSequenceViewer() {
  */
 function sequenceViewerToggleAnnotations(display) {
   if (display) {
-    STATE.sequenceViewerEChartOption.grid[3].top = "8.5%";
-    STATE.sequenceViewerEChartOption.grid[3].right = "10%";
-    STATE.sequenceViewerEChartOption.grid[3].bottom = "81%";
-    STATE.sequenceViewerEChartOption.grid[3].left = "10%";
-    STATE.sequenceViewerEChartOption.grid[3].show = true;
-    STATE.sequenceViewerEChartOption.yAxis[3].show = true;
-    STATE.sequenceViewerEChartOption.grid[0].top = "20%";
-    STATE.sequenceViewerEChartOption.grid[2].top = "20%";
-    STATE.sequenceViewerEChartOption.dataZoom[1].top = "20%";
+    STATE.SEQUENCE_VIEW_OPTION.grid[3].top = "8.5%";
+    STATE.SEQUENCE_VIEW_OPTION.grid[3].right = "10%";
+    STATE.SEQUENCE_VIEW_OPTION.grid[3].bottom = "81%";
+    STATE.SEQUENCE_VIEW_OPTION.grid[3].left = "10%";
+    STATE.SEQUENCE_VIEW_OPTION.grid[3].show = true;
+    STATE.SEQUENCE_VIEW_OPTION.yAxis[3].show = true;
+    STATE.SEQUENCE_VIEW_OPTION.grid[0].top = "20%";
+    STATE.SEQUENCE_VIEW_OPTION.grid[2].top = "20%";
+    STATE.SEQUENCE_VIEW_OPTION.dataZoom[1].top = "20%";
   } else {
-    STATE.sequenceViewerEChartOption.grid[3].top = "0%";
-    STATE.sequenceViewerEChartOption.grid[3].right = "50%";
-    STATE.sequenceViewerEChartOption.grid[3].bottom = "100%";
-    STATE.sequenceViewerEChartOption.grid[3].left = "50%";
-    STATE.sequenceViewerEChartOption.grid[3].show = false;
-    STATE.sequenceViewerEChartOption.yAxis[3].show = false;
-    STATE.sequenceViewerEChartOption.grid[0].top = "10%";
-    STATE.sequenceViewerEChartOption.grid[2].top = "10%";
-    STATE.sequenceViewerEChartOption.dataZoom[1].top = "10%";
+    STATE.SEQUENCE_VIEW_OPTION.grid[3].top = "0%";
+    STATE.SEQUENCE_VIEW_OPTION.grid[3].right = "50%";
+    STATE.SEQUENCE_VIEW_OPTION.grid[3].bottom = "100%";
+    STATE.SEQUENCE_VIEW_OPTION.grid[3].left = "50%";
+    STATE.SEQUENCE_VIEW_OPTION.grid[3].show = false;
+    STATE.SEQUENCE_VIEW_OPTION.yAxis[3].show = false;
+    STATE.SEQUENCE_VIEW_OPTION.grid[0].top = "10%";
+    STATE.SEQUENCE_VIEW_OPTION.grid[2].top = "10%";
+    STATE.SEQUENCE_VIEW_OPTION.dataZoom[1].top = "10%";
   }
-  sequenceViewer.setOption(STATE.sequenceViewerEChartOption);
+  sequenceViewer.setOption(STATE.SEQUENCE_VIEW_OPTION);
 }
 
 /**
@@ -1138,10 +1146,10 @@ function sequenceViewerToggleAnnotations(display) {
 function sequenceViewerAddAnnotation(label, segments, track, color) {
   let positions = [];
   for (let segment of segments.split(",")) {
-    let segmentStart = STATE.sequenceViewerEChartOption.xAxis[0].data.indexOf(
+    let segmentStart = STATE.SEQUENCE_VIEW_OPTION.xAxis[0].data.indexOf(
       segment.split("-")[0]
     );
-    let segmentEnd = STATE.sequenceViewerEChartOption.xAxis[0].data.indexOf(
+    let segmentEnd = STATE.SEQUENCE_VIEW_OPTION.xAxis[0].data.indexOf(
       segment.split("-")[1]
     );
     for (let p = segmentStart; p <= segmentEnd; p++) {
@@ -1160,7 +1168,7 @@ function sequenceViewerAddAnnotation(label, segments, track, color) {
       track_index = 4;
       break;
   }
-  STATE.sequenceViewerEChartOption.series.push({
+  STATE.SEQUENCE_VIEW_OPTION.series.push({
     type: "heatmap",
     name: "CUSTOM_TRACK_" + label,
     xAxisIndex: 3,
@@ -1186,7 +1194,7 @@ function computePositionComposition(p) {
   let states = {};
   let content;
   let totalObservations = 0;
-  for (let proteoformKey of STATE.sequenceViewerEChartOption.yAxis[0].data) {
+  for (let proteoformKey of STATE.SEQUENCE_VIEW_OPTION.yAxis[0].data) {
     if (proteoformKey === wtProteoformLabel) {
       continue;
     } else {
@@ -1208,7 +1216,7 @@ function computePositionComposition(p) {
       }
     }
     totalObservations += count;
-    STATE.sequenceViewerEChartOption.yAxis[2].name =
+    STATE.SEQUENCE_VIEW_OPTION.yAxis[2].name =
       "Sample Proportion (n = " + totalObservations + ")";
   }
   delete states.undefined;
@@ -1225,7 +1233,7 @@ function computePositionComposition(p) {
 function showPositionInformation(selection) {
   let position = selection.name;
   let proteoformName =
-    STATE.sequenceViewerEChartOption.yAxis[0].data[selection.data[1]];
+    STATE.SEQUENCE_VIEW_OPTION.yAxis[0].data[selection.data[1]];
   proteoformName = proteoformName.startsWith(wtPrefix)
     ? wtPrefix
     : proteoformName;
@@ -1234,19 +1242,17 @@ function showPositionInformation(selection) {
   if (position.split("+")[1] === "0") {
     wildTypeResidue =
       AMINO_ACID_DECODING[
-        STATE.sequenceViewerEChartOption.series[0].data.filter(
+        STATE.SEQUENCE_VIEW_OPTION.series[0].data.filter(
           (e) =>
             e[0] == selection.data[0] &&
             e[1] ==
-              STATE.sequenceViewerEChartOption.yAxis[0].data.indexOf(
-                wtGeneLabel
-              )
+              STATE.SEQUENCE_VIEW_OPTION.yAxis[0].data.indexOf(wtGeneLabel)
         )[0][2]
       ];
   } else {
     wildTypeResidue = "None";
   }
-  let noVariants = STATE.sequenceViewerEChartOption.series[1].data.filter(
+  let noVariants = STATE.SEQUENCE_VIEW_OPTION.series[1].data.filter(
     (e) => e[0] == position
   )[0][1];
   let positionComposition = computePositionComposition(position);
@@ -1289,9 +1295,9 @@ function showPositionInformation(selection) {
     ),
     { renderer: "canvas" }
   );
-  STATE.positionViewerEChartOption.series[0].data = [];
+  STATE.DETAIL_VIEW_OPTION.series[0].data = [];
   for (let [key, value] of Object.entries(positionComposition)) {
-    STATE.positionViewerEChartOption.series[0].data.push({
+    STATE.DETAIL_VIEW_OPTION.series[0].data.push({
       name:
         AMINO_ACID_DESIGNATION[key] +
         ", " +
@@ -1305,7 +1311,7 @@ function showPositionInformation(selection) {
       },
     });
   }
-  positionViewer.setOption(STATE.positionViewerEChartOption, true);
+  positionViewer.setOption(STATE.DETAIL_VIEW_OPTION, true);
   proteinViewerHighlightPosition(position.split("+")[0]);
   displayComponent("musialweb-protein-dashboard-positioninformation", "block");
 }
@@ -1599,8 +1605,8 @@ function openDialogTracks() {
   }).then((_) => {
     // Remove anntation objects and series.
     STATE.annotationTracks = [];
-    STATE.sequenceViewerEChartOption.series =
-      STATE.sequenceViewerEChartOption.series.splice(0, 3);
+    STATE.SEQUENCE_VIEW_OPTION.series =
+      STATE.SEQUENCE_VIEW_OPTION.series.splice(0, 3);
     for (let annotationObject of table.getData()) {
       STATE.annotationTracks.push({
         label: annotationObject.label,
@@ -1622,7 +1628,7 @@ function openDialogTracks() {
       ":checked"
     );
     sequenceViewerToggleAnnotations(SETTINGS._displayAnnotationTracks);
-    sequenceViewer.setOption(STATE.sequenceViewerEChartOption, {
+    sequenceViewer.setOption(STATE.SEQUENCE_VIEW_OPTION, {
       replaceMerge: ["series"],
     });
     sequenceViewer.resize();
@@ -1696,8 +1702,8 @@ function openDialogHighlight() {
         color: color,
       };
     }
-    proteinViewerApplyStyle();
-    proteinViewer.render();
+    _structureViewApplyStyle();
+    _STRUCTURE_VIEW.render();
   });
 }
 

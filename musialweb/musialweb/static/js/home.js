@@ -21,7 +21,7 @@ function startExampleSession() {
     .get(_URL + "/example/session")
     .then((response) => {
       handleResponse(response);
-      if (response.data == SUCCESS_CODE) {
+      if (response.data.code == SUCCESS_CODE) {
         window.location.href = _URL + "/results";
       }
     })

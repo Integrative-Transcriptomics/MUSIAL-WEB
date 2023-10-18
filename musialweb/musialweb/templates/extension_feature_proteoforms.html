@@ -25,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
     <meta name="author" content="Simon Hackl" />
-    <title>MUSIAL | PROTEIN DASHBOARD | {{ target }}</title>
+    <title>MUSIAL | {{ target }} Proteoforms</title>
     <link
       rel="icon"
       type="image/x-icon"
@@ -46,11 +46,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <link
       rel="stylesheet"
       type="text/css"
-      href="{{url_for('static', filename='css/ext_feature_detail.css')}}"
-    />
-    <link
-      href="https://unpkg.com/tabulator-tables@5.4.2/dist/css/tabulator_materialize.min.css"
-      rel="stylesheet"
+      href="{{url_for('static', filename='css/extension_feature_proteoforms.css')}}"
     />
     <!--
       Definition of java script files to use in the dashboard.
@@ -58,10 +54,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <script
       type="text/javascript"
       src="https://cdn.metroui.org.ua/v4/js/metro.min.js"
-    ></script>
-    <script
-      type="text/javascript"
-      src="https://unpkg.com/tabulator-tables@5.4.2/dist/js/tabulator.min.js"
     ></script>
     <script
       type="text/javascript"
@@ -78,7 +70,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     ></script>
     <script
       type="text/javascript"
-      src="https://cdn.jsdelivr.net/npm/echarts@5.1.0/dist/echarts.min.js"
+      src="https://cdn.jsdelivr.net/npm/echarts@5.4.0/dist/echarts.min.js"
     ></script>
     <script
       type="text/javascript"
@@ -99,7 +91,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     </script>
     <script
       type="text/javascript"
-      src="{{url_for('static', filename='js/ext_feature_detail.js')}}"
+      src="{{url_for('static', filename='js/extension_feature_proteoforms.js')}}"
     ></script>
   </head>
   <body>
@@ -116,56 +108,40 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
           src="{{ url_for('static', filename='resources/logo.png') }}"
           alt="no picture"
       /></span>
-      <!-- Menu elements floating right -->
-      <div class="app-bar-container ml-auto d-none d-flex-fs">
-        <a
-          id="menu-link-github"
-          href="https://github.com/Integrative-Transcriptomics/MUSIAL"
-          target="_blank"
-          class="app-bar-item text-upper"
-          ><i class="fa-brands fa-github p-2"></i
-        ></a>
-        <a
-          id="menu-link-legal"
-          href="{{url_for('get_template_legal')}}"
-          target="_blank"
-          class="app-bar-item text-upper"
-          >LEGAL</a
-        >
-      </div>
     </header>
-    <div id="musialweb-protein-dashboard">
-      <span id="tag-title">MUSIAL Prototype Dashboard | {{ target }}</span>
-      <span id="toolbar">
-        <button
-          id="toolbar-filter-proteoforms"
-          onclick="openDialogFilter()"
-          data-role="hint"
-          data-hint-position="bottom"
-          data-hint-text="Filter Proteoforms"
-        >
-          <i class="fa-thin fa-filter-list"></i>
-        </button>
-        <button
-          id="toolbar-annotation-tracks"
-          onclick="openDialogTracks()"
-          data-role="hint"
-          data-hint-position="bottom"
-          data-hint-text="Manage Annotation Tracks"
-        >
-          <i class="fa-thin fa-note"></i>
-        </button>
-        <button
-          id="toolbar-highlight-residues"
-          onclick="openDialogHighlight()"
-          data-role="hint"
-          data-hint-position="bottom"
-          data-hint-text="Highlight Structure Positions"
-        >
-          <i class="fa-thin fa-paintbrush"></i>
-        </button>
-      </span>
-      <div
+    <div id="main">
+      <!--
+          <span id="toolbar">
+          <button
+            id="toolbar-filter-proteoforms"
+            onclick="openDialogFilter()"
+            data-role="hint"
+            data-hint-position="bottom"
+            data-hint-text="Filter Proteoforms"
+          >
+            <i class="fa-thin fa-filter-list"></i>
+          </button>
+          <button
+            id="toolbar-annotation-tracks"
+            onclick="openDialogTracks()"
+            data-role="hint"
+            data-hint-position="bottom"
+            data-hint-text="Manage Annotation Tracks"
+          >
+            <i class="fa-thin fa-note"></i>
+          </button>
+          <button
+            id="toolbar-highlight-residues"
+            onclick="openDialogHighlight()"
+            data-role="hint"
+            data-hint-position="bottom"
+            data-hint-text="Highlight Structure Positions"
+          >
+            <i class="fa-thin fa-paintbrush"></i>
+          </button>
+        </span>
+      -->
+      <!--<div
         id="musialweb-protein-dashboard-positioninformation"
         data-role="draggable"
         style="display: none"
@@ -188,7 +164,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
           id="musialweb-protein-dashboard-positioninformation-echart"
           style="width: 340px; height: 230px"
         ></div>
-      </div>
+      </div>-->
       <div
         data-role="splitter"
         class="h-100"
@@ -196,11 +172,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         data-min-sizes="200"
       >
         <div
-          id="musialweb-protein-dashboard-3dmol"
+          id="structure-view-container"
           class="d-flex flex-justify-center flex-align-center"
         ></div>
         <div
-          id="musialweb-protein-dashboard-echart"
+          id="sequence-view-container"
           class="d-flex flex-justify-center flex-align-center"
         ></div>
       </div>

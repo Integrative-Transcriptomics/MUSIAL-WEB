@@ -1,29 +1,32 @@
 var _OVERVIEW_TABLE;
 var _SESSION_DATA = {
-  hasData: false,
-  samplesRecord: {},
-  featuresRecord: {},
-  variantsRecord: {},
+  SET: false,
+  SAMPLES: {},
+  FEATURES: {},
+  VARIANTS: {},
 };
 var _CHARTS = [];
 var _CHART_OBSERVERS = [];
-var tableDefinition = undefined;
-var tableData = undefined;
-var tableActiveType = undefined;
-var tableFilter = [];
-var tableGroup = [];
-var tableCurrentSamples = [];
-var tableCurrentFeatures = [];
+
+const mean = (data) => {
+  if (data.length < 1) {
+    return;
+  }
+  return data.reduce((p, c) => p + c) / data.length;
+};
 
 axios
   .get(_URL + "/session/status")
   .then((response) => {
-    switch (String(response.data)) {
+    switch (String(response.data.code)) {
       case API_PARAMETERS["SESSION_CODE_FAILED"]:
         Swal.fire({
           title: "Faulty Session Data",
-          html: `Your request failed. Please check your input data.
-            You can access the server log by clicking the <i class="fa-duotone fa-hexagon-exclamation"></i> icon.
+          html:
+            `Your request failed. Please check your input data.
+            You can access the server log <a href='` +
+            _URL +
+            `/log' target='_blank'>here</a>.
             If you cannot solve your problem, feel free to <a href='https://github.com/Integrative-Transcriptomics/MUSIAL-WEB/issues' target='_blank'>open an issue</a>.`,
           color: "#747474",
           background: "#fafafcd9",
@@ -52,13 +55,11 @@ axios
             _URL +
             `/upload'>Upload</a> page before you can access any results.`,
           color: "#747474",
-          background: "#fafafcd9",
-          allowOutsideClick: true,
-          allowEscapeKey: true,
-          showConfirmButton: true,
-          focusConfirm: true,
-          confirmButtonColor: "#6d81ad",
-          confirmButtonText: "Ok",
+          background: "transparent",
+          heightAuto: false,
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          showConfirmButton: false,
           backdrop: `
           rgba(239, 240, 248, 0.1)
           left top
@@ -67,28 +68,27 @@ axios
         });
         break;
       case API_PARAMETERS["SESSION_CODE_ACTIVE"]:
-        if (!_SESSION_DATA.hasData) {
+        if (!_SESSION_DATA.SET) {
           axios
-            .get(_URL + "/session/data")
+            .get(_URL + "/session/data", {
+              headers: {
+                "Content-Type": "application/json",
+              },
+            })
             .then((response) => {
-              let responseData = JSON.parse(
-                response.data
-                  .replaceAll("\n", "")
-                  .replaceAll("\\", "")
-                  .replaceAll("NaN", '"null"')
-              );
-              _SESSION_DATA.hasData = true;
-              _SESSION_DATA.samplesRecord = responseData[0];
+              _SESSION_DATA.SET = true;
+              let responseContent = JSON.parse(response.data.content);
+              _SESSION_DATA.SAMPLES = responseContent[0];
               $("#main-results-table-set-samples-button").html(
-                "samples (" + _SESSION_DATA.samplesRecord.records.length + ")"
+                "samples (" + _SESSION_DATA.SAMPLES.records.length + ")"
               );
-              _SESSION_DATA.featuresRecord = responseData[1];
+              _SESSION_DATA.FEATURES = responseContent[1];
               $("#main-results-table-set-features-button").html(
-                "features (" + _SESSION_DATA.featuresRecord.records.length + ")"
+                "features (" + _SESSION_DATA.FEATURES.records.length + ")"
               );
-              _SESSION_DATA.variantsRecord = responseData[2];
+              _SESSION_DATA.VARIANTS = responseContent[2];
               $("#main-results-table-set-variants-button").html(
-                "variants (" + _SESSION_DATA.variantsRecord.records.length + ")"
+                "variants (" + _SESSION_DATA.VARIANTS.records.length + ")"
               );
             })
             .catch((error) => {
@@ -106,7 +106,8 @@ axios
   });
 
 function showContent(record) {
-  if (_SESSION_DATA.hasData) {
+  if (_SESSION_DATA.SET) {
+    if (typeof _OVERVIEW_TABLE == "object") _OVERVIEW_TABLE.setData();
     _OVERVIEW_TABLE = new Tabulator("#main-results-table", {
       nestedFieldSeparator: "$",
       movableColumns: true,
@@ -140,23 +141,23 @@ function showContent(record) {
 }
 
 function showSamples() {
-  if (showContent(_SESSION_DATA.samplesRecord)) {
+  if (showContent(_SESSION_DATA.SAMPLES)) {
     $("#main-results-table-set-samples-button").addClass("active-content");
     $("#main-results-dashboard-samples").show();
     constructEChartInstance(
       $("#main-results-dashboard-samples-left")[0],
-      _SESSION_DATA.samplesRecord.dashboard.overview_area
+      _SESSION_DATA.SAMPLES.dashboard.overview_area
     );
     constructEChartInstance(
       $("#main-results-dashboard-samples-mid")[0],
-      _SESSION_DATA.samplesRecord.dashboard.clustering_scatter
+      _SESSION_DATA.SAMPLES.dashboard.clustering_scatter
     );
     constructEChartInstance(
       $("#main-results-dashboard-samples-right")[0],
-      _SESSION_DATA.samplesRecord.dashboard.correlation_bar
+      _SESSION_DATA.SAMPLES.dashboard.correlation_bar
     );
     let featureSelectOptions = {};
-    for (let featureRecord of _SESSION_DATA.featuresRecord.records) {
+    for (let featureRecord of _SESSION_DATA.FEATURES.records) {
       featureSelectOptions[featureRecord.name] = featureRecord.name;
     }
     Metro.getPlugin(
@@ -176,7 +177,7 @@ function showSamples() {
 }
 
 function dashboardSamplesOverview(val, option, item) {
-  let counts = _SESSION_DATA.samplesRecord.counts[val];
+  let counts = _SESSION_DATA.SAMPLES.counts[val];
   let axisTitle =
     option.innerText.charAt(0).toUpperCase() + option.innerText.slice(1);
   let axisData = Array.from(Object.keys(counts));
@@ -203,7 +204,6 @@ function dashboardSamplesOverview(val, option, item) {
     tooltip: {
       trigger: "axis",
       formatter: (params, ticket, callback) => {
-        console.log(params);
         return (
           "<b>" +
           axisTitle +
@@ -217,11 +217,8 @@ function dashboardSamplesOverview(val, option, item) {
     series: [
       {
         name: axisTitle,
-        type: "line",
-        symbol: "none",
-        smooth: true,
-        lineStyle: { color: "#6d81ad", width: 1 },
-        areaStyle: { color: "#9ba6bd" },
+        type: "bar",
+        itemStyle: { color: "#fe4848", borderRadius: 1 },
         data: seriesData,
         xAxisIndex: 0,
         yAxisIndex: 0,
@@ -240,7 +237,7 @@ function dashboardSamplesClustering() {
       "#main-results-dashboard-samples-clustering-metric",
       "select"
     ).val(),
-    features: Metro.getPlugin(
+    feature: Metro.getPlugin(
       "#main-results-dashboard-samples-clustering-features",
       "select"
     ).val(),
@@ -276,7 +273,6 @@ function dashboardSamplesClustering() {
             formatter: (params) => {
               let profile = profiles[params.dataIndex];
               return (
-                "<b>Profile:</b><br/>" +
                 profile
                   .split(":")
                   .map((p) => {
@@ -293,8 +289,8 @@ function dashboardSamplesClustering() {
             feature: {
               dataZoom: {
                 icon: {
-                  zoom: "M13.7 2.3C10.5-.8 5.5-.8 2.3 2.3s-3.1 8.2 0 11.3L164.7 176H72c-4.4 0-8 3.6-8 8s3.6 8 8 8H184c4.4 0 8-3.6 8-8V72c0-4.4-3.6-8-8-8s-8 3.6-8 8v92.7L13.7 2.3zm612.7 0L464 164.7V72c0-4.4-3.6-8-8-8s-8 3.6-8 8V184c0 4.4 3.6 8 8 8H568c4.4 0 8-3.6 8-8s-3.6-8-8-8H475.3L637.7 13.7c3.1-3.1 3.1-8.2 0-11.3s-8.2-3.1-11.3 0zM320 176a80 80 0 1 1 0 160 80 80 0 1 1 0-160zm0 176a96 96 0 1 0 0-192 96 96 0 1 0 0 192zm136 96c4.4 0 8-3.6 8-8V347.3L626.3 509.7c3.1 3.1 8.2 3.1 11.3 0s3.1-8.2 0-11.3L475.3 336H568c4.4 0 8-3.6 8-8s-3.6-8-8-8H456c-4.4 0-8 3.6-8 8V440c0 4.4 3.6 8 8 8zm-272 0c4.4 0 8-3.6 8-8V328c0-4.4-3.6-8-8-8H72c-4.4 0-8 3.6-8 8s3.6 8 8 8h92.7L2.3 498.3c-3.1 3.1-3.1 8.2 0 11.3s8.2 3.1 11.3 0L176 347.3V440c0 4.4 3.6 8 8 8z",
-                  back: "M328 32c-4.4 0-8 3.6-8 8s3.6 8 8 8H452.7L256 244.7 59.3 48H184c4.4 0 8-3.6 8-8s-3.6-8-8-8H40c-4.4 0-8 3.6-8 8V184c0 4.4 3.6 8 8 8s8-3.6 8-8V59.3L244.7 256 48 452.7V328c0-4.4-3.6-8-8-8s-8 3.6-8 8V472c0 4.4 3.6 8 8 8H184c4.4 0 8-3.6 8-8s-3.6-8-8-8H59.3L256 267.3 452.7 464H328c-4.4 0-8 3.6-8 8s3.6 8 8 8H472c4.4 0 8-3.6 8-8V328c0-4.4-3.6-8-8-8s-8 3.6-8 8V452.7L267.3 256 464 59.3V184c0 4.4 3.6 8 8 8s8-3.6 8-8V40c0-4.4-3.6-8-8-8H328z",
+                  zoom: "M208 32a176 176 0 1 1 0 352 176 176 0 1 1 0-352zm0 384c51.7 0 99-18.8 135.3-50L484.7 507.3c6.2 6.2 16.4 6.2 22.6 0s6.2-16.4 0-22.6L366 343.3c31.2-36.4 50-83.7 50-135.3C416 93.1 322.9 0 208 0S0 93.1 0 208S93.1 416 208 416zM192 304c0 8.8 7.2 16 16 16s16-7.2 16-16V224h80c8.8 0 16-7.2 16-16s-7.2-16-16-16H224V112c0-8.8-7.2-16-16-16s-16 7.2-16 16v80H112c-8.8 0-16 7.2-16 16s7.2 16 16 16h80v80z",
+                  back: "M16 64c8.8 0 16 7.2 16 16l0 352c0 8.8-7.2 16-16 16s-16-7.2-16-16V80c0-8.8 7.2-16 16-16zm203.3 84.7c6.2 6.2 6.2 16.4 0 22.6L150.6 240l338.7 0-68.7-68.7c-6.2-6.2-6.2-16.4 0-22.6s16.4-6.2 22.6 0l96 96c6.2 6.2 6.2 16.4 0 22.6l-96 96c-6.2 6.2-16.4 6.2-22.6 0s-6.2-16.4 0-22.6L489.4 272l-338.7 0 68.7 68.7c6.2 6.2 6.2 16.4 0 22.6s-16.4 6.2-22.6 0l-96-96c-6.2-6.2-6.2-16.4 0-22.6l96-96c6.2-6.2 16.4-6.2 22.6 0zM640 80V432c0 8.8-7.2 16-16 16s-16-7.2-16-16V80c0-8.8 7.2-16 16-16s16 7.2 16 16z",
                 },
               },
               /*myFeature1: {
@@ -319,7 +315,7 @@ function dashboardSamplesClustering() {
               yAxisIndex: 0,
               data: umap,
               itemStyle: {
-                color: "#444444",
+                color: "#747474",
               },
               /*selectedMode: "multiple",
               select: {
@@ -430,7 +426,7 @@ function dashboardSamplesCorrelation() {
             data: [testValue],
             xAxisIndex: 0,
             yAxisIndex: 0,
-            itemStyle: { color: "#6d81ad", borderRadius: 2 },
+            itemStyle: { color: "#747474", borderRadius: 1 },
           },
         ],
       });
@@ -444,19 +440,19 @@ function dashboardSamplesCorrelation() {
 }
 
 function showFeatures() {
-  if (showContent(_SESSION_DATA.featuresRecord)) {
+  if (showContent(_SESSION_DATA.FEATURES)) {
     $("#main-results-table-set-features-button").addClass("active-content");
     $("#main-results-dashboard-features").show();
     constructEChartInstance(
       $("#main-results-dashboard-features-left")[0],
-      _SESSION_DATA.featuresRecord.dashboard.overview_parallel
+      _SESSION_DATA.FEATURES.dashboard.overview_parallel
     );
     constructEChartInstance(
       $("#main-results-dashboard-features-right")[0],
-      _SESSION_DATA.featuresRecord.dashboard.forms_sunburst
+      _SESSION_DATA.FEATURES.dashboard.forms_sunburst
     );
     let featureSelectOptions = {};
-    for (let featureRecord of _SESSION_DATA.featuresRecord.records) {
+    for (let featureRecord of _SESSION_DATA.FEATURES.records) {
       featureSelectOptions[featureRecord.name] = featureRecord.name;
     }
     Metro.getPlugin(
@@ -511,7 +507,8 @@ function dashboardFeaturesForms() {
             if (params.data.dataIndex == 0) {
               return;
             } else {
-              content = "<b>" + params.data.level + "</b> " + params.data.name;
+              content =
+                "<b>" + params.data.level + " " + params.data.name + "</b>";
             }
             if (params.data.hasOwnProperty("annotations")) {
               for (var [key, value] of Object.entries(
@@ -527,18 +524,22 @@ function dashboardFeaturesForms() {
                   keyText.slice(1) +
                   " ";
                 if (key == "variable_positions" || key == "frequency") {
-                  content += value + "%";
+                  content += parseFloat(value).toFixed(2) + "%";
                 } else if (key == "novel_stops") {
-                  content += value.split(":").join(", ");
+                  content +=
+                    value.split(":").length +
+                    ` <i class="fa-duotone fa-triangle-exclamation fa-xs"></i> <u>Disordered</u>`;
                 } else if (key == "variants") {
-                  content += value;
+                  content += value.split(";").length;
                 } else {
                   content += value;
                 }
               }
+              content += "</br>Samples " + params.data.value;
             }
             return content;
           },
+          triggerOn: "mousemove",
         },
         visualMap: {
           show: true,
@@ -555,7 +556,7 @@ function dashboardFeaturesForms() {
               min: 3,
               max: 4,
               color: "#FFB000",
-              label: "< 10% Variable Positions",
+              label: "≥ 1% and < 10% Variable Positions",
             },
             {
               min: 4,
@@ -584,8 +585,9 @@ function dashboardFeaturesForms() {
               show: false,
             },
             radius: [0, "85%"],
-            clockwise: false,
-            sort: (node1, node2) => {},
+            clockwise: true,
+            nodeClick: false,
+            sort: (nodeA, nodeB) => {},
           },
         ],
       });
@@ -598,25 +600,99 @@ function dashboardFeaturesForms() {
     });
 }
 
-function dashboardFeaturesDetail() {
-  var type = Metro.getPlugin(
-    "#main-results-dashboard-features-detail-type",
-    "select"
-  ).val();
+function dashboardFeaturesProteoforms() {
   var target = Metro.getPlugin(
-    "#main-results-dashboard-features-detail-feature",
+    "#main-results-dashboard-features-proteoforms-feature",
     "select"
   ).val();
   var dashboard = window.open(
-    _URL + "/ext/feature_detail?type=" + type + "&target=" + target,
+    _URL + "/extension/feature_proteoforms?target=" + target,
     "_blank"
   );
   dashboard.location;
 }
 
 function showVariants() {
-  if (showContent(_SESSION_DATA.variantsRecord)) {
+  if (showContent(_SESSION_DATA.VARIANTS)) {
     $("#main-results-table-set-variants-button").addClass("active-content");
+    $("#main-results-dashboard-variants").show();
+    _SESSION_DATA.VARIANTS.dashboard.variants_bar["tooltip"] = {
+      trigger: "axis",
+      formatter: (params, ticket, callback) => {
+        let contents = [];
+        for (let entry of params.filter((e) => e.componentSubType == "bar")) {
+          let frequency = [];
+          let quality = [];
+          let coverage = [];
+          for (let occurrence of entry.data[5].split(",")) {
+            let fields = occurrence.split(":");
+            if (fields[2] == "false") {
+              frequency.push(parseFloat(fields[3]));
+              quality.push(parseFloat(fields[4]));
+              coverage.push(parseFloat(fields[5]));
+            }
+          }
+          contents.push(
+            "<div style='display: inline-block; margin-right: 10px; padding: 1px;'><b>Position</b>: " +
+              entry.data[0] +
+              "<br>" +
+              "<b>Frequency</b>: " +
+              parseFloat(entry.data[1]).toFixed(2) +
+              " %<br>" +
+              "<b>Reference Content</b>: " +
+              entry.data[2] +
+              "<br>" +
+              "<b>Variant Content</b>: " +
+              entry.data[3] +
+              "<br>" +
+              "<b>Type (SnpEff)</b>: " +
+              entry.data[4] +
+              "<br>" +
+              "<b>Avg. Genotype Frequency</b>: " +
+              (mean(frequency) * 100).toFixed(2) +
+              " %" +
+              "<br>" +
+              "<b>Avg. Quality</b>: " +
+              mean(quality).toFixed(2) +
+              "<br>" +
+              "<b>Avg. Coverage</b>: " +
+              mean(coverage).toFixed(2) +
+              "<br></div>"
+          );
+        }
+        return contents.join("");
+      },
+      alwaysShowContent: true,
+      position: ["5%", "55%"],
+    };
+    _SESSION_DATA.VARIANTS.dashboard.variants_bar["yAxis"][0]["axisLabel"] = {
+      formatter: (value, index) => {
+        return value.toFixed(1) + "%";
+      },
+    };
+    constructEChartInstance(
+      $("#main-results-dashboard-variants-top")[0],
+      _SESSION_DATA.VARIANTS.dashboard.variants_bar
+    );
+    _CHARTS[0].on("legendselectchanged", (event) => {
+      let series = _CHARTS[0]
+        .getModel()
+        .getSeries()
+        .filter((series) => {
+          return series.option.name == event.name;
+        })[0];
+      _CHARTS[0].dispatchAction({
+        type: "dataZoom",
+        startValue: series.option.pStart,
+        endValue: series.option.pEnd,
+      });
+      _CHARTS[0].dispatchAction({
+        type: "legendAllSelect",
+      });
+    });
+    _CHARTS[0].dispatchAction({
+      type: "legendAllSelect",
+    });
   }
 }
 
@@ -640,6 +716,24 @@ function constructTableColumns(columnFields) {
           return cell.getValue() != "reference"
             ? "<b style='color: #fe4848;'>alternative</b>"
             : "reference";
+        },
+      });
+    } else if (columnField.startsWith("occurrence")) {
+      columnDefinitions.push({
+        title: titleValue,
+        field: columnField,
+        headerTooltip: true,
+        formatter: function (cell, formatterParams, onRendered) {
+          let o = cell.getValue().split(",");
+          let contents = [];
+          for (let e of o) {
+            contents.push(
+              e.split(":")[2] == "true"
+                ? "<b style='color: #fe4848;'>" + e.split(":")[0] + "</b>"
+                : e.split(":")[0]
+            );
+          }
+          return contents.join(", ");
         },
       });
     } else if (
