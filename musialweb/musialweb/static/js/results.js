@@ -76,26 +76,51 @@ axios
               },
             })
             .then((response) => {
-              _SESSION_DATA.SET = true;
-              let responseContent = JSON.parse(response.data.content);
-              _SESSION_DATA.SAMPLES = responseContent[0];
-              $("#main-results-table-set-samples-button").html(
-                `samples <span class="badge">` +
-                  _SESSION_DATA.SAMPLES.records.length +
-                  `</span>`
-              );
-              _SESSION_DATA.FEATURES = responseContent[1];
-              $("#main-results-table-set-features-button").html(
-                `features <span class="badge">` +
-                  _SESSION_DATA.FEATURES.records.length +
-                  `</span>`
-              );
-              _SESSION_DATA.VARIANTS = responseContent[2];
-              $("#main-results-table-set-variants-button").html(
-                `variants <span class="badge">` +
-                  _SESSION_DATA.VARIANTS.records.length +
-                  `</span>`
-              );
+              if (response.data.code == API_PARAMETERS["SUCCESS_CODE"]) {
+                _SESSION_DATA.SET = true;
+                let responseContent = JSON.parse(response.data.content);
+                _SESSION_DATA.SAMPLES = responseContent[0];
+                $("#main-results-table-set-samples-button").html(
+                  `samples <span class="badge">` +
+                    _SESSION_DATA.SAMPLES.records.length +
+                    `</span>`
+                );
+                _SESSION_DATA.FEATURES = responseContent[1];
+                $("#main-results-table-set-features-button").html(
+                  `features <span class="badge">` +
+                    _SESSION_DATA.FEATURES.records.length +
+                    `</span>`
+                );
+                _SESSION_DATA.VARIANTS = responseContent[2];
+                $("#main-results-table-set-variants-button").html(
+                  `variants <span class="badge">` +
+                    _SESSION_DATA.VARIANTS.records.length +
+                    `</span>`
+                );
+              } else {
+                Swal.fire({
+                  title: "Faulty Session Data",
+                  html:
+                    `Failed to retrieve session results.
+                    You can access the server log <a href='` +
+                    _URL +
+                    `/log' target='_blank'>here</a>.
+                    If you cannot solve your problem, feel free to <a href='https://github.com/Integrative-Transcriptomics/MUSIAL-WEB/issues' target='_blank'>open an issue</a>.`,
+                  color: "#747474",
+                  background: "#fafafcd9",
+                  allowOutsideClick: true,
+                  allowEscapeKey: true,
+                  showConfirmButton: true,
+                  focusConfirm: true,
+                  confirmButtonColor: "#6d81ad",
+                  confirmButtonText: "Ok",
+                  backdrop: `
+                    rgba(239, 240, 248, 0.1)
+                    left top
+                    no-repeat
+                  `,
+                });
+              }
             })
             .catch((error) => {
               displayError(error.message);

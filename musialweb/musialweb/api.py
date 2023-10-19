@@ -206,6 +206,10 @@ def session_start():
 @app.route("/session/data", methods=["GET"])
 def session_data():
     """TODO"""
+    if not API_CODES["RESULT_KEY"] in session:
+        return {
+            "code": API_CODES["FAILURE_CODE"],
+        }
     # Generate unique hex string to use as directory name in the local file system.
     unique_hex_key = _generate_random_string()
     # Variables to store output of MUSIAL run.

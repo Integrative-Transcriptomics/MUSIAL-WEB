@@ -461,9 +461,7 @@ async function submit() {
       })
       .then((response) => {
         handleResponse(response);
-        if (response.data.code == SUCCESS_CODE) {
-          window.location.href = _URL + "/results";
-        }
+        window.location.href = _URL + "/results";
       })
       .catch((error) => {
         displayError(error.message);
