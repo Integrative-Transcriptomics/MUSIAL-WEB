@@ -304,7 +304,7 @@ def variants_overview_bar(df, max, df_features):
             .apply(
                 lambda row: (
                     row["position"],
-                    row["frequency"],
+                    row["frequency_pass"],
                     row["reference_content"],
                     row["alternate_content"],
                     row["SnpEff.Effect"],
