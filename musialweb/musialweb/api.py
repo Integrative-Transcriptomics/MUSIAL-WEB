@@ -174,8 +174,8 @@ def session_start():
         # Else, parse and store output of MUSIAL.
         else:
             with open("./tmp/" + unique_hex_key + "/output.json", "r") as run_out_file:
-                json_result_data = json.load(run_out_file)
-                result = json_result_data
+                session[API_CODES["RESULT_KEY"]] = json.load(run_out_file)
+            session[SESSION_KEY_STATUS] = API_CODES["SESSION_CODE_ACTIVE"]
     # If any error is thrown by the server, set response code to 1 (failed).
     except Exception as e:
         response_code = API_CODES["FAILURE_CODE"]
@@ -188,14 +188,6 @@ def session_start():
     finally:
         # Remove temporary files, store results and log in session and return response code.
         # shutil.rmtree("./tmp/" + unique_hex_key)
-        session[API_CODES["RESULT_KEY"]] = result
-        session[SESSION_KEY_STATUS] = API_CODES["SESSION_CODE_ACTIVE"]
-        if SESSION_KEY_SAMPLES_DF in session:
-            del session[SESSION_KEY_SAMPLES_DF]
-        if SESSION_KEY_FEATURES_DF in session:
-            del session[SESSION_KEY_FEATURES_DF]
-        if SESSION_KEY_VARIANTS_DF in session:
-            del session[SESSION_KEY_VARIANTS_DF]
         _log(request.url, _remove_ansi(stdout) + "\n" + _remove_ansi(stderr))
         if DEBUG:
             print("\033[46m LOG \033[0m")
