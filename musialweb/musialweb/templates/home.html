@@ -57,7 +57,7 @@
 {% endblock %} {% block content %}
 
 <div id="main-home" class="main">
-  <div class="remark">
+  <div class="remark m-4" id="home-abstract">
     <p class="text-light text-just">
       <strong>MUSIAL</strong> is a web platform that computes
       <strong>prokaryotic genome, gene</strong> and
@@ -70,109 +70,90 @@
       which samples agree on which proteoforms, etc. The platform is designed to
       support the detection of features of interest for downstream analyses. It
       provides multiple <strong>data export options</strong> for
-      <strong>FASTA</strong> as well as <strong>tabular formats</strong>.
+      <strong>FASTA</strong> as well as <strong>tabular formats</strong> as well
+      as diverse <strong>visual analytics features</strong>.
+      <a href="{{url_for('get_template_upload')}}"
+        >You can start your analysis via the UPLOAD form</a
+      >.
     </p>
   </div>
-  <div class="remark">
+  <div class="remark m-4" id="home-fields">
     <div class="grid">
       <div class="row">
-        <div class="cell-5">
+        <div class="cell-12 mb-4">
           <div
             id="home-start-example-tile"
             data-role="tile"
-            data-size="medium"
+            data-size="wide"
             onclick="startExampleSession()"
           >
-            <i class="icon fa-solid fa-magnifying-glass"></i>
-            <span class="tag-translucent text-center branding-bar"
-              >explore example</span
-            >
-          </div>
-          <div class="w-50">
-            <p class="text-upper text-leader2">start an example session</p>
-            <p class="text-light">
-              To explore the features of MUSIAL, click on the
-              <i class="text-upper">explore example</i> field on the left. This
-              will start a session with a small example dataset that we provide
-              on our server.
+            <p class="text-upper text-leader2">
+              <strong>start an example session</strong>
             </p>
+            <p class="text-light">
+              Explore the features of MUSIAL by starting an example session with
+              a small dataset that we provide on our server.
+            </p>
+            <i class="icon fa-solid fa-magnifying-glass"></i>
           </div>
         </div>
-        <div class="cell-5 offset-1">
+        <div class="cell-12 mb-4">
           <div
             id="home-download-example-tile"
             data-role="tile"
-            data-size="medium"
+            data-size="wide"
             onclick="getExampleData()"
           >
-            <i class="icon fa-solid fa-file-zipper"></i>
-            <span class="tag-translucent text-center branding-bar"
-              >example data</span
-            >
-          </div>
-          <div class="w-50">
-            <p class="text-upper text-leader2">example data for upload form</p>
-            <p class="text-light">
-              To familiarize yourself with the upload process, (which data is
-              mandatory in which format), download the example data that was
-              also used to create the example session by clicking on the
-              <i class="text-upper">example data</i> field on the left.
+            <p class="text-upper text-leader2">
+              <strong>example data for upload form</strong>
             </p>
+            <p class="text-light">
+              Download the data that was used to create the example session to
+              familiarize yourself with the upload process, i.e., which data is
+              mandatory in which format.
+            </p>
+            <i class="icon fa-solid fa-file-zipper"></i>
           </div>
         </div>
-      </div>
-      <br />
-      <div class="row">
-        <div class="cell-5">
+        <div class="cell-12 mb-4">
           <div
             id="home-show-tutorial-tile"
             data-role="tile"
-            data-size="medium"
+            data-size="wide"
             onclick="redirectHelp()"
           >
-            <i class="icon fa-brands fa-leanpub"></i>
-            <span class="tag-translucent text-center branding-bar">help</span>
-          </div>
-          <div class="w-50">
-            <p class="text-upper text-leader2">help</p>
-            <p class="text-light">
-              On the help page (for access click on the
-              <i class="text-tupper">help</i> field on the left) we provide an
-              introduction to MUSIAL's architecture, the upload process, the
-              interactive exploration possibilities, and how to download the
-              computation results.
+            <p class="text-upper text-leader2">
+              <strong>documentation</strong>
             </p>
+            <p class="text-light">
+              We provide an introduction to MUSIAL's architecture, the upload
+              process, the interactive exploration possibilities, and how to
+              download the computation results on the help page.
+            </p>
+            <i class="icon fa-brands fa-leanpub"></i>
           </div>
         </div>
-        <div class="cell-5 offset-1">
+        <div class="cell-12 mb-4">
           <div
             id="home-view-source-tile"
             data-role="tile"
-            data-size="medium"
+            data-size="wide"
             onclick="redirectSource()"
           >
-            <i class="icon fa-brands fa-github"></i>
-            <span class="tag-translucent text-center branding-bar"
-              >view source</span
-            >
-          </div>
-          <div class="w-50">
-            <p class="text-upper text-leader2">source code</p>
+            <p class="text-upper text-leader2"><strong>source code</strong></p>
             <p class="text-light">
               If you encounter any problems, have feature requests, or want to
               access the source code of MUSIAL please visit our GitHub
               repository. All our source code is freely available and released
               under the GPL 3.0 license.
             </p>
+            <i class="icon fa-brands fa-github"></i>
           </div>
         </div>
-        <!--<div class="cell">
-          <div id="home-graphical-abstract" class="w-100 h-100"></div>
-        </div>-->
       </div>
     </div>
   </div>
-  <div class="footer">
+  <div class="remark m-4" id="home-footer">
     <div class="grid">
       <div class="row">
         <div class="cell-3">
@@ -190,7 +171,7 @@
           <p class="text-upper text-leader2 text-center">
             browser compatibility
           </p>
-          <table class="table subcompact table-border cell-border">
+          <table class="table subcompact table-border cell-border mt-4">
             <thead>
               <tr>
                 <th>OS</th>
@@ -231,7 +212,7 @@
         </div>
         <div class="cell-3 offset-1">
           <p class="text-upper text-leader2 text-center">legal</p>
-          <p class="text-light">
+          <p>
             This website is free and open to all users and there is no login
             requirement. All submitted data is kept confidential. You will find
             additional information on the
