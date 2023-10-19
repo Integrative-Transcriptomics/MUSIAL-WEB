@@ -667,7 +667,7 @@ function showVariants() {
             "<div style='display: inline-block; margin-right: 10px; padding: 1px;'><b>Position</b>: " +
               entry.data[0] +
               "<br>" +
-              "<b>Frequency</b>: " +
+              "<b>Frequency (Pass)</b>: " +
               parseFloat(entry.data[1]).toFixed(2) +
               " %<br>" +
               "<b>Reference Content</b>: " +
