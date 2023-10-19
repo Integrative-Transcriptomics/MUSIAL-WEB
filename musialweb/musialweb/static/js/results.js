@@ -80,15 +80,21 @@ axios
               let responseContent = JSON.parse(response.data.content);
               _SESSION_DATA.SAMPLES = responseContent[0];
               $("#main-results-table-set-samples-button").html(
-                "samples (" + _SESSION_DATA.SAMPLES.records.length + ")"
+                `samples <span class="badge">` +
+                  _SESSION_DATA.SAMPLES.records.length +
+                  `</span>`
               );
               _SESSION_DATA.FEATURES = responseContent[1];
               $("#main-results-table-set-features-button").html(
-                "features (" + _SESSION_DATA.FEATURES.records.length + ")"
+                `features <span class="badge">` +
+                  _SESSION_DATA.FEATURES.records.length +
+                  `</span>`
               );
               _SESSION_DATA.VARIANTS = responseContent[2];
               $("#main-results-table-set-variants-button").html(
-                "variants (" + _SESSION_DATA.VARIANTS.records.length + ")"
+                `variants <span class="badge">` +
+                  _SESSION_DATA.VARIANTS.records.length +
+                  `</span>`
               );
             })
             .catch((error) => {

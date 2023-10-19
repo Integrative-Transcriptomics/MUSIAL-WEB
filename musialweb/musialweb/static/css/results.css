@@ -50,6 +50,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   color: var(--background-color-primary);
 }
 
+.toolbar button .badge {
+  background-color: var(--color-secondary);
+  color: var(--text-color-secondary);
+}
+
 .toolbar .select {
   margin-left: 4px;
   margin-right: 4px;
