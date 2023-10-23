@@ -40,13 +40,13 @@ def samples_clustering_scatter():
         "title": [
             {
                 "top": "0",
-                "left": 0,
+                "left": "center",
                 "text": "UMAP Clustering",
-                "textStyle": {"fontWeight": "lighter", "fontStyle": "oblique"},
+                "textStyle": {"fontWeight": "lighter"},
             },
         ],
         "grid": [
-            {"top": "10%", "left": "8%", "height": "75%", "width": "89%"},
+            {"top": "10%", "left": "10%", "height": "80%", "width": "85%"},
         ],
         "xAxis": [
             {
@@ -54,7 +54,7 @@ def samples_clustering_scatter():
                 "gridIndex": 0,
                 "name": "UMAP 1",
                 "nameLocation": "center",
-                "nameGap": "45",
+                "nameGap": "25",
             }
         ],
         "yAxis": [
