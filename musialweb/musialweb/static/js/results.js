@@ -220,6 +220,12 @@ function dashboardSamplesOverview(val, option, item) {
     seriesData.push([axisData.indexOf(key), value]);
   }
   _CHARTS[0].setOption({
+    title: {
+      top: "0",
+      left: "center",
+      text: "No. Samples by " + axisTitle,
+      textStyle: { fontWeight: "lighter" },
+    },
     xAxis: [
       {
         type: "category",

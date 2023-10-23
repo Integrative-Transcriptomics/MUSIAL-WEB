@@ -1,13 +1,13 @@
 import math
 
 
-def samples_overview_area():
+def samples_overview_bar():
     return {
         "title": {
             "top": "0",
-            "left": 0,
+            "left": "center",
             "text": "No. Samples by Field",
-            "textStyle": {"fontWeight": "lighter", "fontStyle": "oblique"},
+            "textStyle": {"fontWeight": "lighter"},
         },
         "grid": [
             {"top": "10%", "left": "10%", "height": "75%", "width": "85%"},

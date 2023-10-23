@@ -789,7 +789,7 @@ def _view_samples_output_to_dict(out):
         "records": records,
         "counts": counts,
         "dashboard": {
-            "overview_area": mwchart.samples_overview_area(),
+            "overview_area": mwchart.samples_overview_bar(),
             "clustering_scatter": mwchart.samples_clustering_scatter(),
         },
     }
