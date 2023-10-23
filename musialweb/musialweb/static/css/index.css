@@ -52,11 +52,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   background: var(--text-color-secondary);
 }
 
+body {
+  min-width: 1080px;
+  height: 100%;
+  overflow-x: scroll;
+}
+
 #menu {
   background-color: var(--color-primary);
   color: var(--background-color-primary);
   height: 5vh;
   display: none;
+  min-width: 1080px;
+  overflow-x: scroll;
 }
 
 #menu .active {
@@ -72,6 +80,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   bottom: 0;
   left: 0;
   display: none;
+  min-width: 1080px;
+  height: calc(100%-5vh);
+  overflow-x: scroll;
 }
 
 .brand {
