@@ -151,27 +151,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #main-results-dashboard-samples-left {
   position: absolute;
   height: 90%;
-  width: 40%;
-  top: 10%;
-  left: 0;
-}
-
-#main-results-dashboard-samples-mid {
-  position: absolute;
-  height: 90%;
-  min-height: 40vh;
   width: 50%;
   top: 10%;
-  left: 40%;
+  left: 0;
 }
 
 #main-results-dashboard-samples-right {
   position: absolute;
   height: 90%;
-  min-height: 40vh;
-  width: 10%;
+  width: 50%;
   top: 10%;
-  left: 90%;
+  left: 50%;
 }
 
 #main-results-dashboard-features {

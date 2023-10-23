@@ -282,7 +282,6 @@
           </div>
         </div>
         <div id="main-results-dashboard-samples-left"></div>
-        <div id="main-results-dashboard-samples-mid"></div>
         <div id="main-results-dashboard-samples-right"></div>
       </div>
 
@@ -398,21 +397,21 @@
     <div class="toolbar mt-2" data-role="buttongroup">
       <span class="tag-dark">correlation</span>
       <select
-        id="main-results-dashboard-samples-correlation-1"
+        id="main-results-dashboard-correlation-1"
         class="input-small"
         data-role="select"
         data-prepend="Field 1"
         data-filter="false"
       ></select>
       <select
-        id="main-results-dashboard-samples-correlation-2"
+        id="main-results-dashboard-correlation-2"
         class="input-small"
         data-role="select"
         data-prepend="Field 2"
         data-filter="false"
       ></select>
       <select
-        id="main-results-dashboard-samples-correlation-test"
+        id="main-results-dashboard-correlation-test"
         class="input-small"
         data-role="select"
         data-prepend="Test"
@@ -425,10 +424,16 @@
       </select>
       <button
         class="button small rounded green-button"
-        onclick="dashboardSamplesCorrelation()"
+        onclick="dataCorrelation()"
       >
-        <i class="fa-solid fa-arrow-turn-down-right"></i>
+        <i class="fa-duotone fa-play"></i>
       </button>
+      <span
+        id="main-results-dashboard-correlation-results"
+        class="tag-light"
+        stlye="width: 10vw !important;"
+        >Test Value: -&nbsp;&nbsp;&nbsp;P-Value: -</span
+      >
     </div>
 
     <div id="main-results-table"></div>

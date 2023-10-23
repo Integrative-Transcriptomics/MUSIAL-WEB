@@ -147,6 +147,7 @@ body.swal2-shown > [aria-hidden="true"] {
   color: var(--text-color-secondary);
   border-radius: 4px;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .tag-translucent {
@@ -156,6 +157,7 @@ body.swal2-shown > [aria-hidden="true"] {
   color: var(--text-color-secondary);
   border-radius: 2px;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .tag-dark {
@@ -167,6 +169,7 @@ body.swal2-shown > [aria-hidden="true"] {
   color: var(--text-color-secondary);
   border-radius: 2px;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .tag-citation {

@@ -77,56 +77,6 @@ def samples_clustering_scatter():
     }
 
 
-def samples_correlation_bar():
-    return {
-        "title": [
-            {
-                "top": "0",
-                "left": 0,
-                "text": "Correlation Test",
-                "textStyle": {"fontWeight": "lighter", "fontStyle": "oblique"},
-            },
-            {
-                "top": "5%",
-                "left": "center",
-                "text": "P-value: N/A",
-                "textStyle": {
-                    "fontWeight": "bold",
-                    "fontStyle": "normal",
-                    "fontSize": 12,
-                },
-            },
-        ],
-        "grid": [
-            {"top": "15%", "left": "30%", "height": "80%", "width": "70%"},
-        ],
-        "xAxis": [{"type": "category", "gridIndex": 0}],
-        "yAxis": [
-            {
-                "type": "value",
-                "gridIndex": 0,
-                "min": -1,
-                "max": 1,
-                "splitNumber": 10,
-                "splitLine": {"lineStyle": {"type": "dashed"}},
-                "name": "Test Value",
-                "nameLocation": "center",
-                "nameGap": "40",
-            }
-        ],
-        "series": [
-            {
-                "name": "Test",
-                "type": "bar",
-                "data": [0.0],
-                "xAxisIndex": 0,
-                "yAxisIndex": 0,
-                "itemStyle": {"color": "#6d81ad", "borderRadius": 2},
-            }
-        ],
-    }
-
-
 def features_overview_parallel(df):
     data_df = df.loc[
         :,

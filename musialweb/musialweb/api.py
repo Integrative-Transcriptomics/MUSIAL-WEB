@@ -416,39 +416,40 @@ def download_session_storage():
     #    shutil.rmtree(PATH_PREFIX + "tmp/" + unique_hex_key)
 
 
-@app.route("/calc/sample_correlation", methods=["POST"])
-def clc_sample_correlation():
+@app.route("/calc/correlation", methods=["POST"])
+def clc_correlation():
     # Inflate the request data and transform into python dictionary.
     inflated_request_data = zlib.decompress(request.data)
     json_string_request_data = inflated_request_data.decode("utf8")
     json_request_data = json.loads(json_string_request_data)
-    samples_df = session[SESSION_KEY_SAMPLES_DF]
     key1 = json_request_data["field1"]
     key2 = json_request_data["field2"]
     test = json_request_data["test"]
+    data_type = json_request_data["data_type"]
+    df = None
+    if data_type == "samples":
+        df = session[SESSION_KEY_SAMPLES_DF]
+    elif data_type == "features":
+        df = session[SESSION_KEY_FEATURES_DF]
+    elif data_type == "variants":
+        df = session[SESSION_KEY_VARIANTS_DF]
     try:
         if test == "pearsonr":
             n = "Pearson"
-            t, p = sc.stats.pearsonr(
-                samples_df[key1].to_numpy(), samples_df[key2].to_numpy()
-            )
+            t, p = sc.stats.pearsonr(df[key1].to_numpy(), df[key2].to_numpy())
             status = "0"
         elif test == "spearmanr":
             n = "Spearman"
-            t, p = sc.stats.spearmanr(
-                samples_df[key1].to_numpy(), samples_df[key2].to_numpy()
-            )
+            t, p = sc.stats.spearmanr(df[key1].to_numpy(), df[key2].to_numpy())
             status = "0"
         elif test == "kendalltau":
             n = "Kendall's Tau"
-            t, p = sc.stats.kendalltau(
-                samples_df[key1].to_numpy(), samples_df[key2].to_numpy()
-            )
+            t, p = sc.stats.kendalltau(df[key1].to_numpy(), df[key2].to_numpy())
             status = "0"
         elif test == "cramer":
             n = "Cramer's V"
             t = sc.stats.contingency.association(
-                samples_df.groupby([key1, key2])
+                df.groupby([key1, key2])
                 .size()
                 .unstack()
                 .replace(np.nan, 0)
@@ -471,7 +472,7 @@ def clc_sample_correlation():
             print("\033[41m ERROR \033[0m")
             print(str(e))
             traceback.print_exc()
-    return [n, round(t, 2), format(p, ".3g"), status]
+    return [n, format(t, ".6g"), format(p, ".6g"), status]
 
 
 @app.route("/calc/sample_clustering", methods=["POST"])
@@ -790,7 +791,6 @@ def _view_samples_output_to_dict(out):
         "dashboard": {
             "overview_area": mwchart.samples_overview_area(),
             "clustering_scatter": mwchart.samples_clustering_scatter(),
-            "correlation_bar": mwchart.samples_correlation_bar(),
         },
     }
 

@@ -5,6 +5,7 @@ var _SESSION_DATA = {
   FEATURES: {},
   VARIANTS: {},
 };
+var ACTIVE_CATEGORY = null;
 var _CHARTS = [];
 var _CHART_OBSERVERS = [];
 
@@ -180,12 +181,8 @@ function showSamples() {
       _SESSION_DATA.SAMPLES.dashboard.overview_area
     );
     constructEChartInstance(
-      $("#main-results-dashboard-samples-mid")[0],
-      _SESSION_DATA.SAMPLES.dashboard.clustering_scatter
-    );
-    constructEChartInstance(
       $("#main-results-dashboard-samples-right")[0],
-      _SESSION_DATA.SAMPLES.dashboard.correlation_bar
+      _SESSION_DATA.SAMPLES.dashboard.clustering_scatter
     );
     let featureSelectOptions = {};
     for (let featureRecord of _SESSION_DATA.FEATURES.records) {
@@ -204,6 +201,7 @@ function showSamples() {
       },
       {}
     );
+    ACTIVE_CATEGORY = "samples";
   }
 }
 
@@ -383,93 +381,6 @@ function dashboardSamplesClustering() {
     });
 }
 
-function dashboardSamplesCorrelation() {
-  var REQUEST = {
-    field1: Metro.getPlugin(
-      "#main-results-dashboard-samples-correlation-1",
-      "select"
-    ).val(),
-    field2: Metro.getPlugin(
-      "#main-results-dashboard-samples-correlation-2",
-      "select"
-    ).val(),
-    test: Metro.getPlugin(
-      "#main-results-dashboard-samples-correlation-test",
-      "select"
-    ).val(),
-  };
-  _CHARTS[2].showLoading({
-    color: "#6d81ad",
-    text: "Loading...",
-    maskColor: "rgb(250, 250, 252, 0.8)",
-  });
-  axios
-    .post(
-      _URL + "/calc/sample_correlation",
-      pako.deflate(JSON.stringify(REQUEST)),
-      {
-        headers: {
-          "Content-Type": "application/octet-stream",
-          "Content-Encoding": "zlib",
-        },
-      }
-    )
-    .then((response) => {
-      let titleText = "Not applicable!";
-      let testName = "N/A";
-      let testValue = 0.0;
-      if (response.data[3] == "0") {
-        testName = response.data[0];
-        testValue = response.data[1];
-        titleText = "P-value: " + response.data[2];
-      }
-      _CHARTS[2].hideLoading();
-      _CHARTS[2].setOption({
-        title: [
-          {
-            top: "0",
-            left: 0,
-            text: "Correlation Test",
-            textStyle: { fontWeight: "lighter", fontStyle: "oblique" },
-          },
-          {
-            top: "5%",
-            left: "center",
-            text: titleText,
-            textStyle: {
-              fontWeight: "bold",
-              fontStyle: "normal",
-              fontSize: 12,
-            },
-          },
-        ],
-        tooltip: {
-          trigger: "item",
-          axisPointer: { type: "shadow" },
-          formatter: (params) => {
-            return params.seriesName + "<br/>" + "Test value: " + params.value;
-          },
-        },
-        series: [
-          {
-            name: testName,
-            type: "bar",
-            data: [testValue],
-            xAxisIndex: 0,
-            yAxisIndex: 0,
-            itemStyle: { color: "#747474", borderRadius: 1 },
-          },
-        ],
-      });
-    })
-    .catch((error) => {
-      displayError(error.message);
-    })
-    .finally(() => {
-      _CHARTS[2].hideLoading();
-    });
-}
-
 function showFeatures() {
   if (showContent(_SESSION_DATA.FEATURES)) {
     $("#main-results-table-set-features-button").addClass("active-content");
@@ -496,6 +407,7 @@ function showFeatures() {
       ),
       "select"
     ).data(featureSelectOptions);
+    ACTIVE_CATEGORY = "features";
   }
 }
 
@@ -724,6 +636,7 @@ function showVariants() {
     _CHARTS[0].dispatchAction({
       type: "legendAllSelect",
     });
+    ACTIVE_CATEGORY = "variants";
   }
 }
 
@@ -802,11 +715,11 @@ function constructTableColumns(columnFields) {
     "select"
   ).data(propertySelectOptions);
   Metro.getPlugin(
-    document.getElementById("main-results-dashboard-samples-correlation-1"),
+    document.getElementById("main-results-dashboard-correlation-1"),
     "select"
   ).data(propertySelectOptions);
   Metro.getPlugin(
-    document.getElementById("main-results-dashboard-samples-correlation-2"),
+    document.getElementById("main-results-dashboard-correlation-2"),
     "select"
   ).data(propertySelectOptions);
   if (typeof _OVERVIEW_TABLE != "undefined") {
@@ -874,6 +787,47 @@ function resetTableGroup() {
   }
   _OVERVIEW_TABLE.setGroupBy();
   _OVERVIEW_TABLE.redraw(true);
+}
+
+function dataCorrelation() {
+  var REQUEST = {
+    field1: Metro.getPlugin(
+      "#main-results-dashboard-correlation-1",
+      "select"
+    ).val(),
+    field2: Metro.getPlugin(
+      "#main-results-dashboard-correlation-2",
+      "select"
+    ).val(),
+    test: Metro.getPlugin(
+      "#main-results-dashboard-correlation-test",
+      "select"
+    ).val(),
+    data_type: ACTIVE_CATEGORY,
+  };
+  axios
+    .post(_URL + "/calc/correlation", pako.deflate(JSON.stringify(REQUEST)), {
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "Content-Encoding": "zlib",
+      },
+    })
+    .then((response) => {
+      console.log(response);
+      testValue = "Failed";
+      pValue = "Failed";
+      if (response.data[3] == "0") {
+        testValue = response.data[1].toString();
+        pValue = response.data[2].toString();
+      }
+      console.log($("#main-results-dashboard-correlation-results")[0]);
+      $("#main-results-dashboard-correlation-results").html(
+        `Test Value: ` + testValue + `&nbsp;&nbsp;&nbsp;P-Value: ` + pValue
+      );
+    })
+    .catch((error) => {
+      displayError(error.message);
+    });
 }
 
 function downloadSessionStorage() {
