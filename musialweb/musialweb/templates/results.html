@@ -68,6 +68,7 @@
     >legal</a
   >
 </div>
+
 <!-- Menu elements floating right -->
 <div class="app-bar-container ml-auto d-none d-flex-fs">
   <i id="menu-active-session-indicator" class="p-2 fa-duotone fa-hexagon"></i>
@@ -77,8 +78,12 @@
 
 <div id="main-results" class="main">
   <div class="remark m-4">
-    <div class="toolbar" data-role="buttongroup">
-      <span class="tag-dark text-upper">display overview of</span>
+    <i
+      id="main-results-info"
+      class="fa-solid fa-circle-info info-clickable float-right m-2"
+    ></i>
+    <div class="toolbar mt-2" data-role="buttongroup">
+      <span class="tag-dark text-upper">display results of</span>
       <button
         id="main-results-table-set-samples-button"
         class="button small rounded text-upper mr-6"
@@ -101,229 +106,29 @@
         variants
       </button>
     </div>
-
-    <div class="toolbar" data-role="buttongroup">
-      <span class="tag-dark">filter</span>
-      <select
-        id="main-results-table-filter-field"
-        class="input-small"
-        data-role="select"
-        data-prepend="Field"
-        data-filter="false"
-      ></select>
-      <select
-        id="main-results-table-filter-type"
-        class="input-small"
-        data-role="select"
-        data-prepend="Type"
-        data-filter="false"
-      >
-        <option value="=">Equal</option>
-        <option value="<">Less</option>
-        <option value="<=">Less or Equal</option>
-        <option value=">">Greater</option>
-        <option value=">=">Greater or Equal</option>
-        <option value="!=">Unequal</option>
-        <option value="keywords">Keyword</option>
-      </select>
-      <input
-        id="main-results-table-filter-value"
-        type="text"
-        class="input-small"
-        data-role="input"
-        data-prepend="Value"
-      />
-      <button
-        class="button small rounded green-button"
-        onclick="addTableFilter()"
-      >
-        <i class="fa-solid fa-plus"></i>
+    <div class="toolbar mt-2" data-role="buttongroup">
+      <span class="tag-dark">download results</span>
+      <button class="button small rounded" onclick="downloadOverviewTable()">
+        Overview Table
+      </button>
+      <button class="button small rounded" onclick="downloadSessionStorage()">
+        Session Data
+      </button>
+      <button class="button small rounded" onclick="getSequences()" disabled>
+        Sequences
       </button>
       <button
-        class="button small rounded red-button"
-        onclick="resetTableFilter()"
+        class="button small rounded"
+        onclick="getVariantsTable()"
+        disabled
       >
-        <i class="fa-solid fa-trash"></i>
+        Variants Table
       </button>
     </div>
-
-    <div class="toolbar" data-role="buttongroup">
-      <span class="tag-dark">group</span>
-      <select
-        id="main-results-table-group-field"
-        class="input-small"
-        data-role="select"
-        data-prepend="Field"
-        data-filter="false"
-      ></select>
-      <button
-        class="button small rounded green-button"
-        onclick="addTableGroup()"
-      >
-        <i class="fa-solid fa-plus"></i>
-      </button>
-      <button
-        class="button small rounded red-button"
-        onclick="resetTableGroup()"
-      >
-        <i class="fa-solid fa-trash"></i>
-      </button>
-    </div>
-
-    <div id="main-results-table"></div>
-  </div>
-
-  <div class="remark m-4">
-    <div id="main-results-dashboard">
-      <div id="main-results-dashboard-samples" class="dashboard-container">
-        <div class="toolbar-container">
-          <div class="toolbar" data-role="buttongroup">
-            <span class="tag-dark">overview</span>
-            <select
-              id="main-results-dashboard-samples-overview-field"
-              class="input-small"
-              data-role="select"
-              data-prepend="Field"
-              data-filter="false"
-              data-on-item-select="dashboardSamplesOverview"
-            ></select>
-          </div>
-          <div class="toolbar" data-role="buttongroup">
-            <span class="tag-dark">clustering</span>
-            <select
-              id="main-results-dashboard-samples-clustering-type"
-              class="input-small"
-              data-role="select"
-              data-prepend="Type"
-              data-filter="false"
-            >
-              <option value="allele">Allele</option>
-              <option value="proteoform">Proteoform</option>
-            </select>
-            <select
-              id="main-results-dashboard-samples-clustering-metric"
-              class="input-small"
-              data-role="select"
-              data-prepend="Metric"
-              data-filter="false"
-            >
-              <option value="hamming">Hamming</option>
-              <option value="jaccard">Jaccard</option>
-              <option value="dice">Dice</option>
-              <option value="russellrao">Russel-Rao</option>
-              <option value="kulsinski">Kulsinski</option>
-              <option value="rogerstanimoto">Rogers-Tanimoto</option>
-              <option value="sokalmichener">Sokal-Michener</option>
-              <option value="sokalsneath">Sokal-Sneath</option>
-              <option value="yule">Yule</option>
-            </select>
-            <select
-              id="main-results-dashboard-samples-clustering-features"
-              class="input-small"
-              data-role="select"
-              data-prepend="Feature"
-              data-filter="false"
-            ></select>
-            <button
-              class="button small rounded green-button"
-              onclick="dashboardSamplesClustering()"
-            >
-              <i class="fa-solid fa-arrow-turn-down-right"></i>
-            </button>
-          </div>
-          <div class="toolbar" data-role="buttongroup">
-            <span class="tag-dark">correlation</span>
-            <select
-              id="main-results-dashboard-samples-correlation-1"
-              class="input-small"
-              data-role="select"
-              data-prepend="Field 1"
-              data-filter="false"
-            ></select>
-            <select
-              id="main-results-dashboard-samples-correlation-2"
-              class="input-small"
-              data-role="select"
-              data-prepend="Field 2"
-              data-filter="false"
-            ></select>
-            <select
-              id="main-results-dashboard-samples-correlation-test"
-              class="input-small"
-              data-role="select"
-              data-prepend="Test"
-              data-filter="false"
-            >
-              <option value="pearsonr">Pearson</option>
-              <option value="spearmanr">Spearman</option>
-              <option value="kendalltau">Kendall's tau</option>
-              <option value="cramer">Cramer's V</option>
-            </select>
-            <button
-              class="button small rounded green-button"
-              onclick="dashboardSamplesCorrelation()"
-            >
-              <i class="fa-solid fa-arrow-turn-down-right"></i>
-            </button>
-          </div>
-        </div>
-        <div id="main-results-dashboard-samples-left"></div>
-        <div id="main-results-dashboard-samples-mid"></div>
-        <div id="main-results-dashboard-samples-right"></div>
-      </div>
-
-      <div id="main-results-dashboard-features" class="dashboard-container">
-        <div class="toolbar" data-role="buttongroup">
-          <span class="tag-dark">forms</span>
-          <select
-            id="main-results-dashboard-features-forms-feature"
-            class="input-small"
-            data-role="select"
-            data-prepend="Feature"
-            data-filter="false"
-          ></select>
-          <button
-            class="button small rounded green-button"
-            onclick="dashboardFeaturesForms()"
-          >
-            <i class="fa-solid fa-arrow-turn-down-right"></i>
-          </button>
-        </div>
-        <div class="toolbar" data-role="buttongroup">
-          <span class="tag-dark">proteoforms</span>
-          <select
-            id="main-results-dashboard-features-proteoforms-feature"
-            class="input-small"
-            data-role="select"
-            data-prepend="Feature"
-            data-filter="false"
-          ></select>
-          <button
-            class="button small rounded green-button"
-            onclick="dashboardFeaturesProteoforms()"
-          >
-            <i class="fa-solid fa-plus"></i>
-          </button>
-        </div>
-        <div id="main-results-dashboard-features-left"></div>
-        <div id="main-results-dashboard-features-right"></div>
-      </div>
-
-      <div id="main-results-dashboard-variants" class="dashboard-container">
-        <div id="main-results-dashboard-variants-top"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="remark m-4">
-    <i
-      id="main-results-download-info"
-      class="fa-solid fa-circle-info info-clickable float-right"
-    ></i>
     <div
       class="info-block mb-6 mt-8"
       data-role="collapse"
-      data-toggle-element="#main-results-download-info"
+      data-toggle-element="#main-results-info"
       data-collapsed="true"
     >
       <div class="p-5 text-left">
@@ -415,25 +220,218 @@
         </ul>
       </div>
     </div>
-    <div class="toolbar" data-role="buttongroup">
-      <span class="tag-dark">download data</span>
-      <button class="button small rounded" onclick="downloadOverviewTable()">
-        Overview Table
-      </button>
-      <button class="button small rounded" onclick="downloadSessionStorage()">
-        Session Data
-      </button>
-      <button class="button small rounded" onclick="getSequences()" disabled>
-        Sequences
-      </button>
-      <button
-        class="button small rounded"
-        onclick="getVariantsTable()"
-        disabled
+  </div>
+
+  <div class="remark m-4">
+    <div id="main-results-dashboard">
+      <div id="main-results-dashboard-samples" class="dashboard-container">
+        <div class="toolbar-container">
+          <div class="toolbar mt-2" data-role="buttongroup">
+            <span class="tag-dark">overview</span>
+            <select
+              id="main-results-dashboard-samples-overview-field"
+              class="input-small"
+              data-role="select"
+              data-prepend="Field"
+              data-filter="false"
+              data-on-item-select="dashboardSamplesOverview"
+            ></select>
+          </div>
+          <div class="toolbar mt-2" data-role="buttongroup">
+            <span class="tag-dark">clustering</span>
+            <select
+              id="main-results-dashboard-samples-clustering-type"
+              class="input-small"
+              data-role="select"
+              data-prepend="Type"
+              data-filter="false"
+            >
+              <option value="allele">Allele</option>
+              <option value="proteoform">Proteoform</option>
+            </select>
+            <select
+              id="main-results-dashboard-samples-clustering-metric"
+              class="input-small"
+              data-role="select"
+              data-prepend="Metric"
+              data-filter="false"
+            >
+              <option value="hamming">Hamming</option>
+              <option value="jaccard">Jaccard</option>
+              <option value="dice">Dice</option>
+              <option value="russellrao">Russel-Rao</option>
+              <option value="kulsinski">Kulsinski</option>
+              <option value="rogerstanimoto">Rogers-Tanimoto</option>
+              <option value="sokalmichener">Sokal-Michener</option>
+              <option value="sokalsneath">Sokal-Sneath</option>
+              <option value="yule">Yule</option>
+            </select>
+            <select
+              id="main-results-dashboard-samples-clustering-features"
+              class="input-small"
+              data-role="select"
+              data-prepend="Feature"
+              data-filter="false"
+            ></select>
+            <button
+              class="button small rounded green-button"
+              onclick="dashboardSamplesClustering()"
+            >
+              <i class="fa-solid fa-arrow-turn-down-right"></i>
+            </button>
+          </div>
+        </div>
+        <div id="main-results-dashboard-samples-left"></div>
+        <div id="main-results-dashboard-samples-mid"></div>
+        <div id="main-results-dashboard-samples-right"></div>
+      </div>
+
+      <div id="main-results-dashboard-features" class="dashboard-container">
+        <div class="toolbar mt-2" data-role="buttongroup">
+          <span class="tag-dark">forms</span>
+          <select
+            id="main-results-dashboard-features-forms-feature"
+            class="input-small"
+            data-role="select"
+            data-prepend="Feature"
+            data-filter="false"
+          ></select>
+          <button
+            class="button small rounded green-button"
+            onclick="dashboardFeaturesForms()"
+          >
+            <i class="fa-solid fa-arrow-turn-down-right"></i>
+          </button>
+        </div>
+        <div class="toolbar mt-2" data-role="buttongroup">
+          <span class="tag-dark">proteoforms</span>
+          <select
+            id="main-results-dashboard-features-proteoforms-feature"
+            class="input-small"
+            data-role="select"
+            data-prepend="Feature"
+            data-filter="false"
+          ></select>
+          <button
+            class="button small rounded green-button"
+            onclick="dashboardFeaturesProteoforms()"
+          >
+            <i class="fa-solid fa-plus"></i>
+          </button>
+        </div>
+        <div id="main-results-dashboard-features-left"></div>
+        <div id="main-results-dashboard-features-right"></div>
+      </div>
+
+      <div id="main-results-dashboard-variants" class="dashboard-container">
+        <div id="main-results-dashboard-variants-top"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="remark m-4">
+    <div class="toolbar mt-2" data-role="buttongroup">
+      <span class="tag-dark">filter</span>
+      <select
+        id="main-results-table-filter-field"
+        class="input-small"
+        data-role="select"
+        data-prepend="Field"
+        data-filter="false"
+      ></select>
+      <select
+        id="main-results-table-filter-type"
+        class="input-small"
+        data-role="select"
+        data-prepend="Type"
+        data-filter="false"
       >
-        Variants Table
+        <option value="=">Equal</option>
+        <option value="<">Less</option>
+        <option value="<=">Less or Equal</option>
+        <option value=">">Greater</option>
+        <option value=">=">Greater or Equal</option>
+        <option value="!=">Unequal</option>
+        <option value="keywords">Keyword</option>
+      </select>
+      <input
+        id="main-results-table-filter-value"
+        type="text"
+        class="input-small"
+        data-role="input"
+        data-prepend="Value"
+      />
+      <button
+        class="button small rounded green-button"
+        onclick="addTableFilter()"
+      >
+        <i class="fa-solid fa-plus"></i>
       </button>
     </div>
+
+    <div class="toolbar mt-2" data-role="buttongroup">
+      <span class="tag-dark">group</span>
+      <select
+        id="main-results-table-group-field"
+        class="input-small"
+        data-role="select"
+        data-prepend="Field"
+        data-filter="false"
+      ></select>
+      <button
+        class="button small rounded green-button"
+        onclick="addTableGroup()"
+      >
+        <i class="fa-solid fa-plus"></i>
+      </button>
+    </div>
+
+    <div class="toolbar mt-2" data-role="buttongroup">
+      <button
+        class="button small rounded blue-button"
+        onclick="resetTableGroup()"
+      >
+        Manage Filters and Groups
+      </button>
+    </div>
+
+    <div class="toolbar mt-2" data-role="buttongroup">
+      <span class="tag-dark">correlation</span>
+      <select
+        id="main-results-dashboard-samples-correlation-1"
+        class="input-small"
+        data-role="select"
+        data-prepend="Field 1"
+        data-filter="false"
+      ></select>
+      <select
+        id="main-results-dashboard-samples-correlation-2"
+        class="input-small"
+        data-role="select"
+        data-prepend="Field 2"
+        data-filter="false"
+      ></select>
+      <select
+        id="main-results-dashboard-samples-correlation-test"
+        class="input-small"
+        data-role="select"
+        data-prepend="Test"
+        data-filter="false"
+      >
+        <option value="pearsonr">Pearson</option>
+        <option value="spearmanr">Spearman</option>
+        <option value="kendalltau">Kendall's tau</option>
+        <option value="cramer">Cramer's V</option>
+      </select>
+      <button
+        class="button small rounded green-button"
+        onclick="dashboardSamplesCorrelation()"
+      >
+        <i class="fa-solid fa-arrow-turn-down-right"></i>
+      </button>
+    </div>
+
+    <div id="main-results-table"></div>
   </div>
 </div>
 

@@ -30,7 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   text-align: justify;
 }
 
-#home-start-example-tile {
+.home-tile {
   border-radius: 6px;
   background-color: var(--color-secondary);
   opacity: 50;
@@ -38,36 +38,23 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   width: 100%;
   height: 100%;
   color: var(--text-color-secondary);
+  cursor: pointer;
 }
 
-#home-download-example-tile {
-  border-radius: 6px;
-  background-color: var(--color-secondary);
-  opacity: 50;
-  padding: 10px;
-  width: 100%;
-  height: 100%;
-  color: var(--text-color-secondary);
+.home-tile:hover {
+  background-color: var(--color-quarternary);
+  transition: 0.1s;
 }
 
-#home-show-tutorial-tile {
-  border-radius: 6px;
-  background-color: var(--color-secondary);
-  opacity: 50;
-  padding: 10px;
-  width: 100%;
-  height: 100%;
-  color: var(--text-color-secondary);
+.home-tile:active {
+  background-color: var(--color-tertiary);
 }
 
-#home-view-source-tile {
-  border-radius: 6px;
-  background-color: var(--color-secondary);
-  opacity: 50;
-  padding: 10px;
-  width: 100%;
-  height: 100%;
-  color: var(--text-color-secondary);
+.home-tile i {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 71px;
 }
 
 .cell-12 i {

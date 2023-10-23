@@ -11,12 +11,10 @@ setup(
         "numpy",
         "scipy",
         "datetime",
-        "numpy",
         "brotli",
-        "zlib",
         "gunicorn",
         "pandas",
-        "matplotlib",
         "umap-learn",
+        "biopython",
     ],
 )
