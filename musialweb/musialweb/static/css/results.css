@@ -148,20 +148,36 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   display: none;
 }
 
+#main-results-dashboard-samples-left-toolbox {
+  position: absolute;
+  height: 28px;
+  width: 10vw;
+  top: 1%;
+  right: calc(60%);
+  z-index: 2;
+}
+
+#main-results-dashboard-samples-left-toolbox div {
+  border-radius: 4px;
+}
+
 #main-results-dashboard-samples-left {
   position: absolute;
-  height: 90%;
-  width: 50%;
-  top: 10%;
+  height: 99%;
+  width: 40%;
+  top: 1%;
   left: 0;
+  background-color: transparent;
+  z-index: 1;
 }
 
 #main-results-dashboard-samples-right {
   position: absolute;
-  height: 90%;
-  width: 50%;
-  top: 10%;
-  left: 50%;
+  height: 99%;
+  width: 60%;
+  top: 1%;
+  left: 40%;
+  background-color: antiquewhite;
 }
 
 #main-results-dashboard-features {

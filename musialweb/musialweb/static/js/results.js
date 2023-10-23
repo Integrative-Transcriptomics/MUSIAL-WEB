@@ -613,6 +613,8 @@ function showVariants() {
       },
       alwaysShowContent: true,
       position: ["5%", "55%"],
+      backgroundColor: "rgba(228, 229, 237, 0.5)",
+      borderColor: "rgba(228, 229, 237, 0.5)",
     };
     _SESSION_DATA.VARIANTS.dashboard.variants_bar["yAxis"][0]["axisLabel"] = {
       formatter: (value, index) => {

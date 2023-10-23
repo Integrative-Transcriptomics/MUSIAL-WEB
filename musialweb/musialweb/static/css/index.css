@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 }
 :root {
   font-family: Arial, Helvetica, sans-serif;
-  --background-color-primary: #eff0f8;
+  --background-color-primary: rgb(239, 240, 248);
   --background-color-secondary: #e4e5ed;
   --background-color-tertiary: #fafafc;
   --color-primary: #607196;
@@ -56,6 +56,10 @@ body {
   min-width: 1080px;
   height: 100%;
   overflow-x: scroll;
+}
+
+.option-list li.active {
+  background-color: var(--color-tertiary) !important;
 }
 
 #menu {

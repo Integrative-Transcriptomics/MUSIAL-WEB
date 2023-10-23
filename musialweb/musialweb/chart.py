@@ -10,7 +10,7 @@ def samples_overview_bar():
             "textStyle": {"fontWeight": "lighter"},
         },
         "grid": [
-            {"top": "10%", "left": "10%", "height": "75%", "width": "85%"},
+            {"top": "10%", "left": "10%", "height": "80%", "width": "85%"},
         ],
         "xAxis": [
             {
@@ -309,10 +309,10 @@ def variants_overview_bar(df, max, df_features):
     return {
         "title": [
             {
-                "top": 0,
-                "left": 0,
+                "top": "0",
+                "left": "center",
                 "text": "Variants Overview",
-                "textStyle": {"fontWeight": "lighter", "fontStyle": "oblique"},
+                "textStyle": {"fontWeight": "lighter"},
             },
         ],
         "grid": [
@@ -327,6 +327,8 @@ def variants_overview_bar(df, max, df_features):
             {
                 "icon": "path://M32,0C49.7,0,64,14.3,64,32V480c0,17.7-14.3,32-32,32s-32-14.3-32-32V32C0,14.3,14.3,0,32,0z",
                 "data": [{"name": _} for _ in featureVariantsSeriesNames],
+                "top": "5%",
+                "orient": "horizontal",
                 "selectedMode": "single",
             },
             {
@@ -341,9 +343,11 @@ def variants_overview_bar(df, max, df_features):
                         "icon": "path://M384,192c0,87.4-117,243-168.3,307.2c-12.3,15.3-35.1,15.3-47.4,0C117,435,0,279.4,0,192C0,86,86,0,192,0S384,86,384,192z",
                     },
                 ],
-                "textStyle": {"fontSize": 10, "color": "#747474"},
-                "top": "5%",
-                "orient": "horizontal",
+                "textStyle": {"fontSize": 8, "color": "#747474"},
+                "backgroundColor": "rgba(228, 229, 237, 0.5)",
+                "top": "10%",
+                "right": "5%",
+                "orient": "vertical",
                 "selectedMode": False,
             },
         ],

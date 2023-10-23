@@ -83,7 +83,7 @@
       class="fa-solid fa-circle-info info-clickable float-right m-2"
     ></i>
     <div class="toolbar mt-2" data-role="buttongroup">
-      <span class="tag-dark text-upper">display results of</span>
+      <span class="tag-dark text-upper">display results</span>
       <button
         id="main-results-table-set-samples-button"
         class="button small rounded text-upper mr-6"
@@ -225,63 +225,68 @@
   <div class="remark m-4">
     <div id="main-results-dashboard">
       <div id="main-results-dashboard-samples" class="dashboard-container">
-        <div class="toolbar-container">
-          <div class="toolbar mt-2" data-role="buttongroup">
-            <span class="tag-dark">overview</span>
-            <select
-              id="main-results-dashboard-samples-overview-field"
-              class="input-small"
-              data-role="select"
-              data-prepend="Field"
-              data-filter="false"
-              data-on-item-select="dashboardSamplesOverview"
-            ></select>
-          </div>
-          <div class="toolbar mt-2" data-role="buttongroup">
-            <span class="tag-dark">clustering</span>
-            <select
-              id="main-results-dashboard-samples-clustering-type"
-              class="input-small"
-              data-role="select"
-              data-prepend="Type"
-              data-filter="false"
-            >
-              <option value="allele">Allele</option>
-              <option value="proteoform">Proteoform</option>
-            </select>
-            <select
-              id="main-results-dashboard-samples-clustering-metric"
-              class="input-small"
-              data-role="select"
-              data-prepend="Metric"
-              data-filter="false"
-            >
-              <option value="hamming">Hamming</option>
-              <option value="jaccard">Jaccard</option>
-              <option value="dice">Dice</option>
-              <option value="russellrao">Russel-Rao</option>
-              <option value="kulsinski">Kulsinski</option>
-              <option value="rogerstanimoto">Rogers-Tanimoto</option>
-              <option value="sokalmichener">Sokal-Michener</option>
-              <option value="sokalsneath">Sokal-Sneath</option>
-              <option value="yule">Yule</option>
-            </select>
-            <select
-              id="main-results-dashboard-samples-clustering-features"
-              class="input-small"
-              data-role="select"
-              data-prepend="Feature"
-              data-filter="false"
-            ></select>
-            <button
-              class="button small rounded green-button"
-              onclick="dashboardSamplesClustering()"
-            >
-              <i class="fa-solid fa-arrow-turn-down-right"></i>
-            </button>
-          </div>
+        <div id="main-results-dashboard-samples-left-toolbox">
+          <select
+            id="main-results-dashboard-samples-overview-field"
+            class="input-small"
+            data-role="select"
+            data-prepend="Select Field"
+            data-filter="false"
+            data-on-item-select="dashboardSamplesOverview"
+          ></select>
         </div>
         <div id="main-results-dashboard-samples-left"></div>
+
+        <div
+          id="main-results-dashboard-samples-right-toolbox"
+          style="display: none"
+        >
+          <div>
+            <div class="toolbar mt-2" data-role="buttongroup">
+              <span class="tag-dark">clustering</span>
+              <select
+                id="main-results-dashboard-samples-clustering-type"
+                class="input-small"
+                data-role="select"
+                data-prepend="Type"
+                data-filter="false"
+              >
+                <option value="allele">Allele</option>
+                <option value="proteoform">Proteoform</option>
+              </select>
+              <select
+                id="main-results-dashboard-samples-clustering-metric"
+                class="input-small"
+                data-role="select"
+                data-prepend="Metric"
+                data-filter="false"
+              >
+                <option value="hamming">Hamming</option>
+                <option value="jaccard">Jaccard</option>
+                <option value="dice">Dice</option>
+                <option value="russellrao">Russel-Rao</option>
+                <option value="kulsinski">Kulsinski</option>
+                <option value="rogerstanimoto">Rogers-Tanimoto</option>
+                <option value="sokalmichener">Sokal-Michener</option>
+                <option value="sokalsneath">Sokal-Sneath</option>
+                <option value="yule">Yule</option>
+              </select>
+              <select
+                id="main-results-dashboard-samples-clustering-features"
+                class="input-small"
+                data-role="select"
+                data-prepend="Feature"
+                data-filter="false"
+              ></select>
+              <button
+                class="button small rounded green-button"
+                onclick="dashboardSamplesClustering()"
+              >
+                <i class="fa-solid fa-arrow-turn-down-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
         <div id="main-results-dashboard-samples-right"></div>
       </div>
 
@@ -390,7 +395,7 @@
         class="button small rounded blue-button"
         onclick="resetTableGroup()"
       >
-        Manage Filters and Groups
+        <i class="fa-duotone fa-pen-to-square"></i>
       </button>
     </div>
 
