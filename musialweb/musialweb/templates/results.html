@@ -111,17 +111,13 @@
       <button class="button small rounded" onclick="downloadOverviewTable()">
         Overview Table
       </button>
-      <button class="button small rounded" onclick="downloadSessionStorage()">
+      <button class="button small rounded" onclick="downloadSessionData()">
         Session Data
       </button>
-      <button class="button small rounded" onclick="getSequences()" disabled>
+      <button class="button small rounded" onclick="downloadSequences()">
         Sequences
       </button>
-      <button
-        class="button small rounded"
-        onclick="getVariantsTable()"
-        disabled
-      >
+      <button class="button small rounded" onclick="downloadTable()">
         Variants Table
       </button>
     </div>
@@ -393,10 +389,25 @@
     <div class="toolbar mt-2" data-role="buttongroup">
       <button
         class="button small rounded blue-button"
-        onclick="resetTableGroup()"
+        id="main-results-table-manage-button"
       >
         <i class="fa-duotone fa-pen-to-square"></i>
       </button>
+    </div>
+
+    <div
+      class="mt-4"
+      data-role="collapse"
+      data-toggle-element="#main-results-table-manage-button"
+      data-collapsed="true"
+    >
+      <input
+        type="text"
+        id="main-results-table-manage-tags"
+        data-role="taginput"
+        value=""
+        data-on-tag-remove="updateTableFilterAndGroups()"
+      />
     </div>
 
     <div class="toolbar mt-2" data-role="buttongroup">

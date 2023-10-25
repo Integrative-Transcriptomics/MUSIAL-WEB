@@ -383,8 +383,8 @@ def example_session():
         return {"code": response_code}
 
 
-@app.route("/download_session_storage", methods=["GET"])
-def download_session_storage():
+@app.route("/download_session_data", methods=["GET"])
+def download_session_data():
     # Generate unique hex string to use as directory name in the local file system.
     unique_hex_key = _generate_random_string()
     response_code = API_CODES["SUCCESS_CODE"]

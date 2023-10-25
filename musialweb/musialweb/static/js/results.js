@@ -1,4 +1,5 @@
 var _OVERVIEW_TABLE;
+var _OVERVIEW_TABLE_FILTERS_AND_GROUPS = [];
 var _SESSION_DATA = {
   SET: false,
   SAMPLES: {},
@@ -757,44 +758,60 @@ function constructEChartInstance(element, option) {
 }
 
 function addTableFilter() {
-  if (typeof _OVERVIEW_TABLE == "undefined") {
-    return;
-  }
-  var filters = _OVERVIEW_TABLE.getFilters();
-  filters.push({
-    field: $("#main-results-table-filter-field")[0].value,
-    type: $("#main-results-table-filter-type")[0].value,
-    value: $("#main-results-table-filter-value")[0].value,
-  });
-  _OVERVIEW_TABLE.setFilter(filters);
-  _OVERVIEW_TABLE.redraw(true);
-}
-
-function resetTableFilter() {
-  if (typeof _OVERVIEW_TABLE == "undefined") {
-    return;
-  }
-  _OVERVIEW_TABLE.clearFilter();
-  _OVERVIEW_TABLE.redraw(true);
+  _OVERVIEW_TABLE_FILTERS_AND_GROUPS.push(
+    $("#main-results-table-filter-field")[0].value +
+      " " +
+      $("#main-results-table-filter-type")[0].value +
+      " " +
+      $("#main-results-table-filter-value")[0].value
+  );
+  Metro.getPlugin("#main-results-table-manage-tags", "taginput").val(
+    _OVERVIEW_TABLE_FILTERS_AND_GROUPS
+  );
+  applyTableFilterAndGroups();
 }
 
 function addTableGroup() {
-  if (typeof _OVERVIEW_TABLE == "undefined") {
-    return;
-  }
-  var groups = _OVERVIEW_TABLE.options.groupBy;
-  if (!groups) groups = [];
-  groups.push($("#main-results-table-group-field")[0].value);
-  _OVERVIEW_TABLE.setGroupBy(groups);
-  _OVERVIEW_TABLE.redraw(true);
+  _OVERVIEW_TABLE_FILTERS_AND_GROUPS.push(
+    "groupby " + $("#main-results-table-group-field")[0].value
+  );
+  Metro.getPlugin("#main-results-table-manage-tags", "taginput").val(
+    _OVERVIEW_TABLE_FILTERS_AND_GROUPS
+  );
+  applyTableFilterAndGroups();
 }
 
-function resetTableGroup() {
+function applyTableFilterAndGroups() {
   if (typeof _OVERVIEW_TABLE == "undefined") {
     return;
   }
   _OVERVIEW_TABLE.setGroupBy();
+  _OVERVIEW_TABLE.clearFilter();
+  var groups = [];
+  var filters = [];
+  for (let entry of _OVERVIEW_TABLE_FILTERS_AND_GROUPS) {
+    let entryFields = entry.split(" ");
+    if (entryFields[0] == "groupby") {
+      groups.push(entryFields[1]);
+    } else {
+      filters.push({
+        field: entryFields[0],
+        type: entryFields[1],
+        value: entryFields[2],
+      });
+    }
+  }
+  _OVERVIEW_TABLE.setGroupBy(groups);
+  _OVERVIEW_TABLE.setFilter(filters);
   _OVERVIEW_TABLE.redraw(true);
+}
+
+function updateTableFilterAndGroups() {
+  _OVERVIEW_TABLE_FILTERS_AND_GROUPS = Metro.getPlugin(
+    "#main-results-table-manage-tags",
+    "taginput"
+  ).val();
+  applyTableFilterAndGroups();
 }
 
 function dataCorrelation() {
@@ -838,15 +855,15 @@ function dataCorrelation() {
     });
 }
 
-function downloadSessionStorage() {
+function downloadSessionData() {
   displayToast(
     "Request submitted. Your download will start once complete.",
     4000
   );
   axios
-    .get(_URL + "/download_session_storage", { responseType: "blob" })
+    .get(_URL + "/download_session_data", { responseType: "blob" })
     .then((response) => {
-      downloadBlob(response.data, "storage.json.br");
+      downloadBlob(response.data, "session.json.br");
     })
     .catch((error) => {
       displayError(error.message);
@@ -854,8 +871,12 @@ function downloadSessionStorage() {
 }
 
 function downloadOverviewTable() {
+  _OVERVIEW_TABLE.download("csv", ACTIVE_CATEGORY + "_overview.csv");
+}
+
+function downloadSequences() {
   Swal.fire({
-    title: "Download Overview Table",
+    title: "Download Sequences",
     html: `
     <p>Please specify the following parameters and proceed with Download.</p>
     <br>
@@ -863,19 +884,119 @@ function downloadOverviewTable() {
       <div class="grid">
         <div class="row">
           <div class="cell-3 m-2 text-left">
-            <small><span class="input-info-tag text-upper">the file format of the downloaded table</span></small>
+            <small><span class="rounded input-info-tag text-upper">the content to use for the sequences</span></small>
           </div>
           <div class="cell-3 m-2">
             <select
-              id="download-data-fileformat"
+              id="download-data-content"
               class="input-small"
               data-role="select"
-              data-prepend="Type"
+              data-prepend="Content"
               data-filter="false"
             >
-              <option value="csv">CSV</option>
-              <option value="json">JSON</option>
+              <option value="nucleotide">Nucleotide</option>
+              <option value="aminoacid">Aminoacid</option>
             </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="cell-3 m-2 text-left">
+            <small><span class="rounded input-info-tag text-upper">align sequences</span></small>
+          </div>
+          <div class="cell-3 m-2">
+            <input
+              id="download-data-align-sequences"
+              type="checkbox"
+              checked
+              data-role="switch"
+              data-cls-switch="custom-switch-on-off"
+              data-material="true"
+            />
+          </div>
+        </div>
+        <div class="row">
+          <div class="cell-3 m-2 text-left">
+            <small><span class="rounded input-info-tag text-upper">group by allele or proteoform</span></small>
+          </div>
+          <div class="cell-3 m-2">
+            <input
+              id="download-data-group"
+              type="checkbox"
+              checked
+              data-role="switch"
+              data-cls-switch="custom-switch-on-off"
+              data-material="true"
+            />
+          </div>
+        </div>
+        <div class="row">
+          <div class="cell-3 m-2 text-left">
+            <small><span class="rounded input-info-tag text-upper">include conserved positions</span></small>
+          </div>
+          <div class="cell-3 m-2">
+            <input
+              id="download-data-include-conserved-positions"
+              type="checkbox"
+              checked
+              data-role="switch"
+              data-cls-switch="custom-switch-on-off"
+              data-material="true"
+            />
+          </div>
+        </div>
+        <div class="row">
+          <div class="cell-3 m-2 text-left">
+            <small><span class="rounded input-info-tag text-upper">include indels</span></small>
+          </div>
+          <div class="cell-3 m-2">
+            <input
+              id="download-data-include-indels"
+              type="checkbox"
+              checked
+              data-role="switch"
+              data-cls-switch="custom-switch-on-off"
+              data-material="true"
+            />
+          </div>
+        </div>
+        <div class="row">
+          <div class="cell-3 m-2 text-left">
+            <small><span class="rounded input-info-tag text-upper">include only or exclude specified samples</span></small>
+            <button class="button small rounded data-download-copy-from-table-button m-2" onclick="pasteSamplesFromTable('#download-data-samples-list')"><i class="fa-regular fa-paste"></i></button>
+          </div>
+          <div class="cell-1 mt-2 text-right">Include</div>
+          <div class="cell-1 ml-2">
+            <input
+              id="download-data-samples-mode"
+              type="checkbox"
+              data-role="switch"
+              data-cls-switch="custom-switch-choice"
+              data-material="true"
+            />
+          </div>
+          <div class="cell-1 mt-2 text-left">Exclude</div>
+          <div class="cell-5 m-2">
+            <input id="download-data-samples-list" class="input-small" type="text" data-role="taginput" style="overflow-y: hide"/>
+          </div>
+        </div>
+        <div class="row">
+          <div class="cell-3 m-2 text-left">
+            <small><span class="rounded input-info-tag text-upper">include only or exclude specified features</span></small>
+            <button class="button small rounded data-download-copy-from-table-button m-2" onclick="pasteFeaturesFromTable('#download-data-features-list')"><i class="fa-regular fa-paste"></i></button>
+          </div>
+          <div class="cell-1 mt-2 text-right">Include</div>
+          <div class="cell-1 ml-2">
+            <input
+              id="download-data-features-mode"
+              type="checkbox"
+              data-role="switch"
+              data-cls-switch="custom-switch-choice"
+              data-material="true"
+            />
+          </div>
+          <div class="cell-1 mt-2 text-left">Exclude</div>
+          <div class="cell-5 m-2">
+            <input id="download-data-features-list" class="input-small" type="text" data-role="taginput" >
           </div>
         </div>
       </div>
@@ -899,10 +1020,66 @@ function downloadOverviewTable() {
     `,
   }).then((result) => {
     if (result.isConfirmed) {
-      _OVERVIEW_TABLE.download(
-        $("#download-data-fileformat")[0].value,
-        "overview_table." + $("#download-data-fileformat")[0].value
+      /*var request = {
+        MODULE: "EXTRACT",
+        contentMode: $("#download-data-content")[0].value.toUpperCase(),
+        outputMode:
+          "SEQUENCE" +
+          ($("#download-data-align-sequences").is(":checked")
+            ? "_ALIGNED"
+            : ""),
+        excludeIndels: !$("#download-data-include-indels").is(":checked"),
+        excludeConservedPositions: !$(
+          "#download-data-include-conserved-positions"
+        ).is(":checked"),
+        filterVariantsBy: {},
+        grouped: $("#download-data-group").is(":checked"),
+        inputFile: "",
+        outputDirectory: "",
+      };
+      if ($("#download-data-samples-mode").is(":checked")) {
+        request["excludeSamples"] = $("#download-data-samples-list")[0]
+          .value.split(",")
+          .filter((e) => e !== "");
+      } else {
+        request["includeSamples"] = $("#download-data-samples-list")[0]
+          .value.split(",")
+          .filter((e) => e !== "");
+      }
+      if ($("#download-data-features-mode").is(":checked")) {
+        request["excludeFeatures"] = $("#download-data-features-list")[0]
+          .value.split(",")
+          .filter((e) => e !== "");
+      } else {
+        request["includeFeatures"] = $("#download-data-features-list")[0]
+          .value.split(",")
+          .filter((e) => e !== "");
+      }
+      displayLoader(
+        "Processing Request (Your files will be downloaded automatically)",
+        10e9
       );
+      axios
+        .post(
+          WWW + "/download_sequences",
+          pako.deflate(JSON.stringify(request)),
+          {
+            headers: {
+              "Content-Type": "application/octet-stream",
+              "Content-Encoding": "zlib",
+            },
+            responseType: "blob",
+          }
+        )
+        .then((response) => {
+          Swal.close();
+          handleResponseCode(response);
+          downloadBlob(response.data, "sequences.zip");
+        })
+        .catch((error) => {
+          handleError(error);
+        })
+        .finally(hideLoader());*/
     }
   });
 }
