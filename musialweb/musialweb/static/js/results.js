@@ -732,8 +732,8 @@ function constructTableColumns(columnFields) {
     "select"
   ).data(propertySelectOptions);
   if (typeof _OVERVIEW_TABLE != "undefined") {
-    resetTableFilter();
-    resetTableGroup();
+    _OVERVIEW_TABLE_FILTERS_AND_GROUPS = [];
+    applyTableFilterAndGroups();
   }
   return columnDefinitions;
 }

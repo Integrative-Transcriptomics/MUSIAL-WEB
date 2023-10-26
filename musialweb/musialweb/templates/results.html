@@ -88,6 +88,9 @@
         id="main-results-table-set-samples-button"
         class="button small rounded text-upper mr-6"
         onclick="showSamples()"
+        data-role="hint"
+        data-hint-text="Display sample results."
+        data-hint-position="bottom"
       >
         samples
       </button>
@@ -95,6 +98,9 @@
         id="main-results-table-set-features-button"
         class="button small rounded text-upper mr-6"
         onclick="showFeatures()"
+        data-role="hint"
+        data-hint-text="Display feature results."
+        data-hint-position="bottom"
       >
         features
       </button>
@@ -102,22 +108,49 @@
         id="main-results-table-set-variants-button"
         class="button small rounded text-upper"
         onclick="showVariants()"
+        data-role="hint"
+        data-hint-text="Display variants results."
+        data-hint-position="bottom"
       >
         variants
       </button>
     </div>
     <div class="toolbar mt-2" data-role="buttongroup">
       <span class="tag-dark">download results</span>
-      <button class="button small rounded" onclick="downloadOverviewTable()">
+      <button
+        class="button small rounded"
+        onclick="downloadOverviewTable()"
+        data-role="hint"
+        data-hint-text="Download the displayed table in CSV format."
+        data-hint-position="bottom"
+      >
         Overview Table
       </button>
-      <button class="button small rounded" onclick="downloadSessionData()">
+      <button
+        class="button small rounded"
+        onclick="downloadSessionData()"
+        data-role="hint"
+        data-hint-text="Download the binary session sata"
+        data-hint-position="bottom"
+      >
         Session Data
       </button>
-      <button class="button small rounded" onclick="downloadSequences()">
+      <button
+        class="button small rounded"
+        onclick="downloadSequences()"
+        data-role="hint"
+        data-hint-text="Download sequences in FASTA format (opens a popup for more options)."
+        data-hint-position="bottom"
+      >
         Sequences
       </button>
-      <button class="button small rounded" onclick="downloadTable()">
+      <button
+        class="button small rounded"
+        onclick="downloadTable()"
+        data-role="hint"
+        data-hint-text="Download variants data in TSV format (opens a popup for more options)"
+        data-hint-position="bottom"
+      >
         Variants Table
       </button>
     </div>
@@ -299,8 +332,11 @@
           <button
             class="button small rounded green-button"
             onclick="dashboardFeaturesForms()"
+            data-role="hint"
+            data-hint-text="Display allele and proteoform interconnection graph of the selected feature."
+            data-hint-position="bottom"
           >
-            <i class="fa-solid fa-arrow-turn-down-right"></i>
+            <i class="fa-duotone fa-play"></i>
           </button>
         </div>
         <div class="toolbar mt-2" data-role="buttongroup">
@@ -315,8 +351,19 @@
           <button
             class="button small rounded green-button"
             onclick="dashboardFeaturesProteoforms()"
+            data-role="hint"
+            data-hint-text="Display proteoform structure dashboard of the selected feature in a new tab."
+            data-hint-position="bottom"
           >
-            <i class="fa-solid fa-plus"></i>
+            <i class="fa-duotone fa-play"></i
+            ><i
+              class="fa-solid fa-plus"
+              style="
+                font-size: xx-small !important;
+                position: absolute;
+                bottom: 2px;
+              "
+            ></i>
           </button>
         </div>
         <div id="main-results-dashboard-features-left"></div>
@@ -364,6 +411,9 @@
       <button
         class="button small rounded green-button"
         onclick="addTableFilter()"
+        data-role="hint"
+        data-hint-text="Apply the specified filter to the table."
+        data-hint-position="top"
       >
         <i class="fa-solid fa-plus"></i>
       </button>
@@ -381,6 +431,9 @@
       <button
         class="button small rounded green-button"
         onclick="addTableGroup()"
+        data-role="hint"
+        data-hint-text="Group rows by the selected field."
+        data-hint-position="top"
       >
         <i class="fa-solid fa-plus"></i>
       </button>
@@ -390,6 +443,9 @@
       <button
         class="button small rounded blue-button"
         id="main-results-table-manage-button"
+        data-role="hint"
+        data-hint-text="Edit applied filters and groupings."
+        data-hint-position="top"
       >
         <i class="fa-duotone fa-pen-to-square"></i>
       </button>
@@ -441,6 +497,9 @@
       <button
         class="button small rounded green-button"
         onclick="dataCorrelation()"
+        data-role="hint"
+        data-hint-text="Run the specified correlation test."
+        data-hint-position="bottom"
       >
         <i class="fa-duotone fa-play"></i>
       </button>
