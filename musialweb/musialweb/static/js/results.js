@@ -838,14 +838,12 @@ function dataCorrelation() {
       },
     })
     .then((response) => {
-      console.log(response);
       testValue = "Failed";
       pValue = "Failed";
       if (response.data[3] == "0") {
         testValue = response.data[1].toString();
         pValue = response.data[2].toString();
       }
-      console.log($("#main-results-dashboard-correlation-results")[0]);
       $("#main-results-dashboard-correlation-results").html(
         `Test Value: ` + testValue + `&nbsp;&nbsp;&nbsp;P-Value: ` + pValue
       );
