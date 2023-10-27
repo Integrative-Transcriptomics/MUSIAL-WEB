@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 
 def samples_overview_bar():
@@ -72,6 +73,83 @@ def samples_clustering_scatter():
                 "type": "scatter",
                 "xAxisIndex": 0,
                 "yAxisIndex": 0,
+            }
+        ],
+    }
+
+
+def samples_clustering_map(
+    quantization_error, topographic_error, clustered_data, feature_names
+):
+    data = []
+    sample_names = list(clustered_data.keys())
+    global_values = []
+    for sample_name, sample_data in clustered_data.items():
+        cluster_index = 0
+        for value in sample_data["weighted_distances"]:
+            data.append([sample_names.index(sample_name), cluster_index, value])
+            global_values.append(value)
+            cluster_index += 1
+    cutoff_value = float("%.1g" % np.percentile(global_values, 75))
+    return {
+        "title": [
+            {
+                "top": "0",
+                "left": "center",
+                "text": "SOM Clustering Heatmap",
+                "subtext": "Quantization Error: "
+                + str(float("%.3g" % quantization_error))
+                + ", Topographic Error: "
+                + str(float("%.3g" % topographic_error)),
+                "textStyle": {"fontWeight": "lighter"},
+            },
+        ],
+        "grid": [
+            {"top": "11%", "left": "10%", "height": "80%", "width": "85%"},
+        ],
+        "xAxis": [
+            {
+                "type": "category",
+                "gridIndex": 0,
+                "name": "Samples",
+                "nameLocation": "center",
+                "nameGap": "25",
+                "data": sample_names,
+            }
+        ],
+        "yAxis": [
+            {
+                "type": "category",
+                "gridIndex": 0,
+                "name": "Cluster Index",
+                "nameLocation": "center",
+                "nameGap": "45",
+                "data": [str(ci + 1) for ci in range(cluster_index)],
+                "inverse": True,
+                "alignTicks": "value",
+            }
+        ],
+        "visualMap": [
+            {
+                "type": "continuous",
+                "min": 0,
+                "max": cutoff_value,
+                "color": ["#FFFFFF", "#222222"],
+                "top": 0,
+                "left": "10%",
+                "orient": "horizontal",
+                "text": [
+                    "≥ " + str(cutoff_value),
+                    "Euc. Distance to Cluster Node " + str(0),
+                ],
+                "itemWidth": 10,
+                "itemHeight": 60,
+            }
+        ],
+        "series": [
+            {
+                "type": "heatmap",
+                "data": data,
             }
         ],
     }

@@ -183,18 +183,8 @@ function showSamples() {
     );
     constructEChartInstance(
       $("#main-results-dashboard-samples-right")[0],
-      _SESSION_DATA.SAMPLES.dashboard.clustering_scatter
+      _SESSION_DATA.SAMPLES.dashboard.clustering_map_allele
     );
-    let featureSelectOptions = {};
-    for (let featureRecord of _SESSION_DATA.FEATURES.records) {
-      featureSelectOptions[featureRecord.name] = featureRecord.name;
-    }
-    Metro.getPlugin(
-      document.getElementById(
-        "main-results-dashboard-samples-clustering-features"
-      ),
-      "select"
-    ).data(featureSelectOptions);
     dashboardSamplesOverview(
       "number_of_substitutions",
       {
@@ -264,128 +254,33 @@ function dashboardSamplesOverview(val, option, item) {
 }
 
 function dashboardSamplesClustering() {
-  var REQUEST = {
-    type: Metro.getPlugin(
+  console.log(
+    Metro.getPlugin(
       "#main-results-dashboard-samples-clustering-type",
       "select"
-    ).val(),
-    metric: Metro.getPlugin(
-      "#main-results-dashboard-samples-clustering-metric",
-      "select"
-    ).val(),
-    feature: Metro.getPlugin(
-      "#main-results-dashboard-samples-clustering-features",
-      "select"
-    ).val(),
-  };
-  _CHARTS[1].showLoading({
-    color: "#6d81ad",
-    text: "Loading...",
-    maskColor: "rgb(250, 250, 252, 0.8)",
-  });
-  axios
-    .post(
-      _URL + "/calc/sample_clustering",
-      pako.deflate(JSON.stringify(REQUEST)),
-      {
-        headers: {
-          "Content-Type": "application/octet-stream",
-          "Content-Encoding": "zlib",
-        },
-      }
-    )
-    .then((response) => {
-      const umap = [];
-      const profiles = Object.keys(response.data);
-      if (response.data !== "1") {
-        for (let profileId in response.data) {
-          umap.push(response.data[profileId]["transform"]);
-        }
-        _CHARTS[1].hideLoading();
-        _CHARTS[1].setOption({
-          tooltip: {
-            trigger: "item",
-            triggerOn: "mousemove",
-            formatter: (params) => {
-              let profile = profiles[params.dataIndex];
-              return (
-                profile
-                  .split(":")
-                  .map((p) => {
-                    let fields = p.split(".");
-                    return fields[1] + " " + fields[2];
-                  })
-                  .join("<br/>") +
-                "<br/><b>No. Samples:</b> " +
-                response.data[profile]["samples"].length
-              );
-            },
-          },
-          toolbox: {
-            feature: {
-              dataZoom: {
-                icon: {
-                  zoom: "M208 32a176 176 0 1 1 0 352 176 176 0 1 1 0-352zm0 384c51.7 0 99-18.8 135.3-50L484.7 507.3c6.2 6.2 16.4 6.2 22.6 0s6.2-16.4 0-22.6L366 343.3c31.2-36.4 50-83.7 50-135.3C416 93.1 322.9 0 208 0S0 93.1 0 208S93.1 416 208 416zM192 304c0 8.8 7.2 16 16 16s16-7.2 16-16V224h80c8.8 0 16-7.2 16-16s-7.2-16-16-16H224V112c0-8.8-7.2-16-16-16s-16 7.2-16 16v80H112c-8.8 0-16 7.2-16 16s7.2 16 16 16h80v80z",
-                  back: "M16 64c8.8 0 16 7.2 16 16l0 352c0 8.8-7.2 16-16 16s-16-7.2-16-16V80c0-8.8 7.2-16 16-16zm203.3 84.7c6.2 6.2 6.2 16.4 0 22.6L150.6 240l338.7 0-68.7-68.7c-6.2-6.2-6.2-16.4 0-22.6s16.4-6.2 22.6 0l96 96c6.2 6.2 6.2 16.4 0 22.6l-96 96c-6.2 6.2-16.4 6.2-22.6 0s-6.2-16.4 0-22.6L489.4 272l-338.7 0 68.7 68.7c6.2 6.2 6.2 16.4 0 22.6s-16.4 6.2-22.6 0l-96-96c-6.2-6.2-6.2-16.4 0-22.6l96-96c6.2-6.2 16.4-6.2 22.6 0zM640 80V432c0 8.8-7.2 16-16 16s-16-7.2-16-16V80c0-8.8 7.2-16 16-16s16 7.2 16 16z",
-                },
-              },
-              /*myFeature1: {
-                show: true,
-                title: "Deselect All",
-                icon: "M256 16a240 240 0 1 1 0 480 240 240 0 1 1 0-480zm0 496A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM178.3 178.3c-3.1 3.1-3.1 8.2 0 11.3L244.7 256l-66.3 66.3c-3.1 3.1-3.1 8.2 0 11.3s8.2 3.1 11.3 0L256 267.3l66.3 66.3c3.1 3.1 8.2 3.1 11.3 0s3.1-8.2 0-11.3L267.3 256l66.3-66.3c3.1-3.1 3.1-8.2 0-11.3s-8.2-3.1-11.3 0L256 244.7l-66.3-66.3c-3.1-3.1-8.2-3.1-11.3 0z",
-                onclick: () => {
-                  _CHARTS[1].dispatchAction({
-                    type: "unselect",
-                    seriesIndex: 0,
-                    dataIndex: Array.from(Array(profiles.length).keys()),
-                  });
-                },
-              },*/
-            },
-          },
-          series: [
-            {
-              name: "UMAP Clustering",
-              type: "scatter",
-              xAxisIndex: 0,
-              yAxisIndex: 0,
-              data: umap,
-              itemStyle: {
-                color: "#747474",
-              },
-              /*selectedMode: "multiple",
-              select: {
-                itemStyle: {
-                  color: "#39c093",
-                  shadowColor: "#39c093",
-                  shadowBlur: 5,
-                },
-              },*/
-              symbolSize: (_, params) => {
-                let profile = profiles[params.dataIndex];
-                let size = response.data[profile]["samples"].length;
-                if (size == 1) {
-                  return 4;
-                } else {
-                  return Math.round(Math.log10(Math.max(10, size))) * 4;
-                }
-              },
-            },
-          ],
-        });
-        /*_CHARTS[1].dispatchAction({
-          type: "unselect",
-          seriesIndex: 0,
-          dataIndex: Array.from(Array(profiles.length).keys()),
-        });*/
-      }
-    })
-    .catch((error) => {
-      displayError(error.message);
-    })
-    .finally(() => {
-      _CHARTS[1].hideLoading();
-    });
+    ).val()
+  );
+  console.log(
+    _SESSION_DATA.SAMPLES.dashboard[
+      "clustering_map_" +
+        Metro.getPlugin(
+          "#main-results-dashboard-samples-clustering-type",
+          "select"
+        ).val()
+    ]
+  );
+
+  _CHARTS[1].setOption(
+    _SESSION_DATA.SAMPLES.dashboard[
+      "clustering_map_" +
+        Metro.getPlugin(
+          "#main-results-dashboard-samples-clustering-type",
+          "select"
+        ).val()
+    ],
+    true,
+    false
+  );
 }
 
 function showFeatures() {

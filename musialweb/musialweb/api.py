@@ -6,12 +6,12 @@ from operator import methodcaller
 from dotenv import load_dotenv
 from io import StringIO
 from Bio import SeqIO
-from umap.umap_ import UMAP
 import json, zlib, os, subprocess, shutil, brotli, random, string, re, brotli, base64, copy, traceback
 import pandas as pd
 import numpy as np
 import scipy as sc
 import musialweb.chart as mwchart
+import musialweb.clustering as mwclustering
 
 PATH_PREFIX = "./"
 
@@ -32,6 +32,7 @@ app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024 * 1024  # Limit content lengths t
 SESSION_KEY_REFERENCE_SEQUENCE = "UkVGRVJFTkNFX1NFUVVFTkNF"
 SESSION_KEY_STATUS = "U1RBVFVT"
 SESSION_KEY_SAMPLES_DF = "U0FNUExFU19ERg"
+SESSION_KEY_SAMPLES_CLUSTERING = "U0FNUExFU19DTFVTVEVSSU5H"
 SESSION_KEY_FEATURES_DF = "RkVBVFVSRVNfREY"
 SESSION_KEY_VARIANTS_DF = "VkFSSUFOVFNfREY"
 """ Set API parameters. """
@@ -220,6 +221,7 @@ def session_data():
             not SESSION_KEY_SAMPLES_DF in session
             or not SESSION_KEY_FEATURES_DF in session
             or not SESSION_KEY_VARIANTS_DF in session
+            or not SESSION_KEY_SAMPLES_CLUSTERING in session
         ):
             os.makedirs(PATH_PREFIX + "tmp/" + unique_hex_key)
             with open(
@@ -228,6 +230,11 @@ def session_data():
                 session_results.write(json.dumps(session[API_CODES["RESULT_KEY"]]))
 
         # (i) Run MUSIAL on the specified data to view samples.
+        if not SESSION_KEY_SAMPLES_CLUSTERING in session:
+            session[SESSION_KEY_SAMPLES_CLUSTERING] = {
+                "allele": _run_sample_clustering("allele"),
+                "proteoform": _run_sample_clustering("proteoform"),
+            }
         if not SESSION_KEY_SAMPLES_DF in session:
             process = subprocess.Popen(
                 [
@@ -475,124 +482,6 @@ def clc_correlation():
     return [n, format(t, ".6g"), format(p, ".6g"), status]
 
 
-@app.route("/calc/sample_clustering", methods=["POST"])
-def clc_sample_clustering():
-    # Inflate the request data and transform into python dictionary to extract parameters.
-    inflated_request_data = zlib.decompress(request.data)
-    json_string_request_data = inflated_request_data.decode("utf8")
-    json_request_data = json.loads(json_string_request_data)
-    feature = json_request_data["feature"]
-    form_type = json_request_data["type"]
-    m = json_request_data["metric"]
-    # Collect variants from sequence alignment per feature.
-    feature_variants = {}
-    storage = session[API_CODES["RESULT_KEY"]]
-    unique_hex_key = _generate_random_string()
-    feature_variants_transform = {}
-    transform_index = 1
-    try:
-        os.makedirs(PATH_PREFIX + "tmp/" + unique_hex_key)
-        with open(
-            PATH_PREFIX + "tmp/" + unique_hex_key + "/results.json", "w+"
-        ) as session_results:
-            session_results.write(json.dumps(storage))
-        if form_type == "allele":
-            content_type = "nucleotide"
-        elif form_type == "proteoform":
-            content_type = "aminoacid"
-        process = subprocess.Popen(
-            [
-                os.getenv("JAVA_PATH"),
-                "-jar",
-                PATH_PREFIX + "MUSIAL-v2.2.jar",
-                "export_sequence",
-                "-I",
-                PATH_PREFIX + "tmp/" + unique_hex_key + "/results.json",
-                "-O",
-                PATH_PREFIX
-                + "tmp/"
-                + unique_hex_key
-                + "/sequences_"
-                + feature
-                + ".fasta",
-                "-c",
-                content_type,
-                "-F",
-                feature,
-                "-g",
-                "-a",
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        stdout, stderr = process.communicate()
-        stdout = stdout.decode()
-        stderr = stderr.decode()
-        if stderr != "":
-            _log(
-                request.url,
-                "Error during sample cluster computation; " + _remove_ansi(stderr),
-            )
-            return {"code": API_CODES["FAILURE_CODE"]}
-        else:
-            records = SeqIO.parse(
-                PATH_PREFIX
-                + "tmp/"
-                + unique_hex_key
-                + "/sequences_"
-                + feature
-                + ".fasta",
-                "fasta",
-            )
-            for record in records:
-                record_sequence = list(str(record.seq))
-                variants = []
-                for i in range(len(record_sequence)):
-                    variant = str(i) + "." + record_sequence[i]
-                    variants.append(variant)
-                    if not variant in feature_variants_transform:
-                        feature_variants_transform[variant] = transform_index
-                        transform_index += 1
-                feature_variants[record.id] = copy.deepcopy(variants)
-    finally:
-        shutil.rmtree(PATH_PREFIX + "tmp/" + unique_hex_key)
-    # Assert variants to samples.
-    form_variants = []
-    response = {}
-    for sample in storage["samples"]:
-        variants = []
-        form_name = storage["samples"][sample]["annotations"][form_type + "_" + feature]
-        profile = form_type + "." + feature + "." + form_name
-        variants += feature_variants[form_name]
-        if profile in response:
-            response[profile]["samples"].append(sample)
-        else:
-            response[profile] = {"samples": [sample], "variants": variants}
-            form_variants.append(variants)
-    form_variants_transform = [
-        list(map(lambda v: feature_variants_transform[v], fv)) for fv in form_variants
-    ]
-
-    # n_components = min(len(form_variants_transform[0]), len(form_variants_transform))
-    # pca_model = PCA(n_components=n_components)
-    # embedding = pca_model.fit_transform(form_variants_transform)
-
-    umap_model = UMAP(
-        n_neighbors=round(len(form_variants_transform) / 4), metric=m, min_dist=0.1
-    )
-    embedding = umap_model.fit_transform(form_variants_transform)
-
-    index = 0
-    for profile in response:
-        response[profile]["transform"] = [
-            float(embedding[index][0]),
-            float(embedding[index][1]),
-        ]
-        index += 1
-
-    return response
-
-
 @app.route("/calc/forms_sunburst", methods=["POST"])
 def clc_feature_sunburst():
     def color(x):
@@ -790,7 +679,12 @@ def _view_samples_output_to_dict(out):
         "counts": counts,
         "dashboard": {
             "overview_area": mwchart.samples_overview_bar(),
-            "clustering_scatter": mwchart.samples_clustering_scatter(),
+            "clustering_map_allele": mwchart.samples_clustering_map(
+                *session[SESSION_KEY_SAMPLES_CLUSTERING]["allele"]
+            ),
+            "clustering_map_proteoform": mwchart.samples_clustering_map(
+                *session[SESSION_KEY_SAMPLES_CLUSTERING]["proteoform"]
+            ),
         },
     }
 
@@ -822,6 +716,76 @@ def _view_variants_output_to_dict(out):
             ),
         },
     }
+
+
+def _run_sample_clustering(form_type):
+    # Collect variants from sequence alignment per feature.
+    storage = session[API_CODES["RESULT_KEY"]]
+    unique_hex_key = _generate_random_string()
+    per_feature_sequence_records = {}
+    try:
+        os.makedirs(PATH_PREFIX + "tmp/" + unique_hex_key)
+        with open(
+            PATH_PREFIX + "tmp/" + unique_hex_key + "/results.json", "w+"
+        ) as session_results:
+            session_results.write(json.dumps(storage))
+        if form_type == "allele":
+            content_type = "nucleotide"
+        elif form_type == "proteoform":
+            content_type = "aminoacid"
+        for feature_name in storage["features"].keys():
+            process = subprocess.Popen(
+                [
+                    os.getenv("JAVA_PATH"),
+                    "-jar",
+                    PATH_PREFIX + "MUSIAL-v2.2.jar",
+                    "export_sequence",
+                    "-I",
+                    PATH_PREFIX + "tmp/" + unique_hex_key + "/results.json",
+                    "-O",
+                    PATH_PREFIX
+                    + "tmp/"
+                    + unique_hex_key
+                    + "/sequences_"
+                    + feature_name
+                    + ".fasta",
+                    "-c",
+                    content_type,
+                    "-F",
+                    feature_name,
+                    "-a",
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            stdout, stderr = process.communicate()
+            stdout = stdout.decode()
+            stderr = stderr.decode()
+            if stderr != "":
+                return (None, None, {}, [], [])
+            else:
+                per_feature_sequence_records[feature_name] = SeqIO.parse(
+                    PATH_PREFIX
+                    + "tmp/"
+                    + unique_hex_key
+                    + "/sequences_"
+                    + feature_name
+                    + ".fasta",
+                    "fasta",
+                )
+    finally:
+        shutil.rmtree(PATH_PREFIX + "tmp/" + unique_hex_key)
+    # Cluster samples with a SOM.
+    return mwclustering.cluster_sequences(
+        per_feature_sequence_records,
+        {
+            "nodes_x": 4,
+            "nodes_y": 4,
+            "sigma": 2,
+            "learning_rate": 1,
+            "neighborhood_function": "triangle",
+        },
+    )
 
 
 def _generate_random_string():
