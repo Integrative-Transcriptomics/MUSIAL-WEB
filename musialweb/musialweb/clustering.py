@@ -1,5 +1,7 @@
 from minisom import MiniSom
 from scipy.spatial import distance
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
 from itertools import product
 import numpy as np
 
@@ -18,7 +20,7 @@ def _hamming(q: str, p: str) -> float:
     for c_q, c_p in zip(q, p):
         if c_q != c_p:
             s += 1
-    return round(s / len(q), 6)
+    return round( s / len( q ), 4 )
 
 
 def cluster_sequences(
@@ -71,7 +73,7 @@ def cluster_sequences(
     som = MiniSom(
         som_parameters[SOM_NODES_X],
         som_parameters[SOM_NODES_Y],
-        len(distance_matrix[0]),  # Number of features.
+        len(distance_matrix[0]), # Number of features.
         sigma=som_parameters[SOM_SIGMA],
         learning_rate=som_parameters[SOM_LR],
         neighborhood_function=som_parameters[SOM_NF],
@@ -90,29 +92,43 @@ def cluster_sequences(
     for i in range(som_parameters[SOM_NODES_X]):
         for j in range(som_parameters[SOM_NODES_Y]):
             if (i, j) in per_cluster_sample_names:
-                for cluster_sample_name in list(
+                for sample_name in list(
                     per_cluster_sample_names[(i, j)].keys()
                 ):
-                    clustered_data[cluster_sample_name] = {
+                    clustered_data[sample_name] = {
                         "c": str(cluster_index),
-                        "input_distances": distance_matrix[
-                            sample_names.index(cluster_sample_name)
+                        "feature_distances": distance_matrix[
+                            sample_names.index(sample_name)
                         ],
                     }
             cluster_index += 1
-    for key, value in clustered_data.items():
-        value["weighted_distances"] = [
+
+    # Add weighted distances to each cluster center/SOM node.
+    minimal_unit_distance = np.inf
+    maximal_unit_distance = np.NINF
+    for _, value in clustered_data.items():
+        value["unit_distances"] = [
             float(
                 "%.3g"
-                % distance.euclidean(value["input_distances"], som_node_weights[i][j])
+                % distance.euclidean(value["feature_distances"], som_node_weights[i][j])
             )
             for i, j in product(
                 range(som_parameters[SOM_NODES_X]), range(som_parameters[SOM_NODES_Y])
             )
         ]
+        maximal_local_unit_distance = max(value["unit_distances"])
+        if maximal_local_unit_distance > maximal_unit_distance :
+            maximal_unit_distance = maximal_local_unit_distance
+        minimal_local_unit_distance = min(value["unit_distances"])
+        if minimal_local_unit_distance < minimal_unit_distance :
+            minimal_unit_distance = minimal_local_unit_distance
+    for _, value in clustered_data.items():
+        value["normalized_bmu_distance"] = ( min(value["unit_distances"]) - minimal_unit_distance ) / ( maximal_unit_distance - minimal_unit_distance )
+
     return (
         quantization_error,
         topographic_error,
         clustered_data,
-        feature_name,
+        som.distance_map(scaling="mean"),
+        feature_names,
     )

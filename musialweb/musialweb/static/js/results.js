@@ -71,6 +71,25 @@ axios
         break;
       case API_PARAMETERS["SESSION_CODE_ACTIVE"]:
         if (!_SESSION_DATA.SET) {
+          Swal.fire({
+            title: "Preparing Results",
+            iconHtml:
+              `<img src="` +
+              BACTERIA_GIF +
+              `" style="height: 100%; width: 100%; pointer-events: none; user-select: none;">`,
+            html: `Results of your analysis will be displayed shortly.`,
+            color: "#747474",
+            background: "transparent",
+            heightAuto: false,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            backdrop: `
+              rgba(239, 240, 248, 0.1)
+              left top
+              no-repeat
+            `,
+          });
           axios
             .get(_URL + "/session/data", {
               headers: {
@@ -79,6 +98,7 @@ axios
             })
             .then((response) => {
               if (response.data.code == API_PARAMETERS["SUCCESS_CODE"]) {
+                Swal.close();
                 _SESSION_DATA.SET = true;
                 let responseContent = JSON.parse(response.data.content);
                 _SESSION_DATA.SAMPLES = responseContent[0];
@@ -185,18 +205,15 @@ function showSamples() {
       $("#main-results-dashboard-samples-right")[0],
       _SESSION_DATA.SAMPLES.dashboard.clustering_map_allele
     );
-    dashboardSamplesOverview(
-      "number_of_substitutions",
-      {
-        innerText: "substitutions",
-      },
-      {}
-    );
+    dashboardSamplesOverview("number_of_substitutions", {
+      innerText: "substitutions",
+    });
+    dashboardSamplesClustering();
     ACTIVE_CATEGORY = "samples";
   }
 }
 
-function dashboardSamplesOverview(val, option, item) {
+function dashboardSamplesOverview(val, option) {
   let counts = _SESSION_DATA.SAMPLES.counts[val];
   let axisTitle =
     option.innerText.charAt(0).toUpperCase() + option.innerText.slice(1);
@@ -212,8 +229,8 @@ function dashboardSamplesOverview(val, option, item) {
   }
   _CHARTS[0].setOption({
     title: {
-      top: "0",
-      left: "center",
+      top: 0,
+      left: 0,
       text: "No. Samples by " + axisTitle,
       textStyle: { fontWeight: "lighter" },
     },
@@ -229,6 +246,11 @@ function dashboardSamplesOverview(val, option, item) {
     ],
     tooltip: {
       trigger: "axis",
+      backgroundColor: "rgba(228, 229, 237, 0.8)",
+      borderColor: "rgba(228, 229, 237, 0.8)",
+      textStyle: {
+        fontSize: 11,
+      },
       formatter: (params, ticket, callback) => {
         return (
           "<b>" +
@@ -254,33 +276,56 @@ function dashboardSamplesOverview(val, option, item) {
 }
 
 function dashboardSamplesClustering() {
-  console.log(
-    Metro.getPlugin(
-      "#main-results-dashboard-samples-clustering-type",
-      "select"
-    ).val()
-  );
-  console.log(
+  let option =
     _SESSION_DATA.SAMPLES.dashboard[
       "clustering_map_" +
         Metro.getPlugin(
           "#main-results-dashboard-samples-clustering-type",
           "select"
         ).val()
-    ]
-  );
-
-  _CHARTS[1].setOption(
-    _SESSION_DATA.SAMPLES.dashboard[
-      "clustering_map_" +
-        Metro.getPlugin(
-          "#main-results-dashboard-samples-clustering-type",
-          "select"
-        ).val()
-    ],
-    true,
-    false
-  );
+    ];
+  option["tooltip"] = {
+    trigger: "item",
+    backgroundColor: "rgba(228, 229, 237, 0.8)",
+    borderColor: "rgba(228, 229, 237, 0.8)",
+    textStyle: {
+      fontSize: 11,
+    },
+    formatter: (params, ticket, callback) => {
+      cluster_data = option["series"].filter(
+        (_) => _.name == "Cluster " + params.data[3]
+      );
+      if (cluster_data.length > 0) {
+        cluster_data = cluster_data[0].data;
+        feature_distances = cluster_data.map((_) => _[3]);
+        unit_distances = cluster_data.map((_) => _[4]);
+        feature_distances_t = _transpose(feature_distances);
+        feature_distances_content = `<table class="table subcompact"><thead><tr><th style="color: #747474;">Feature</th><th style="color: #747474;">Mean Hamming Distance (%)</th><th style="color: #747474;">Std. Hamming Distance (%)</th></tr></thead><tbody>`;
+        for (let i = 0; i < feature_distances_t.length; i++) {
+          feature_distances_content +=
+            `<tr><td>` +
+            option["meta"]["features"][i] +
+            `</td><td>` +
+            parseFloat(math.mean(feature_distances_t[i]) * 100).toPrecision(2) +
+            `</td><td>` +
+            parseFloat(math.std(feature_distances_t[i]) * 100).toPrecision(2) +
+            `</td></tr>`;
+        }
+        feature_distances_content += `</tbody></table>`;
+      } else {
+        return;
+      }
+      return (
+        `<b>Cluster ` +
+        params.data[3] +
+        `</b> | ` +
+        cluster_data.length +
+        ` Samples</br>` +
+        feature_distances_content
+      );
+    },
+  };
+  _CHARTS[1].setOption(option, true, false);
 }
 
 function showFeatures() {
@@ -291,9 +336,38 @@ function showFeatures() {
       $("#main-results-dashboard-features-left")[0],
       _SESSION_DATA.FEATURES.dashboard.overview_parallel
     );
+    _CHARTS[0].setOption({
+      tooltip: {
+        backgroundColor: "rgba(228, 229, 237, 0.8)",
+        borderColor: "rgba(228, 229, 237, 0.8)",
+        textStyle: {
+          fontSize: 11,
+        },
+        formatter: (params, ticket, _) => {
+          return (
+            params.marker +
+            "<b>" +
+            params.seriesName +
+            "</b> " +
+            "<br/><b>Alleles:</b> " +
+            params.data[0] +
+            "<br/><b>Proteoforms:</b> " +
+            params.data[1] +
+            "<br/><b>Substitutions:</b> " +
+            params.data[2] +
+            "<br/><b>Insertions:</b> " +
+            params.data[3] +
+            "<br/><b>Deletions:</b> " +
+            params.data[4] +
+            "<br/><b>Variable Positions (%):</b> " +
+            params.data[5]
+          );
+        },
+      },
+    });
     constructEChartInstance(
       $("#main-results-dashboard-features-right")[0],
-      _SESSION_DATA.FEATURES.dashboard.forms_sunburst
+      _SESSION_DATA.FEATURES.dashboard.forms_graph
     );
     let featureSelectOptions = {};
     for (let featureRecord of _SESSION_DATA.FEATURES.records) {
@@ -326,118 +400,197 @@ function dashboardFeaturesForms() {
     maskColor: "rgb(250, 250, 252, 0.8)",
   });
   axios
-    .post(
-      _URL + "/calc/forms_sunburst",
-      pako.deflate(JSON.stringify(REQUEST)),
-      {
-        headers: {
-          "Content-Type": "application/octet-stream",
-          "Content-Encoding": "zlib",
-        },
-      }
-    )
+    .post(_URL + "/calc/forms_graph", pako.deflate(JSON.stringify(REQUEST)), {
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "Content-Encoding": "zlib",
+      },
+    })
     .then((response) => {
-      _CHARTS[1].hideLoading();
       _CHARTS[1].setOption({
         title: {
-          top: "0",
+          top: 0,
           left: 0,
-          text: response.data[0].name + " Forms",
+          text: REQUEST.feature + " Forms Graph",
           textStyle: { fontWeight: "lighter", fontStyle: "oblique" },
         },
         tooltip: {
-          position: ["0%", "10%"],
-          formatter: (params, ticket, callback) => {
-            var content = "";
-            if (params.data.dataIndex == 0) {
+          alwaysShowContent: true,
+          position: ["1%", "7%"],
+          triggerOn: "click",
+          className: "dashboard-features-graph-tooltip",
+          backgroundColor: "rgba(228, 229, 237, 0.8)",
+          borderColor: "rgba(228, 229, 237, 0.8)",
+          textStyle: {
+            fontSize: 11,
+          },
+          formatter: (params, ticket, _) => {
+            if (!params.data.isNode) {
               return;
             } else {
-              content =
-                "<b>" + params.data.level + " " + params.data.name + "</b>";
-            }
-            if (params.data.hasOwnProperty("annotations")) {
-              for (var [key, value] of Object.entries(
-                params.data["annotations"]
-              )) {
-                let keyText = key
-                  .replace("number_of_", "")
-                  .replace("_positions", " Positions")
-                  .replace("_stops", " Stops");
+              content = "";
+              content +=
+                `<b>` +
+                params.data.name +
+                `</b><button class="plain" style="cursor: pointer;" onclick="document.getElementsByClassName('dashboard-features-graph-tooltip')[0].style.display = 'None'"><i class="fa-thin fa-xmark"></i></button><hr>`;
+              content +=
+                `<b>Frequency: </b>` +
+                parseFloat(params.data.annotations["frequency"]).toFixed(2) +
+                `%`;
+              content +=
+                `<br/><b>Variable Positions: </b>` +
+                parseFloat(
+                  params.data.annotations["variable_positions"]
+                ).toFixed(2) +
+                `%`;
+              content +=
+                `<br/><b>Substitutions: </b>` +
+                params.data.annotations["number_of_substitutions"];
+              content +=
+                `<br/><b>Insertions: </b>` +
+                params.data.annotations["number_of_insertions"];
+              content +=
+                `<br/><b>Deletions: </b>` +
+                params.data.annotations["number_of_deletions"];
+              content += `<br/><b>Variants: </b>`;
+              if (params.data.annotations["variants"] == "") {
+                content += `None`;
+              } else {
                 content +=
-                  `</br>` +
-                  keyText.charAt(0).toUpperCase() +
-                  keyText.slice(1) +
-                  " ";
-                if (key == "variable_positions" || key == "frequency") {
-                  content += parseFloat(value).toFixed(2) + "%";
-                } else if (key == "novel_stops") {
-                  content +=
-                    value.split(":").length +
-                    ` <i class="fa-duotone fa-triangle-exclamation fa-xs"></i> <u>Disordered</u>`;
-                } else if (key == "variants") {
-                  content += value.split(";").length;
-                } else {
-                  content += value;
-                }
+                  `<p class="dashboard-features-graph-tooltip-variants">` +
+                  params.data.annotations["variants"]
+                    .replaceAll(":", "")
+                    .replaceAll(";", "</br>") +
+                  `</p>`;
               }
-              content += "</br>Samples " + params.data.value;
+              return content;
             }
-            return content;
           },
-          triggerOn: "mousemove",
         },
-        visualMap: {
+        legend: {
           show: true,
-          type: "piecewise",
-          pieces: [
-            { min: 1, max: 2, color: "#e4e5ed", label: "No Variants" },
+          textStyle: { fontSize: 8, color: "#747474" },
+          backgroundColor: "rgba(228, 229, 237, 0.8)",
+          bottom: "1%",
+          right: "1%",
+          orient: "vertical",
+          selectedMode: false,
+          data: [
             {
-              min: 2,
-              max: 3,
-              color: "#6d81ad",
-              label: "< 1% Variable Positions",
+              name: "Proteoforms",
+              icon: "path://M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM184 128h92c50.8 0 92 41.2 92 92s-41.2 92-92 92H208v48c0 13.3-10.7 24-24 24s-24-10.7-24-24V288 152c0-13.3 10.7-24 24-24zm92 136c24.3 0 44-19.7 44-44s-19.7-44-44-44H208v88h68z",
+              itemStyle: {
+                color: "#607196",
+              },
             },
             {
-              min: 3,
-              max: 4,
-              color: "#FFB000",
-              label: "≥ 1% and < 10% Variable Positions",
+              name: "Alleles",
+              icon: "path://M256,512A256,256,0,1,0,256,0a256,256,0,1,0,0,512zm0-400c9.1,0,17.4,5.1,21.5,13.3l104,208c5.9,11.9,1.1,26.3-10.7,32.2s-26.3,1.1-32.2-10.7L321.2,320H190.8l-17.4,34.7c-5.9,11.9-20.3,16.7-32.2,10.7s-16.7-20.3-10.7-32.2l104-208c4.1-8.1,12.4-13.3,21.5-13.3zm0,77.7L214.8,272h82.3L256,189.7z",
+              itemStyle: {
+                color: "#9ba6bd",
+              },
             },
             {
-              min: 4,
-              max: 5,
-              color: "#DC267F",
-              label: "≥ 10% Variable Positions",
+              name: "Reference",
+              icon: "circle",
+              itemStyle: {
+                color: "#FFBA08",
+              },
+            },
+            {
+              name: "Disordered",
+              icon: "circle",
+              itemStyle: {
+                color: "#FE4848",
+              },
+            },
+            {
+              name: "Form Relation",
+              icon: "path://M0 256c0-8.8 7.2-16 16-16H624c8.8 0 16 7.2 16 16s-7.2 16-16 16H16c-8.8 0-16-7.2-16-16z",
+              itemStyle: {
+                color: "#cbd0e0",
+              },
+            },
+            {
+              name: "Allele to Proteoform Interconnection",
+              icon: "path://M416 256a32 32 0 1 1 -64 0 32 32 0 1 1 64 0zm-160 0a32 32 0 1 1 -64 0 32 32 0 1 1 64 0zM64 288a32 32 0 1 1 0-64 32 32 0 1 1 0 64z",
+              itemStyle: {
+                color: "#cbd0e0",
+              },
             },
           ],
-          orient: "horizontal",
-          bottom: 0,
-          left: "center",
-          seriesIndex: 1,
-          selectedMode: false,
         },
         series: [
           {
-            type: "sunburst",
-            data: [response.data[0]],
+            type: "graph",
+            layout: "force",
+            force: {
+              repulsion: 5,
+              gravity: 0.1,
+              friction: 0.3,
+              edgeLength: [1, 2, 3, 5, 8, 13, 21, 34],
+              layoutAnimation: true,
+            },
+            roam: true,
+            data: response.data[0],
+            links: response.data[1],
             top: "10%",
             bottom: "10%",
-            animationDurationUpdate: 750,
             emphasis: {
-              focus: "descendant",
+              focus: "adjacency",
+              label: {
+                show: true,
+                color: "#747474",
+                backgroundColor: "rgba(228, 229, 237, 0.8)",
+                borderColor: "rgba(228, 229, 237, 0.8)",
+              },
+              edgeLabel: {
+                show: true,
+                color: "#747474",
+                backgroundColor: "rgba(228, 229, 237, 0.8)",
+                borderColor: "rgba(228, 229, 237, 0.8)",
+                formatter: (params) => {
+                  if (params.data.type == "relation") {
+                    return -1 * params.data.value + " Variant(s)";
+                  } else if (params.data.type == "interconnection") {
+                    return params.data.value + " Sample(s)";
+                  }
+                },
+              },
             },
             label: {
               show: false,
             },
-            radius: [0, "85%"],
-            clockwise: true,
-            nodeClick: false,
-            sort: (nodeA, nodeB) => {},
+          },
+          {
+            type: "graph",
+            name: "Proteoforms",
+          },
+          {
+            type: "graph",
+            name: "Alleles",
+          },
+          {
+            type: "graph",
+            name: "Reference",
+          },
+          {
+            type: "graph",
+            name: "Disordered",
+          },
+          {
+            type: "graph",
+            name: "Form Relation",
+          },
+          {
+            type: "graph",
+            name: "Allele to Proteoform Interconnection",
           },
         ],
       });
     })
     .catch((error) => {
+      console.log(error);
       displayError(error.message);
     })
     .finally(() => {
@@ -478,7 +631,7 @@ function showVariants() {
             }
           }
           contents.push(
-            "<div style='display: inline-block; margin-right: 10px; padding: 1px;'><b>Position</b>: " +
+            "<div style='display: inline-block; margin-right: 10px;'><b>Position</b>: " +
               entry.data[0] +
               "<br>" +
               "<b>Frequency (Pass)</b>: " +
@@ -508,7 +661,7 @@ function showVariants() {
         return contents.join("");
       },
       alwaysShowContent: true,
-      position: ["5%", "55%"],
+      position: ["5%", "65%"],
       backgroundColor: "rgba(228, 229, 237, 0.5)",
       borderColor: "rgba(228, 229, 237, 0.5)",
     };
@@ -518,7 +671,7 @@ function showVariants() {
       },
     };
     constructEChartInstance(
-      $("#main-results-dashboard-variants-top")[0],
+      $("#main-results-dashboard-variants")[0],
       _SESSION_DATA.VARIANTS.dashboard.variants_bar
     );
     _CHARTS[0].on("legendselectchanged", (event) => {
@@ -975,4 +1128,8 @@ function downloadSequences() {
         .finally(hideLoader());*/
     }
   });
+}
+
+function _transpose(arr2D) {
+  return arr2D[0].map((x, i) => arr2D.map((x) => x[i]));
 }

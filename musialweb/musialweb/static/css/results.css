@@ -132,6 +132,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   border-radius: 4px;
 }
 
+.dashboard-features-graph-tooltip {
+  pointer-events: auto !important;
+}
+
+.dashboard-features-graph-tooltip-variants {
+  background: #e4e5ed !important;
+  border-radius: 3px;
+  overflow-y: scroll;
+  max-height: 6em;
+  width: auto;
+  pointer-events: auto;
+  padding: 4px;
+  margin-top: 0px;
+}
+
 #main-results-dashboard {
   height: 50vh;
 }
@@ -144,52 +159,51 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   left: 0;
 }
 
-#main-results-dashboard-samples {
-  display: none;
-}
-
-#main-results-dashboard-samples-left-toolbox {
+.main-results-dashboard-left-toolbox {
   position: absolute;
   height: 28px;
-  width: 10vw;
+  width: 99%;
   top: 1%;
-  right: 60%;
+  right: 1%;
   z-index: 2;
 }
 
-#main-results-dashboard-samples-left-toolbox div {
+.main-results-dashboard-left-toolbox div {
   border-radius: 4px;
+}
+
+.main-results-dashboard-right-toolbox {
+  position: absolute;
+  display: inline;
+  height: 28px;
+  width: 99%;
+  top: 1%;
+  right: 1%;
+  z-index: 2;
+}
+
+.main-results-dashboard-right-toolbox div {
+  border-radius: 4px;
+}
+
+#main-results-dashboard-samples {
+  display: none;
 }
 
 #main-results-dashboard-samples-left {
   position: absolute;
   height: 99%;
-  width: 40%;
+  width: 100%;
   top: 1%;
-  left: 0;
   background-color: transparent;
   z-index: 1;
-}
-
-#main-results-dashboard-samples-right-toolbox {
-  position: absolute;
-  height: 28px;
-  width: 10vw;
-  top: 1%;
-  right: 0%;
-  z-index: 2;
-}
-
-#main-results-dashboard-samples-right-toolbox div {
-  border-radius: 4px;
 }
 
 #main-results-dashboard-samples-right {
   position: absolute;
   height: 99%;
-  width: 60%;
+  width: 100%;
   top: 1%;
-  left: 40%;
   background-color: transparent;
 }
 
@@ -200,38 +214,30 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #main-results-dashboard-features-left {
   position: absolute;
   height: 90%;
-  width: 50%;
-  top: 10%;
-  left: 0;
+  width: 100%;
+  top: 1%;
+  background-color: transparent;
+  z-index: 1;
 }
 
 #main-results-dashboard-features-right {
   position: absolute;
-  height: 90%;
-  width: 50%;
-  top: 10%;
-  left: 50%;
+  height: 99%;
+  width: 100%;
+  top: 1%;
+  background-color: transparent;
 }
 
 #main-results-dashboard-variants {
   display: none;
 }
 
-#main-results-dashboard-variants-top {
+#main-results-dashboard-variants {
   position: absolute;
-  height: 100%;
+  height: 99%;
   width: 100%;
-  top: 5%;
+  top: 1%;
   left: 0;
-}
-
-#main-results-dashboard-variants-bottom {
-  position: absolute;
-  height: 50%;
-  width: 100%;
-  top: 50%;
-  left: 0;
-  background-color: beige;
 }
 
 .fa-xmark {

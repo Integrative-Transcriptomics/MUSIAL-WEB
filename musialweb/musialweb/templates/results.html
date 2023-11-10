@@ -17,6 +17,10 @@
 {% endblock %} {% block scripts %}
 <script
   type="text/javascript"
+  src="https://cdn.jsdelivr.net/npm/mathjs@12.0.0/lib/browser/math.min.js"
+></script>
+<script
+  type="text/javascript"
   src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"
 ></script>
 <script
@@ -254,87 +258,95 @@
   <div class="remark m-4">
     <div id="main-results-dashboard">
       <div id="main-results-dashboard-samples" class="dashboard-container">
-        <div id="main-results-dashboard-samples-left-toolbox">
-          <select
-            id="main-results-dashboard-samples-overview-field"
-            class="input-small"
-            data-role="select"
-            data-prepend="Field"
-            data-filter="false"
-            data-on-item-select="dashboardSamplesOverview"
-          ></select>
+        <div data-role="splitter" data-min-sizes="600" class="h-100">
+          <div>
+            <div class="main-results-dashboard-left-toolbox">
+              <select
+                id="main-results-dashboard-samples-overview-field"
+                class="input-small w-25 float-right"
+                data-role="select"
+                data-prepend="Field"
+                data-filter="false"
+                data-on-item-select="dashboardSamplesOverview"
+              ></select>
+            </div>
+            <div id="main-results-dashboard-samples-left"></div>
+          </div>
+          <div>
+            <div class="main-results-dashboard-right-toolbox">
+              <select
+                id="main-results-dashboard-samples-clustering-type"
+                class="input-small w-25 float-right"
+                data-role="select"
+                data-prepend="Type"
+                data-filter="false"
+                data-on-item-select="dashboardSamplesClustering"
+              >
+                <option value="allele">Allele</option>
+                <option value="proteoform">Proteoform</option>
+              </select>
+            </div>
+            <div id="main-results-dashboard-samples-right"></div>
+          </div>
         </div>
-        <div id="main-results-dashboard-samples-left"></div>
-
-        <div id="main-results-dashboard-samples-right-toolbox">
-          <select
-            id="main-results-dashboard-samples-clustering-type"
-            class="input-small"
-            data-role="select"
-            data-prepend="Type"
-            data-filter="false"
-            data-on-item-select="dashboardSamplesClustering"
-          >
-            <option value="allele">Allele</option>
-            <option value="proteoform">Proteoform</option>
-          </select>
-        </div>
-        <div id="main-results-dashboard-samples-right"></div>
       </div>
 
       <div id="main-results-dashboard-features" class="dashboard-container">
-        <div class="toolbar mt-2" data-role="buttongroup">
-          <span class="tag-dark">forms</span>
-          <select
-            id="main-results-dashboard-features-forms-feature"
-            class="input-small"
-            data-role="select"
-            data-prepend="Feature"
-            data-filter="false"
-          ></select>
-          <button
-            class="button small rounded green-button"
-            onclick="dashboardFeaturesForms()"
-            data-role="hint"
-            data-hint-text="Display allele and proteoform interconnection graph of the selected feature."
-            data-hint-position="bottom"
-          >
-            <i class="fa-duotone fa-play"></i>
-          </button>
+        <div data-role="splitter" data-min-sizes="600" class="h-100">
+          <div>
+            <div class="main-results-dashboard-left-toolbox"></div>
+            <div id="main-results-dashboard-features-left"></div>
+          </div>
+          <div>
+            <div class="main-results-dashboard-right-toolbox">
+              <button
+                class="button small rounded green-button float-right ml-2"
+                onclick="dashboardFeaturesProteoforms()"
+                data-role="hint"
+                data-hint-text="Display proteoform structure dashboard of the selected feature in a new tab."
+                data-hint-position="bottom"
+              >
+                <i class="fa-duotone fa-play"></i
+                ><i
+                  class="fa-solid fa-plus"
+                  style="
+                    font-size: xx-small !important;
+                    position: absolute;
+                    bottom: 2px;
+                  "
+                ></i>
+              </button>
+              <select
+                id="main-results-dashboard-features-proteoforms-feature"
+                class="input-small w-25 float-right ml-2"
+                data-role="select"
+                data-prepend="Feature"
+                data-filter="false"
+              ></select>
+              <button
+                class="button small rounded green-button float-right ml-2"
+                onclick="dashboardFeaturesForms()"
+                data-role="hint"
+                data-hint-text="Display allele and proteoform interconnection graph of the selected feature."
+                data-hint-position="bottom"
+              >
+                <i class="fa-duotone fa-play"></i>
+              </button>
+              <select
+                id="main-results-dashboard-features-forms-feature"
+                class="input-small w-25 float-right ml-2"
+                data-role="select"
+                data-prepend="Feature"
+                data-filter="false"
+              ></select>
+            </div>
+            <div id="main-results-dashboard-features-right"></div>
+          </div>
         </div>
-        <div class="toolbar mt-2" data-role="buttongroup">
-          <span class="tag-dark">proteoforms</span>
-          <select
-            id="main-results-dashboard-features-proteoforms-feature"
-            class="input-small"
-            data-role="select"
-            data-prepend="Feature"
-            data-filter="false"
-          ></select>
-          <button
-            class="button small rounded green-button"
-            onclick="dashboardFeaturesProteoforms()"
-            data-role="hint"
-            data-hint-text="Display proteoform structure dashboard of the selected feature in a new tab."
-            data-hint-position="bottom"
-          >
-            <i class="fa-duotone fa-play"></i
-            ><i
-              class="fa-solid fa-plus"
-              style="
-                font-size: xx-small !important;
-                position: absolute;
-                bottom: 2px;
-              "
-            ></i>
-          </button>
-        </div>
-        <div id="main-results-dashboard-features-left"></div>
-        <div id="main-results-dashboard-features-right"></div>
       </div>
 
       <div id="main-results-dashboard-variants" class="dashboard-container">
-        <div id="main-results-dashboard-variants-top"></div>
+        <div id="main-results-dashboard-variants"></div>
       </div>
     </div>
   </div>

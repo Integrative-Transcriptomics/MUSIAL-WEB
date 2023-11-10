@@ -100,6 +100,12 @@ body {
   width: auto;
 }
 
+.plain {
+  text-decoration: none;
+  border: none;
+  background-color: transparent;
+}
+
 #menu-active-session-indicator {
   border: none;
   text-decoration: none;

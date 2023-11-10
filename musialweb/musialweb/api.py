@@ -2,11 +2,12 @@ from musialweb import app
 from flask import request, session, send_file, render_template
 from flask_session import Session
 from datetime import timedelta, datetime
+from itertools import combinations, product
 from operator import methodcaller
 from dotenv import load_dotenv
 from io import StringIO
 from Bio import SeqIO
-import json, zlib, os, subprocess, shutil, brotli, random, string, re, brotli, base64, copy, traceback
+import json, zlib, os, subprocess, shutil, brotli, random, string, re, brotli, base64, copy, traceback, math
 import pandas as pd
 import numpy as np
 import scipy as sc
@@ -482,23 +483,70 @@ def clc_correlation():
     return [n, format(t, ".6g"), format(p, ".6g"), status]
 
 
-@app.route("/calc/forms_sunburst", methods=["POST"])
-def clc_feature_sunburst():
-    def color(x):
-        if x == 0.0:
-            return "#e4e5ed"
-        elif x < 1.0:
-            return "#6d81ad"
-        elif x < 10.0:
-            return "#FFB000"
-        else:
-            return "#DC267F"
-
-    def annotations(x):
+@app.route("/calc/forms_graph", methods=["POST"])
+def clc_feature_graph():
+    def node_annotations(x):
         annotations = copy.deepcopy(x)
         if "variants" in annotations and annotations["variants"] != "":
             annotations["variants"] = _brotli_decompress(annotations["variants"])
         return annotations
+
+    def node_size(x):
+        f = (x / len(storage["samples"].keys())) * 100
+        return round(8 / (1 + 2 * (math.exp(-0.05)) ** f), 1)
+    
+    def node_color(x, default):
+        if x["name"] == "reference":
+            return "#FFBA08"
+        elif "novel_stops" in x["annotations"]:
+            return "#FE4848"
+        else :
+            return default
+
+    def distance(x,y) :
+        x = set(x)
+        y = set(y)
+        return len(x.union(y)) - len(x.intersection(y))
+    
+    def graph_topology(forms) -> list:
+        # Extract per form variants.
+        forms_variants = { }
+        for form in forms :
+            if "novel_stops" in form["annotations"] :
+                continue
+            if form["name"] == "reference" :
+                forms_variants["reference"] = [ ]
+            else :
+                forms_variants[ form["name"] ] = _brotli_decompress(copy.deepcopy(form["annotations"]["variants"])).split(";")
+        # Establish links between low distance nodes.
+        forms_variants_keys = list( forms_variants.keys( ) )
+        links = [ ]
+        for i in forms_variants_keys :
+            d = np.inf
+            parent = False
+            for j in forms_variants_keys :
+                if len( forms_variants[j] ) < len( forms_variants[ i ] ) :
+                    _d = distance(forms_variants[i], forms_variants[j])
+                    if _d < d :
+                        d = _d
+                        parent = j
+            if parent :
+                links.append({
+                    "source": "Proteoform " + parent,
+                    "target": "Proteoform " + i,
+                    "value": -1 * d,
+                    "lineStyle": {
+                        "type": "solid",
+                        "color": "#9ba6bd",
+                        "width": 1,
+                        "curveness": 0.2,
+                    },
+                    "type": "relation"
+                })
+        return links
+
+    symbol_proteoform = "path://M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM184 128h92c50.8 0 92 41.2 92 92s-41.2 92-92 92H208v48c0 13.3-10.7 24-24 24s-24-10.7-24-24V288 152c0-13.3 10.7-24 24-24zm92 136c24.3 0 44-19.7 44-44s-19.7-44-44-44H208v88h68z"
+    symbol_allele = "path://M256,512A256,256,0,1,0,256,0a256,256,0,1,0,0,512zm0-400c9.1,0,17.4,5.1,21.5,13.3l104,208c5.9,11.9,1.1,26.3-10.7,32.2s-26.3,1.1-32.2-10.7L321.2,320H190.8l-17.4,34.7c-5.9,11.9-20.3,16.7-32.2,10.7s-16.7-20.3-10.7-32.2l104-208c4.1-8.1,12.4-13.3,21.5-13.3zm0,77.7L214.8,272h82.3L256,189.7z"
 
     # Inflate the request data and transform into python dictionary.
     inflated_request_data = zlib.decompress(request.data)
@@ -506,95 +554,86 @@ def clc_feature_sunburst():
     json_request_data = json.loads(json_string_request_data)
     storage = session[API_CODES["RESULT_KEY"]]
     feature = json_request_data["feature"]
+    nodes = []
+    links = []
     status = "0"
-    tree = {
-        "name": feature,
-        "children": [],
-        "label": {"show": True, "rotate": 0},
-        "itemStyle": {
-            "color": "#cbd0e0",
-            "borderWidth": 6,
-            "borderRadius": 6,
-            "borderColor": "white",
-        },
-        "level": "Gene",
-    }
     try:
         if storage["features"][feature]["type"] == "coding":
-            for proteoform in sorted(
-                storage["features"][feature]["proteoforms"].values(),
-                key=lambda e: float(e["annotations"]["variable_positions"]),
-                reverse=True,
-            ):
-                proteoform_entry = {
-                    "name": proteoform["name"],
-                    "children": [],
+            for proteoform in storage["features"][feature]["proteoforms"].values():
+                proteoform_node = {
+                    "name": "Proteoform " + proteoform["name"],
                     "itemStyle": {
-                        "color": color(
-                            float(proteoform["annotations"]["variable_positions"])
-                        ),
+                        "color": node_color(proteoform, "#607196"),
                         "borderWidth": 0,
                         "borderColor": "transparent",
                     },
-                    "annotations": annotations(proteoform["annotations"]),
-                    "level": "Proteoform",
+                    "symbol": symbol_proteoform,
+                    "value": float(proteoform["annotations"]["variable_positions"]),
+                    "annotations": node_annotations(proteoform["annotations"]),
+                    "isNode": True,
                 }
                 proteoform_weight = 0
                 for allele_name in proteoform["occurrence"]:
                     allele = storage["features"][feature]["alleles"][allele_name]
-                    allele_entry = {
-                        "name": allele_name,
-                        "children": [],
+                    allele_weight = len(allele["occurrence"])
+                    allele_node = {
+                        "name": "Allele " + allele_name,
                         "itemStyle": {
-                            "color": color(
-                                float(allele["annotations"]["variable_positions"])
-                            ),
+                            "color": node_color(allele, "#9ba6bd"),
                             "borderWidth": 0,
                             "borderColor": "transparent",
                         },
-                        "annotations": annotations(allele["annotations"]),
-                        "level": "Allele",
-                        "value": len(allele["occurrence"]),
+                        "symbol": symbol_allele,
+                        "value": float(allele["annotations"]["variable_positions"]),
+                        "annotations": node_annotations(allele["annotations"]),
+                        "isNode": True,
+                        "symbolSize": node_size(allele_weight),
                     }
-                    proteoform_weight += len(allele["occurrence"])
-                    proteoform_entry["children"].append(allele_entry)
-                proteoform_entry["value"] = proteoform_weight
-                proteoform_entry["children"] = sorted(
-                    proteoform_entry["children"],
-                    key=lambda e: float(e["annotations"]["variable_positions"]),
-                    reverse=True,
-                )
-                tree["children"].append(proteoform_entry)
+                    proteoform_weight += allele_weight
+                    nodes.append(allele_node)
+                    links.append(
+                        {
+                            "source": "Proteoform " + proteoform["name"],
+                            "target": "Allele " + allele_name,
+                            "value": allele_weight,
+                            "lineStyle": {
+                                "type": "dotted",
+                                "color": "#cbd0e0",
+                                "width": 2,
+                            },
+                            "type": "interconnection"
+                        }
+                    )
+                proteoform_node["symbolSize"] = node_size(proteoform_weight)
+                nodes.append(proteoform_node)
+            links += graph_topology(storage["features"][feature]["proteoforms"].values())
         else:
-            for allele in sorted(
-                storage["features"][feature]["alleles"].values(),
-                key=lambda e: float(e["annotations"]["variable_positions"]),
-                reverse=True,
-            ):
-                allele_entry = {
-                    "name": allele["name"],
-                    "children": [],
+            for allele in storage["features"][feature]["alleles"].values():
+                allele_weight = len(allele["occurrence"])
+                allele_node = {
+                    "name": "Allele " + allele["name"],
                     "itemStyle": {
-                        "color": color(
-                            float(allele["annotations"]["variable_positions"])
-                        ),
+                        "color": node_color(allele, "#9ba6bd"),
                         "borderWidth": 0,
                         "borderColor": "transparent",
                     },
+                    "symbol": symbol_allele,
                     "value": float(allele["annotations"]["variable_positions"]),
-                    "annotations": annotations(allele["annotations"]),
-                    "level": "Allele",
-                    "value": len(allele["occurrence"]),
+                    "annotations": node_annotations(allele["annotations"]),
+                    "isNode": True,
+                    "symbolSize": allele_weight,
                 }
-                tree["children"].append(allele_entry)
+                nodes.append(allele_node)
+            links += graph_topology(storage["features"][feature]["alleles"].values())
     except Exception as e:
-        tree = []
+        nodes = []
+        links = []
         status = "1"
         if DEBUG:
             print("\033[41m ERROR \033[0m")
             print(str(e))
             traceback.print_exc()
-    return [tree, status]
+    return [nodes, links, status]
 
 
 @app.route("/extension/feature_proteoforms", methods=["GET"])
@@ -648,7 +687,7 @@ def _view_features_output_to_dict(out):
         "records": records,
         "dashboard": {
             "overview_parallel": mwchart.features_overview_parallel(content_df),
-            "forms_sunburst": mwchart.features_forms_sunburst(),
+            "forms_graph": mwchart.features_forms_template(),
         },
     }
 
@@ -779,9 +818,9 @@ def _run_sample_clustering(form_type):
     return mwclustering.cluster_sequences(
         per_feature_sequence_records,
         {
-            "nodes_x": 4,
-            "nodes_y": 4,
-            "sigma": 2,
+            "nodes_x": 5,
+            "nodes_y": 5,
+            "sigma": 3,
             "learning_rate": 1,
             "neighborhood_function": "triangle",
         },
