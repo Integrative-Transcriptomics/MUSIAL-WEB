@@ -1,5 +1,4 @@
 import math
-import numpy as np
 from itertools import product
 from random import randint
 from math import sin, cos

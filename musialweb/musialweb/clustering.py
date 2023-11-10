@@ -1,7 +1,5 @@
 from minisom import MiniSom
 from scipy.spatial import distance
-from sklearn.decomposition import PCA
-from sklearn.manifold import TSNE
 from itertools import product
 import numpy as np
 

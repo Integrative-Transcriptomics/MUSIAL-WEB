@@ -2,12 +2,11 @@ from musialweb import app
 from flask import request, session, send_file, render_template
 from flask_session import Session
 from datetime import timedelta, datetime
-from itertools import combinations, product
 from operator import methodcaller
 from dotenv import load_dotenv
 from io import StringIO
 from Bio import SeqIO
-import json, zlib, os, subprocess, shutil, brotli, random, string, re, brotli, base64, copy, traceback, math
+import json, zlib, os, subprocess, shutil, random, string, re, brotli, base64, copy, traceback, math
 import pandas as pd
 import numpy as np
 import scipy as sc
