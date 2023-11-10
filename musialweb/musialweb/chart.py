@@ -38,97 +38,6 @@ def samples_overview_bar():
         "series": [],
     }
 
-
-def DEP_samples_clustering_map(
-    quantization_error, topographic_error, clustered_data, feature_names
-):
-    series = {}
-    sample_names = list(clustered_data.keys())
-    global_values = []
-    for sample_name, sample_data in clustered_data.items():
-        cluster_index = int(sample_data["c"]) - 1
-        sample_index = sample_names.index(sample_name)
-        if not cluster_index in series:
-            series[cluster_index] = {
-                "type": "heatmap",
-                "data": [],
-                "name": "Cluster " + str(cluster_index + 1),
-            }
-        y = 0
-        for value in sample_data["weighted_distances"]:
-            series[cluster_index]["data"].append([sample_index, y, value])
-            global_values.append(value)
-            y += 1
-    cutoff_value = float("%.1g" % np.percentile(global_values, 75))
-    return {
-        "title": [
-            {
-                "top": 0,
-                "left": 0,
-                "text": "SOM Clustering Heatmap",
-                # "subtext": "Quantization Error: "
-                # + str(float("%.3g" % quantization_error))
-                # + ", Topographic Error: "
-                # + str(float("%.3g" % topographic_error)),
-                "textStyle": {"fontWeight": "lighter"},
-            },
-        ],
-        "grid": [
-            {"top": "11%", "left": "10%", "height": "80%", "width": "85%"},
-        ],
-        "xAxis": [
-            {
-                "type": "category",
-                "gridIndex": 0,
-                "name": "Samples",
-                "nameLocation": "center",
-                "nameGap": "25",
-                "data": sample_names,
-            }
-        ],
-        "yAxis": [
-            {
-                "type": "category",
-                "gridIndex": 0,
-                "name": "Cluster Index",
-                "nameLocation": "center",
-                "nameGap": "45",
-                "data": [str(ci + 1) for ci in range(9)],
-                "inverse": True,
-                "alignTicks": "value",
-            }
-        ],
-        "legend": {
-            "top": "6%",
-            "left": "10%",
-            "icon": "circle",
-            "itemWidth": 10,
-            "itemHeight": 10,
-            "itemStyle": {"color": "#747474"},
-            "textStyle": {"fontSize": 9},
-        },
-        "visualMap": [
-            {
-                "type": "continuous",
-                "min": 0,
-                "max": cutoff_value,
-                "color": ["#FFFFFF", "#222222"],
-                "top": 0,
-                "left": "10%",
-                "orient": "horizontal",
-                "text": [
-                    "≥ " + str(cutoff_value),
-                    "Euc. Distance to Cluster SOM Node: " + str(0),
-                ],
-                "itemWidth": 10,
-                "itemHeight": 60,
-            }
-        ],
-        "series": list(series.values()),
-    }
-
-
-def DEP_samples_clustering_scatter(quantization_error, topographic_error, clustered_data, u_matrix, feature_names):
     series = {}
     sample_names = list(clustered_data.keys())
     for sample_name, sample_data in clustered_data.items():
@@ -189,7 +98,6 @@ def DEP_samples_clustering_scatter(quantization_error, topographic_error, cluste
         },
         "series": list(series.values()),
     }
-
 
 def samples_clustering_map(quantization_error, topographic_error, clustered_data, u_matrix, feature_names):
     unit_series = {}
@@ -425,7 +333,6 @@ def features_overview_parallel(df):
         "series": series,
     }
 
-
 def features_forms_template():
     return {
         "title": {
@@ -436,7 +343,6 @@ def features_forms_template():
         },
         "series": [],
     }
-
 
 def variants_overview_bar(df, max, df_features):
     colors = []
