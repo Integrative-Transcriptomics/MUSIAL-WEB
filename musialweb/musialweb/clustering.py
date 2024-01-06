@@ -1,132 +1,175 @@
-from minisom import MiniSom
-from scipy.spatial import distance
-from itertools import product
+from sklearn.manifold import TSNE, trustworthiness
+from sklearn.cluster import HDBSCAN
+from itertools import combinations
+from scipy.spatial.distance import cityblock
+from random import choice
 import numpy as np
 
-REFERENCE_ID = "reference"
-SOM_NODES_X = "nodes_x"
-SOM_NODES_Y = "nodes_y"
-SOM_SIGMA = "sigma"
-SOM_LR = "learning_rate"
-SOM_NF = "neighborhood_function"
+def _jaccard_index(M: list, N: list) -> float:
+    X = set( M )
+    Y = set( N )
+    if len( X.union( Y ) ) == 0 :
+        return 0.
+    else :
+        return round( len( X.intersection( Y ) ) / len( X.union( Y ) ), 4 )
 
+def _hamming_distance(M: list, N: list) -> int:
+    d = 0
+    for m, n in zip( M, N ) :
+        if m != n :
+            d += 1
+    return d
 
-def _hamming(q: str, p: str) -> float:
-    if len(q) != len(p):
-        return None
-    s = 0
-    for c_q, c_p in zip(q, p):
-        if c_q != c_p:
-            s += 1
-    return round( s / len( q ), 4 )
+def _profile_name(feature_forms: dict) -> tuple:
+    return tuple( [ feature + "." + form for feature, form in feature_forms.items( ) ] )
 
+def _random_color() -> str:
+    return "#" + ''.join( [ choice('123456789ABCDEF') for _ in range(6) ] )
 
-def cluster_sequences(
-    data: dict, som_parameters: dict
-) -> (float, float, dict, list, list):
-    sample_names = []  # Stores sample names in order given by data.
-    feature_names = []  # Stores feature names in order given by data.
-    distances_dictionary = (
-        {}
-    )  # Stores, per sample, list of distances to reference sequence in order of feature_names.
-    distance_matrix = []  # 2D representation of distances_dictionary.
+def _centroid(n: list) -> list:
+    c = [ ]
+    n = np.array( n )
+    l = n.shape[ 0 ]
+    for i in range( n.shape[ 1 ] ) :
+        c.append( np.sum( n[ : , i ] ) / l )
+    return c
 
-    # Compute distances per sample to reference for each record list in data.
-    for feature_name, sequence_records in data.items():
-        feature_names.append(feature_name)
-        sequence_data = {}
-        for (
-            sequence_record
-        ) in sequence_records:  # Extract Bio.SeqIO records into dictionary.
-            sequence_data[str(sequence_record.id)] = list(str(sequence_record.seq))
-            sequence_data = dict(sorted(sequence_data.items()))
-        for (
-            identifier,
-            sequence,
-        ) in (
-            sequence_data.items()
-        ):  # Append distance to reference sequence (per sample).
-            if identifier != REFERENCE_ID:
-                if not identifier in distances_dictionary:
-                    distances_dictionary[identifier] = []
-                    sample_names.append(identifier)
-                distances_dictionary[identifier].append(
-                    _hamming(sequence_data[REFERENCE_ID], sequence)
-                )
-    distance_matrix = list(distances_dictionary.values())
+def compute_clusters(data: dict):
 
-    # Impute default parameters, if not specified.
-    if not SOM_NODES_X in som_parameters:
-        som_parameters[SOM_NODES_X] = 5
-    if not SOM_NODES_Y in som_parameters:
-        som_parameters[SOM_NODES_Y] = 5
-    if not SOM_SIGMA in som_parameters:
-        som_parameters[SOM_SIGMA] = 2
-    if not SOM_LR in som_parameters:
-        som_parameters[SOM_LR] = 1
-    if not SOM_NF in som_parameters:
-        som_parameters[SOM_NF] = "triangle"
+    def _profile_distances(profile_name: str) -> list:
+        """ Helper function to compute the Hamming distance of a sample profile wrt. all feature forms.
+        """
+        Q = [ ]
+        for feature_form in list( profile_name ) :
+            feature = feature_form.split( "." )[ 0 ]
+            profile_form = ".".join( feature_form.split( "." )[ 1: ] )
+            variants = data[ "features" ][ feature ][ profile_form ][ "variants" ]
+            for form in data[ "features" ][ feature ].keys( ) :
+                if profile_form == form :
+                    Q.append( 0 )
+                else :
+                    Q.append(
+                        _hamming_distance( variants, data[ "features" ][ feature ][ form ][ "variants" ] )
+                    )
+        return Q
+    
+    # Construct profiles from samples, i.e., merge samples with identical forms across all features.
+    SAMPLE_PROFILES = { }
+    for sample_name in data[ "samples" ] :
+        profile_name = _profile_name( data[ "samples" ][ sample_name ] )
+        if profile_name in SAMPLE_PROFILES :
+            SAMPLE_PROFILES[ profile_name ][ "samples" ].append( sample_name )
+        else :
+            SAMPLE_PROFILES[ profile_name ] = {  "cluster": None, "assignment_probability": None, "samples": [ sample_name ]  }    
 
-    # Cluster samples based on distances to reference.
-    som = MiniSom(
-        som_parameters[SOM_NODES_X],
-        som_parameters[SOM_NODES_Y],
-        len(distance_matrix[0]), # Number of features.
-        sigma=som_parameters[SOM_SIGMA],
-        learning_rate=som_parameters[SOM_LR],
-        neighborhood_function=som_parameters[SOM_NF],
-        random_seed=0,
+    # Clustering is computed based on profile Hamming distance to all feature forms (feature space) using HDBSCAN algorithm.
+    METRIC = "cityblock"
+    METRIC_FUNCTION = cityblock
+    SEED = 0
+    feature_matrix = [ ]
+    profile_names = list( SAMPLE_PROFILES.keys( ) )
+    for profile_name in profile_names :
+        feature_matrix.append( _profile_distances( profile_name ) )
+    feature_matrix = np.array( feature_matrix )
+    profile_clustering = HDBSCAN(
+        min_cluster_size = max( 5, int( np.ceil( len( profile_names ) / 100 ) * 1 ) ),
+        cluster_selection_epsilon = 0.0,
+        alpha = 1.0,
+        metric = METRIC,
+        cluster_selection_method = "eom",
+        allow_single_cluster = False,
     )
-    som.pca_weights_init(distance_matrix)
-    som.train(distance_matrix, 1000)
-    quantization_error = som.quantization_error(distance_matrix)
-    topographic_error = som.topographic_error(distance_matrix)
+    clustering = profile_clustering.fit( feature_matrix )
+    cluster_profiles = { }
+    for profile_name, cluster_label, cluster_probability in zip( profile_names, clustering.labels_, clustering.probabilities_ ) :
+        cluster_label = int( cluster_label )
+        SAMPLE_PROFILES[ profile_name ][ "cluster" ] = cluster_label
+        SAMPLE_PROFILES[ profile_name ][ "assignment_probability" ] = float( cluster_probability )
+        if cluster_label == -1 :
+            continue
+        if not cluster_label in cluster_profiles :
+            cluster_profiles[ cluster_label ] = [ ]
+        cluster_profiles[ cluster_label ].append( profile_name )
 
-    # Store clustering information in dictionary.
-    clustered_data = {}
-    cluster_index = 1
-    som_node_weights = som.get_weights()
-    per_cluster_sample_names = som.labels_map(distance_matrix, sample_names)
-    for i in range(som_parameters[SOM_NODES_X]):
-        for j in range(som_parameters[SOM_NODES_Y]):
-            if (i, j) in per_cluster_sample_names:
-                for sample_name in list(
-                    per_cluster_sample_names[(i, j)].keys()
-                ):
-                    clustered_data[sample_name] = {
-                        "c": str(cluster_index),
-                        "feature_distances": distance_matrix[
-                            sample_names.index(sample_name)
-                        ],
-                    }
-            cluster_index += 1
+    # Clustering evaluated using the Davies-Bouldin index wrt. Cityblock distance.
+    cluster_centroids = { }
+    for c_i in clustering.labels_ :
+        c_i = int( c_i )
+        if c_i == -1 :
+            continue
+        cluster_centroids[ c_i ] = _centroid(
+            [ feature_matrix[ _ ] for _ in
+              [ profile_names.index( profile_name ) for profile_name in cluster_profiles[ c_i ] ]
+            ]
+        )
+    inter_cluster_distances = { }
+    for c_i, c_j in combinations( clustering.labels_, 2 ) :
+        c_i = int( c_i )
+        c_j = int( c_j )
+        if c_i == -1 or c_j == -1 :
+            continue
+        inter_cluster_distance = METRIC_FUNCTION( cluster_centroids[ c_i ], cluster_centroids[ c_j ] )
+        inter_cluster_distances[ ( c_i, c_j ) ] = inter_cluster_distance
+        inter_cluster_distances[ ( c_j, c_i ) ] = inter_cluster_distance
 
-    # Add weighted distances to each cluster center/SOM node.
-    minimal_unit_distance = np.inf
-    maximal_unit_distance = np.NINF
-    for _, value in clustered_data.items():
-        value["unit_distances"] = [
-            float(
-                "%.3g"
-                % distance.euclidean(value["feature_distances"], som_node_weights[i][j])
+    intra_cluster_distances = { }
+    for c_i in clustering.labels_ :
+        c_i = int( c_i )
+        if c_i == -1 :
+            continue
+        distance_sum = 0
+        for profile_name in cluster_profiles[ c_i ] :
+            distance_sum += METRIC_FUNCTION(
+                cluster_centroids[ c_i ],
+                feature_matrix[ profile_names.index( profile_name ) ]
             )
-            for i, j in product(
-                range(som_parameters[SOM_NODES_X]), range(som_parameters[SOM_NODES_Y])
-            )
-        ]
-        maximal_local_unit_distance = max(value["unit_distances"])
-        if maximal_local_unit_distance > maximal_unit_distance :
-            maximal_unit_distance = maximal_local_unit_distance
-        minimal_local_unit_distance = min(value["unit_distances"])
-        if minimal_local_unit_distance < minimal_unit_distance :
-            minimal_unit_distance = minimal_local_unit_distance
-    for _, value in clustered_data.items():
-        value["normalized_bmu_distance"] = ( min(value["unit_distances"]) - minimal_unit_distance ) / ( maximal_unit_distance - minimal_unit_distance )
+        intra_cluster_distances[ c_i ] = distance_sum / len( cluster_profiles[ c_i ] )
 
-    return (
-        quantization_error,
-        topographic_error,
-        clustered_data,
-        som.distance_map(scaling="mean"),
-        feature_names,
+    D_i = [ ]
+    for c_i in clustering.labels_ :
+        c_i = int( c_i )
+        if c_i == -1 :
+            continue
+        R_max = 0
+        for c_j in clustering.labels_ :
+            c_j = int( c_j )
+            if c_i == c_j or c_j == -1 :
+                continue
+            R = ( intra_cluster_distances[ c_i ] + intra_cluster_distances[ c_j ] ) / inter_cluster_distances[ ( c_i, c_j ) ]
+            if R > R_max :
+                R_max = R
+        D_i.append( R_max )
+    DBI = np.sum( D_i ) / len( D_i )
+
+    CLUSTERING = { "dbi": DBI, "clusters": { } }
+    for cluster_label, cluster_profile_names in cluster_profiles.items( ) :
+        profile_name_list = np.array( [ list( profile_name ) for profile_name in cluster_profile_names ] )
+        conserved = [ ]
+        for i in range( profile_name_list.shape[ 1 ] ) :
+            if len( set( profile_name_list[ : , i ] ) ) == 1 :
+                conserved.append( profile_name_list[0][i] )
+        CLUSTERING[ "clusters" ][ cluster_label ] = {
+            "conserved": conserved,
+            "color": _random_color(),
+            "size": sum( [ len( SAMPLE_PROFILES[ profile_name ][ "samples" ] ) for profile_name in cluster_profile_names ] )
+        }
+
+    # For vis., compute a manifold projection using tSNE.
+    manifold_projection = TSNE(
+        n_components = 2,
+        perplexity = max( 5, int( np.ceil( len( profile_names ) / 100 ) * 1 ) ),
+        early_exaggeration = 10,
+        metric = METRIC,
+        random_state = SEED
     )
+    embedding = np.array( [ [ round( _[0], 4 ), round( _[1], 4 ) ] for _ in manifold_projection.fit_transform( feature_matrix ) ] )
+    PROFILE_PROJECTION = {
+        "embedding": {
+            profile_names[ i ] : embedding[ i ]
+            for i in range( len( profile_names ) )
+        },
+        # Embedding quality is evaluated wrt. 5% of samples as neighbours.
+        "trustworthiness": round( trustworthiness( feature_matrix, embedding, metric = METRIC, n_neighbors = max( 5, int( np.ceil( len( profile_names ) / 100 ) * 5 ) ) ), 4 )
+    }
+
+    return ( SAMPLE_PROFILES, PROFILE_PROJECTION, CLUSTERING )

@@ -32,17 +32,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 .home-tile {
   border-radius: 6px;
-  background-color: var(--color-secondary);
+  background-color: var(--color-primary);
   opacity: 50;
   padding: 10px;
   width: 100%;
   height: 100%;
-  color: var(--text-color-secondary);
+  color: var(--background-color-tertiary);
   cursor: pointer;
 }
 
 .home-tile:hover {
-  background-color: var(--color-quarternary);
+  background-color: var(--color-tertiary);
+  transition: 0.1s;
+}
+
+.home-tile:hover i {
+  color: rgba(254, 72, 72, 1);
   transition: 0.1s;
 }
 
@@ -52,13 +57,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 .home-tile i {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  font-size: 71px;
+  top: 10px;
+  left: 10px;
+  font-size: 68px;
+  color: rgba(254, 72, 72, 0.8);
 }
 
-.cell-12 i {
-  color: rgba(177, 183, 201, 0.5);
+.home-tile p {
+  padding-left: 80px;
 }
 
 .branding-bar {

@@ -109,6 +109,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   border-color: var(--color-secondary);
 }
 
+#main-results-table-manage-tags-wrapper .input-clear-button {
+  display: none !important;
+}
+
+#main-results-table-manage-tags-wrapper .input-wrapper {
+  display: none !important;
+}
+
 .data-download-copy-from-table-button {
   background-color: var(--color-primary) !important;
   color: var(--background-color-primary) !important;
@@ -213,7 +221,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #main-results-dashboard-features-left {
   position: absolute;
-  height: 90%;
+  height: 99%;
   width: 100%;
   top: 1%;
   background-color: transparent;

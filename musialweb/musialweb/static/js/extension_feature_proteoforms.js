@@ -101,6 +101,7 @@ const AMINO_ACID_COLOR = {
   "*": "#FF0099", // TER
   "-": "#3c3c3c", // Gap
 };
+
 var STATE = {
   SEQUENCE_VIEW_OPTION: {
     title: [],
@@ -136,8 +137,50 @@ var STATE = {
     ],
     tooltip: {
       trigger: "item",
-      triggerOn: "click",
-      formatter: null,
+      triggerOn: "mousemove",
+      formatter: (params, ticket, callback) => {
+        let selected_proteoform =
+          STATE.SEQUENCE_VIEW_OPTION.yAxis[0].data[params.data[1]];
+        let reference_designation =
+          AMINO_ACID_DESIGNATION[
+            STATE.POSITION_DATA[params.data[0]]["reference"]
+          ];
+        let content =
+          "Reference: " +
+          reference_designation +
+          "</br>" +
+          selected_proteoform +
+          ": " +
+          AMINO_ACID_DESIGNATION[
+            STATE.POSITION_DATA[params.data[0]][selected_proteoform]
+          ] +
+          "<hr>";
+        let variants_counts_map = _countValuesOfArray(
+          Object.values(STATE.POSITION_DATA[params.data[0]])
+        );
+        for (let entry of variants_counts_map.entries()) {
+          let entry_designation = AMINO_ACID_DESIGNATION[entry[0]];
+          let entry_counts = 0;
+          if (entry_designation == reference_designation) {
+            entry_counts =
+              STATE.SEQUENCE_VIEW_OPTION.yAxis[0].data.length -
+              [...variants_counts_map.values()].reduce((acc, e) => {
+                return acc + e;
+              }, 0) +
+              1;
+          } else {
+            entry_counts = entry[1];
+          }
+          content += entry_designation + " occurs " + entry_counts + "</br>";
+        }
+        return content;
+      },
+      backgroundColor: "rgba(90, 90, 90, 0.8)",
+      borderColor: "rgb(90, 90, 90)",
+      textStyle: {
+        color: "#fafafc",
+        fontSize: 10,
+      },
     },
     axisPointer: {
       link: {
@@ -633,14 +676,13 @@ window.onload = (_) => {
   STATE.NO_FORMS = Object.keys(DATA.proteoforms).length;
   _initializeStructureView();
   _collectVariantsInformation();
-  console.log(DATA);
   _initializeSequenceView();
 };
 
 function _initializeStructureView() {
   if (DATA.hasOwnProperty("structure")) {
     _STRUCTURE_VIEW = $3Dmol.createViewer($("#structure-view-container"), {
-      backgroundColor: "#FAFAFC",
+      backgroundColor: "#fafafc",
       antialias: true,
       cartoonQuality: 6,
     });
@@ -664,10 +706,10 @@ function _initializeStructureView() {
               _getVariantsEntropy(atom.resi),
             {
               position: atom,
-              backgroundColor: "#FAFAFC",
+              backgroundColor: "rgb(90, 90, 90)",
               backgroundOpacity: 0.8,
-              fontColor: "black",
-              fontSize: 12,
+              fontColor: "#fafafc",
+              fontSize: 10,
             }
           );
           viewer.addStyle(
@@ -690,7 +732,7 @@ function _initializeStructureView() {
             {
               stick: {
                 color: "#747474",
-                radius: 0.02,
+                radius: 0.05,
               },
             }
           );
@@ -900,7 +942,11 @@ function _structureViewColorByEntropy(atom, t) {
 let _sequenceViewSortProteoforms = (pfId1, pfId2) => {
   let pfId1Samples = DATA.proteoforms[pfId1].annotations.samples;
   let pfId2Samples = DATA.proteoforms[pfId2].annotations.samples;
-  if (pfId1Samples > pfId2Samples) {
+  if (pfId1 == "reference" && pfId2 != "reference") {
+    return 1;
+  } else if (pfId1 != "reference" && pfId2 == "reference") {
+    return -1;
+  } else if (pfId1Samples > pfId2Samples) {
     return 1;
   } else if (pfId1Samples == pfId2Samples) {
     return 0;
@@ -929,4 +975,8 @@ let _sequenceViewSortPositions = (a, b) => {
       return -1;
     }
   }
+};
+
+let _countValuesOfArray = (arr) => {
+  return arr.reduce((acc, e) => acc.set(e, (acc.get(e) || 0) + 1), new Map());
 };

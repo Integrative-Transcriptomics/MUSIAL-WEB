@@ -73,7 +73,6 @@ function displayWarning(text) {
  * @param {JSON} response JSON format response of the MUSIAL web api.
  */
 function handleResponse(response) {
-  console.log(response);
   if (response.code == FAILURE_CODE) {
     displayError();
   }
