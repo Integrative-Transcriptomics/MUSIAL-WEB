@@ -27,7 +27,7 @@ app.config["SESSION_USE_SIGNER"] = True
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=5.0)
 app.config["SESSION_FILE_THRESHOLD"] = 15000
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
-app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024 * 1024  # Limit content lengths to 1 GB.
+app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024  # Limit content lengths to 20 MB.
 """ Set constant session keys. """
 SESSION_KEY_REFERENCE_SEQUENCE = "UkVGRVJFTkNFX1NFUVVFTkNF"
 SESSION_KEY_STATUS = "U1RBVFVT"
@@ -255,29 +255,34 @@ def session_data():
             sample_df, sample_records = _view_samples_output_to_dict(stdout)
             
             # Add clustering information to sample dataframe.
-            per_sample_clusters = { }
-            for value in session[SESSION_KEY_SAMPLES_CLUSTERING]["allele"][ 0 ].values( ) :
-                for sample_name in value[ "samples" ] :
-                    cluster_label = "unassigned" if value[ "cluster" ] == -1 else value[ "cluster" ]
-                    per_sample_clusters[ sample_name ] = [ cluster_label ]
-            for value in session[SESSION_KEY_SAMPLES_CLUSTERING]["proteoform"][ 0 ].values( ) :
-                for sample_name in value[ "samples" ] :
-                    cluster_label = "unassigned" if value[ "cluster" ] == -1 else value[ "cluster" ]
-                    per_sample_clusters[ sample_name ].append( cluster_label )
-            sample_df_allele_cluster_column_data = [ ]
-            sample_df_proteoform_cluster_column_data = [ ]
-            for row in sample_df.iterrows( ) :
-                sample_name = row[1]["name"]
-                sample_df_allele_cluster_column_data.append( per_sample_clusters[ sample_name ][ 0 ] )
-                sample_df_proteoform_cluster_column_data.append( per_sample_clusters[ sample_name ][ 1 ] )
-            sample_df[ "cluster_alleles" ] = sample_df_allele_cluster_column_data
-            sample_df[ "cluster_proteoforms" ] = sample_df_proteoform_cluster_column_data
-            # Add clustering information to sample records.
-            sample_records["columns"] += [ "cluster_alleles", "cluster_proteoforms" ]
-            for record in sample_records[ "records" ] :
-                record[ "cluster_alleles" ] = per_sample_clusters[ record[ "name" ] ][ 0 ]
-                record[ "cluster_proteoforms" ] = per_sample_clusters[ record[ "name" ] ][ 1 ]
-
+            if session[SESSION_KEY_SAMPLES_CLUSTERING]["allele"] is not None :
+                per_sample_clusters = { }
+                for value in session[SESSION_KEY_SAMPLES_CLUSTERING]["allele"][ 0 ].values( ) :
+                    for sample_name in value[ "samples" ] :
+                        cluster_label = "unassigned" if value[ "cluster" ] == -1 else value[ "cluster" ]
+                        per_sample_clusters[ sample_name ] = cluster_label
+                sample_df_allele_cluster_column_data = [ ]
+                for row in sample_df.iterrows( ) :
+                    sample_name = row[1]["name"]
+                    sample_df_allele_cluster_column_data.append( per_sample_clusters[ sample_name ] )
+                sample_df[ "cluster_alleles" ] = sample_df_allele_cluster_column_data
+                sample_records["columns"] += [ "cluster_alleles" ]
+                for record in sample_records[ "records" ] :
+                    record[ "cluster_alleles" ] = per_sample_clusters[ record[ "name" ] ]
+            if session[SESSION_KEY_SAMPLES_CLUSTERING]["proteoform"] is not None :
+                per_sample_clusters = { }
+                for value in session[SESSION_KEY_SAMPLES_CLUSTERING]["proteoform"][ 0 ].values( ) :
+                    for sample_name in value[ "samples" ] :
+                        cluster_label = "unassigned" if value[ "cluster" ] == -1 else value[ "cluster" ]
+                        per_sample_clusters[ sample_name ] = cluster_label
+                sample_df_proteoform_cluster_column_data = [ ]
+                for row in sample_df.iterrows( ) :
+                    sample_name = row[1]["name"]
+                    sample_df_proteoform_cluster_column_data.append( per_sample_clusters[ sample_name ] )
+                sample_df[ "cluster_proteoforms" ] = sample_df_proteoform_cluster_column_data
+                sample_records["columns"] += [ "cluster_proteoforms" ]
+                for record in sample_records[ "records" ] :
+                    record[ "cluster_proteoforms" ] = per_sample_clusters[ record[ "name" ] ]
             session[SESSION_KEY_SAMPLES_DF] = sample_df
             if stderr != "":
                 _log(
@@ -800,7 +805,7 @@ def clc_feature_graph():
                     "value": float(allele["annotations"]["variable_positions"]),
                     "annotations": node_annotations(allele["annotations"]),
                     "isNode": True,
-                    "symbolSize": allele_weight,
+                    "symbolSize": node_size(allele_weight),
                 }
                 nodes.append(allele_node)
             links += graph_topology(storage["features"][feature]["alleles"].values(), "Allele ")
@@ -838,10 +843,6 @@ def extension_feature_proteoforms():
             target=target,
         )
     else:
-        print(target)
-        print(API_CODES["RESULT_KEY"] in session)
-        print(target in session[API_CODES["RESULT_KEY"]]["features"])
-        print(session[API_CODES["RESULT_KEY"]]["features"][target]["type"] == "coding")
         return API_CODES["FAILURE_CODE"]
 
 
@@ -899,10 +900,26 @@ def _view_samples_output_to_dict(out):
             "overview_area": mwchart.samples_overview_bar(),
             "clustering_allele": mwchart.samples_clustering_scatter(
                 *session[SESSION_KEY_SAMPLES_CLUSTERING]["allele"]
-            ),
+            ) if session[SESSION_KEY_SAMPLES_CLUSTERING]["allele"] is not None else {
+                "title": {
+                    "top": 0,
+                    "left": 20,
+                    "text": "tSNE Embedding",
+                    "subtext": "No data on allele clustering available.",
+                    "textStyle": {"fontWeight": "lighter"},
+                },
+            },
             "clustering_proteoform": mwchart.samples_clustering_scatter(
                 *session[SESSION_KEY_SAMPLES_CLUSTERING]["proteoform"]
-            ),
+            ) if session[SESSION_KEY_SAMPLES_CLUSTERING]["proteoform"] is not None else {
+                "title": {
+                    "top": 0,
+                    "left": 20,
+                    "text": "tSNE Embedding",
+                    "subtext": "No data on proteoform clustering available.",
+                    "textStyle": {"fontWeight": "lighter"},
+                },
+            },
         },
     }
 
@@ -955,6 +972,8 @@ def _run_sample_clustering(form_type):
         elif form_type == "proteoform":
             content_type = "aminoacid"
         for feature_name in storage["features"].keys():
+            if content_type == "aminoacid" and storage["features"][feature_name]["type"] != "coding":
+                continue
             if not feature_name in data[ "features" ] :
                 data[ "features" ][ feature_name ] = { }
             process = subprocess.Popen(
@@ -986,7 +1005,7 @@ def _run_sample_clustering(form_type):
             stdout = stdout.decode()
             stderr = stderr.decode()
             if stderr != "":
-                return (None, None, {}, [], [])
+                return None
             else:
                 for sequence_record in SeqIO.parse(
                     PATH_PREFIX
@@ -1005,9 +1024,11 @@ def _run_sample_clustering(form_type):
                 data["samples"][sample_name][ feature_name ] = storage["samples"][ sample_name ][ "annotations" ][ form_type + "_" + feature_name ]
     finally:
         shutil.rmtree(PATH_PREFIX + "tmp/" + unique_hex_key)
-
-    # Cluster samples with tSNE and OPTICS algorithm.
-    return mwclustering.compute_clusters(data)
+    if len( data["features"].keys() ) == 0 or len( data["samples"].keys( ) ) < 50:
+        return None
+    else :
+        # Cluster samples with tSNE and OPTICS algorithm.
+        return mwclustering.compute_clusters(data)
 
 
 def _generate_random_string():
