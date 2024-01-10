@@ -27,7 +27,7 @@ app.config["SESSION_USE_SIGNER"] = True
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=5.0)
 app.config["SESSION_FILE_THRESHOLD"] = 15000
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
-app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024  # Limit content lengths to 20 MB.
+app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # Limit content lengths to 50 MB.
 """ Set constant session keys. """
 SESSION_KEY_REFERENCE_SEQUENCE = "UkVGRVJFTkNFX1NFUVVFTkNF"
 SESSION_KEY_STATUS = "U1RBVFVT"
