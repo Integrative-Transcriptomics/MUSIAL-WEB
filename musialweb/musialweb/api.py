@@ -20,13 +20,12 @@ load_dotenv()
 
 """ Set session configuration parameters. """
 app.config["SESSION_TYPE"] = "filesystem"
-app.config["SESSION_KEY_PREFIX"] = "musial:"
-app.config["SESSION_COOKIE_NAME"] = "musial:session"
 app.config["SESSION_FILE_DIR"] = PATH_PREFIX + "session/"
+app.config["SESSION_FILE_THRESHOLD"] = 100000
+app.config["SESSION_COOKIE_NAME"] = "musialweb"
 app.config["SESSION_USE_SIGNER"] = True
-app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=5.0)
-app.config["SESSION_FILE_THRESHOLD"] = 15000
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=5.0)
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # Limit content lengths to 50 MB.
 """ Set constant session keys. """
 SESSION_KEY_REFERENCE_SEQUENCE = "UkVGRVJFTkNFX1NFUVVFTkNF"
