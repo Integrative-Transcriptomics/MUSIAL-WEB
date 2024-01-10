@@ -60,7 +60,6 @@ def session_status():
     else:
         return {"code": session[SESSION_KEY_STATUS]}
 
-
 @app.route("/session/start", methods=["POST"])
 def session_start():
     """
@@ -198,7 +197,6 @@ def session_start():
             print("\033[46m LOG \033[0m")
             print(_remove_ansi(stdout) + "\n" + _remove_ansi(stderr))
         return {"code": response_code}
-
 
 @app.route("/session/data", methods=["GET"])
 def session_data():
@@ -369,7 +367,6 @@ def session_data():
             "content": json.dumps(response).replace("NaN", "null"),
         }
 
-
 @app.route("/get_log", methods=["GET"])
 def get_log():
     if "LOG" in session :
@@ -381,13 +378,11 @@ def get_log():
         html_log_content = "<p>No log is available for the session.</p>"
     return html_log_content
 
-
 @app.route("/example/data", methods=["GET"])
 def example_data():
     return send_file(
         PATH_PREFIX + "static/resources/example_data.zip", as_attachment=True
     )
-
 
 @app.route("/example/session", methods=["GET"])
 def example_session():
@@ -427,7 +422,6 @@ def example_session():
             del session[SESSION_KEY_VARIANTS_DF]
         _log(request.url, "Example session initialized.")
         return {"code": response_code}
-
 
 @app.route("/download_session", methods=["GET"])
 def download_session():
@@ -660,7 +654,6 @@ def clc_correlation():
             traceback.print_exc()
     return [n, format(t, ".6g"), format(p, ".6g"), status]
 
-
 @app.route("/calc/forms_graph", methods=["POST"])
 def clc_feature_graph():
     def node_annotations(x):
@@ -822,7 +815,6 @@ def clc_feature_graph():
             traceback.print_exc()
     return [nodes, links, status]
 
-
 @app.route("/extension/feature_proteoforms", methods=["GET"])
 def extension_feature_proteoforms():
     target = request.args.get("target")
@@ -845,9 +837,12 @@ def extension_feature_proteoforms():
             data=target_data,
             target=target,
         )
-    else:
-        return API_CODES["FAILURE_CODE"]
-
+    else :
+        return render_template(
+            "extension_feature_proteoforms.html",
+            data=None,
+            target=target,
+        )
 
 def _view_features_output_to_dict(out):
     if SESSION_KEY_FEATURES_DF in session:
@@ -873,7 +868,6 @@ def _view_features_output_to_dict(out):
             "forms_graph": mwchart.features_forms_template(),
         },
     }
-
 
 def _view_samples_output_to_dict(out):
     if SESSION_KEY_SAMPLES_DF in session:
@@ -920,7 +914,6 @@ def _view_samples_output_to_dict(out):
         },
     }
 
-
 def _view_variants_output_to_dict(out):
     if SESSION_KEY_VARIANTS_DF in session:
         content_df = copy.deepcopy(session[SESSION_KEY_VARIANTS_DF])
@@ -948,7 +941,6 @@ def _view_variants_output_to_dict(out):
             ),
         },
     }
-
 
 def _run_sample_clustering(form_type):
     # Collect variants from sequence alignment per feature.
@@ -1027,18 +1019,15 @@ def _run_sample_clustering(form_type):
         # Cluster samples with tSNE and OPTICS algorithm.
         return mwclustering.compute_clusters(data)
 
-
 def _generate_random_string():
     return "".join(
         random.SystemRandom().choice(string.ascii_letters + string.digits)
         for _ in range(10)
     )
 
-
 def _remove_ansi(text):
     ansi_remove_expression = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]")
     return ansi_remove_expression.sub("", text)
-
 
 def _log(url: str, content: str):
     if not "LOG" in session:
@@ -1046,7 +1035,6 @@ def _log(url: str, content: str):
     session["LOG"].append(
         "<b>Datetime</b> " + str(datetime.now()) + "<br/><b>URL</b> " + str(url) + "<br/><b>Response</b> " + content
     )
-
 
 def _brotli_decompress(content: str):
     return brotli.decompress(base64.standard_b64decode(content)).decode()

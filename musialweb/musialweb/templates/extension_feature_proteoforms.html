@@ -81,13 +81,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
       src="https://cdn.jsdelivr.net/npm/resize-sensor@0.0.6/ResizeSensor.min.js"
     ></script>
     <script>
-      var DATA = JSON.parse(
-        "{{ data|safe }}"
-          .replaceAll("'", '"')
-          .replaceAll(/[\u0000-\u001F\u007F-\u009F]/g, "\\n")
-          .replaceAll("True", "true")
-          .replaceAll("False", "false")
-      );
+      var DATA = "{{ data|safe }}";
+      var TARGET = "{{ target }}";
+      if (DATA != "None") {
+        DATA = JSON.parse(
+          "{{ data|safe }}"
+            .replaceAll("'", '"')
+            .replaceAll(/[\u0000-\u001F\u007F-\u009F]/g, "\\n")
+            .replaceAll("True", "true")
+            .replaceAll("False", "false")
+        );
+      } else {
+        DATA = null;
+      }
     </script>
     <script
       type="text/javascript"
@@ -166,6 +172,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         ></div>
       </div>-->
       <div
+        id="container-splitter"
         data-role="splitter"
         class="h-100"
         data-split-mode="vertical"

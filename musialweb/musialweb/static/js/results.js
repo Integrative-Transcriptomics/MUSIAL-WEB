@@ -382,12 +382,6 @@ function showFeatures() {
       document.getElementById("main-results-dashboard-features-forms-feature"),
       "select"
     ).data(featureSelectOptions);
-    Metro.getPlugin(
-      document.getElementById(
-        "main-results-dashboard-features-proteoforms-feature"
-      ),
-      "select"
-    ).data(featureSelectOptions);
   }
 }
 
@@ -638,12 +632,12 @@ function dashboardFeaturesFormsGraph(feature) {
 }
 
 function dashboardFeaturesProteoforms() {
-  var target = Metro.getPlugin(
+  var sel = Metro.getPlugin(
     "#main-results-dashboard-features-forms-feature",
     "select"
   ).val();
   var dashboard = window.open(
-    _URL + "/extension/feature_proteoforms?target=" + target,
+    _URL + "/extension/feature_proteoforms?target=" + sel,
     "_blank"
   );
   dashboard.location;

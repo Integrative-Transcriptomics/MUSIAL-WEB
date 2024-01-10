@@ -670,13 +670,21 @@ var _STRUCTURE_VIEW; // 3DMol.js instance.
 var _SEQUENCE_VIEW; // ECharts.js instance.
 
 window.onload = (_) => {
-  Object.keys(DATA.alleles).forEach((allele) => {
-    STATE.NO_SAMPLES += DATA.alleles[allele]["occurrence"].length;
-  });
-  STATE.NO_FORMS = Object.keys(DATA.proteoforms).length;
-  _initializeStructureView();
-  _collectVariantsInformation();
-  _initializeSequenceView();
+  if (DATA == null) {
+    $("#container-splitter").remove();
+    $("#main")[0].innerHTML =
+      `<h3 class="d-flex flex-justify-center flex-align-center"><small> No proteoform information is available for ` +
+      TARGET +
+      ` in your session.<small></h3>`;
+  } else {
+    Object.keys(DATA.alleles).forEach((allele) => {
+      STATE.NO_SAMPLES += DATA.alleles[allele]["occurrence"].length;
+    });
+    STATE.NO_FORMS = Object.keys(DATA.proteoforms).length;
+    _initializeStructureView();
+    _collectVariantsInformation();
+    _initializeSequenceView();
+  }
 };
 
 function _initializeStructureView() {
@@ -745,13 +753,10 @@ function _initializeStructureView() {
     _STRUCTURE_VIEW.zoomTo();
     _STRUCTURE_VIEW.render();
   } else {
-    $("#structure-view-container")[0].innerHTML = `
-  <h1>
-    <small>
-      No Protein Structure Available
-    <small>
-  </h1>
-  `;
+    $("#structure-view-container")[0].innerHTML =
+      `<h3><small> No protein structure information is available for ` +
+      TARGET +
+      ` in your session.<small></h3>`;
   }
 }
 
