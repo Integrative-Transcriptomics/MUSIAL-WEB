@@ -3,13 +3,14 @@
  */
 function getExampleData() {
   axios
-    .get(_URL + "/example/data", { responseType: "blob" })
+    .get(_URL + "/example/data")
     .then((response) => {
-      handleResponse(response);
-      downloadBlob(response.data, "example_data.zip");
+      if (assessResponse(response)) {
+        downloadBlob(response.data, "example_data.zip");
+      }
     })
     .catch((error) => {
-      displayError(error.message);
+      throwError(error.message);
     });
 }
 
@@ -20,13 +21,12 @@ function startExampleSession() {
   axios
     .get(_URL + "/example/session")
     .then((response) => {
-      handleResponse(response);
-      if (response.data.code == SUCCESS_CODE) {
+      if (assessResponse(response)) {
         window.location.href = _URL + "/results";
       }
     })
     .catch((error) => {
-      displayError(error.message);
+      throwError(error.message);
     });
 }
 

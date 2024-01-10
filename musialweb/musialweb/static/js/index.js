@@ -28,28 +28,25 @@ function init() {
 /**
  * Displays a generic error message, if the MUSIAL web api returned an error code in the passed response.
  */
-function displayError() {
+function throwError(text) {
   Swal.fire({
-    iconHtml: `<i class="error-icon fa-duotone fa-triangle-exclamation"></i>`,
     title: "Error",
-    confirmButtonColor: "#6d81ad",
+    html:
+      `Your request failed. Please check your input data. You can access the server log <a href='` +
+      _URL +
+      `/get_log' target='_blank'>here</a>. If you cannot solve your problem, feel free to <a href='https://github.com/Integrative-Transcriptomics/MUSIAL-WEB/issues' target='_blank'>open an issue</a>.` +
+      `</br><div class='remark alert'>` +
+      text +
+      `</div>`,
     color: "#747474",
     background: "#fafafcd9",
-    backdrop: `
-            rgba(96, 113, 150, 0.4)
-            left top
-            no-repeat
-          `,
-    html:
-      `
-        <div class="remark secondary text-left">
-            An error occurred. Please check your input/session data.
-            You can access the server log <a href='` +
-      _URL +
-      `/log' target='_blank'>here</a>.
-            If you cannot solve your problem, feel free to <a href='https://github.com/Integrative-Transcriptomics/MUSIAL-WEB/issues' target='_blank'>open an issue on GitHub</a>.
-        </div>
-      `,
+    allowOutsideClick: true,
+    allowEscapeKey: true,
+    showConfirmButton: true,
+    focusConfirm: true,
+    confirmButtonColor: "#6d81ad",
+    confirmButtonText: "Ok",
+    backdrop: `rgba(239, 240, 248, 0.1) left top no-repeat`,
   });
 }
 
@@ -72,9 +69,12 @@ function displayWarning(text) {
  *
  * @param {JSON} response JSON format response of the MUSIAL web api.
  */
-function handleResponse(response) {
-  if (response.code == FAILURE_CODE) {
-    displayError();
+function assessResponse(response) {
+  if (response.data.code == FAILURE_CODE) {
+    throwError(response.data.cause);
+    return false;
+  } else {
+    return true;
   }
 }
 
@@ -115,7 +115,7 @@ function sessionStatus() {
       }
     })
     .catch((error) => {
-      displayError(error.message);
+      throwError(error.message);
     });
 }
 
@@ -133,11 +133,22 @@ function htmlToElement(html) {
 }
 
 /**
- * Displays a toast message at the bottom of the page.
+ * Displays a notification at the bottom of the page.
  *
  * @param {String} text Content to display.
- * @param {Number} timeout Timeout to hide the toast.
  */
-function displayToast(text, timeout) {
-  Metro.toast.create(text, () => {}, timeout, "custom-toast");
+function displayNotification(text) {
+  $("body").append(
+    `<div class='notification'><i class="fa-duotone fa-circle-info fa-fade fa-xs"></i> ` +
+      text +
+      `</div>`
+  );
+  // Metro.toast.create(text, null, Number.MAX_SAFE_INTEGER, "custom-toast");
+}
+
+/**
+ * Removes all notifications from the document.
+ */
+function removeNotification() {
+  $(".notification").remove();
 }

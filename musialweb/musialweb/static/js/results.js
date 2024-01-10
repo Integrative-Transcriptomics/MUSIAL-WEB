@@ -7,15 +7,75 @@ var _SESSION_DATA = {
   FEATURES: {},
   VARIANTS: {},
 };
-var ACTIVE_CATEGORY = null;
+var _ACTIVE_CATEGORY = null;
 var _CHARTS = [];
 var _CHART_OBSERVERS = [];
 
-const mean = (data) => {
+function _mean(data) {
   if (data.length < 1) {
     return;
   }
   return data.reduce((p, c) => p + c) / data.length;
+}
+
+function _transpose(arr2D) {
+  return arr2D[0].map((x, i) => arr2D.map((x) => x[i]));
+}
+
+function _clone(o) {
+  return JSON.parse(JSON.stringify(o));
+}
+
+const SWAL_SERVER_ERROR_CONFIGURATION = {
+  title: "Faulty Session Data",
+  html:
+    `Please check your input data. You can access the server log <a href='` +
+    _URL +
+    `/get_log' target='_blank'>here</a>. If you cannot solve your problem, feel free to <a href='https://github.com/Integrative-Transcriptomics/MUSIAL-WEB/issues' target='_blank'>open an issue</a>.`,
+  color: "#747474",
+  background: "#fafafcd9",
+  allowOutsideClick: true,
+  allowEscapeKey: true,
+  showConfirmButton: true,
+  focusConfirm: true,
+  confirmButtonColor: "#6d81ad",
+  confirmButtonText: "Ok",
+  backdrop: `rgba(239, 240, 248, 0.1) left top no-repeat`,
+};
+
+const SWAL_NO_SESSION_CONFIGURATION = {
+  title: "No Session Data",
+  iconHtml:
+    `<img src="` +
+    BACTERIA_GIF +
+    `" style="height: 100%; width: 100%; pointer-events: none; user-select: none;">`,
+  html:
+    `You must submit a request on the <a href='` +
+    _URL +
+    `/upload'>Upload</a> page before you can access any results.`,
+  color: "#747474",
+  background: "transparent",
+  heightAuto: false,
+  allowOutsideClick: false,
+  allowEscapeKey: false,
+  showConfirmButton: false,
+  backdrop: `rgba(239, 240, 248, 0.1) left top no-repeat`,
+};
+
+const SWAL_PREPARE_RESULTS_CONFIGURATION = {
+  title: "Preparing Results",
+  iconHtml:
+    `<img src="` +
+    BACTERIA_GIF +
+    `" style="height: 100%; width: 100%; pointer-events: none; user-select: none;">`,
+  html: `Results of your analysis will be displayed shortly.`,
+  color: "#747474",
+  background: "transparent",
+  heightAuto: false,
+  allowOutsideClick: false,
+  allowEscapeKey: false,
+  showConfirmButton: false,
+  backdrop: `rgba(239, 240, 248, 0.1) left top no-repeat`,
 };
 
 axios
@@ -23,74 +83,14 @@ axios
   .then((response) => {
     switch (String(response.data.code)) {
       case API_PARAMETERS["SESSION_CODE_FAILED"]:
-        Swal.fire({
-          title: "Faulty Session Data",
-          html:
-            `Your request failed. Please check your input data.
-            You can access the server log <a href='` +
-            _URL +
-            `/log' target='_blank'>here</a>.
-            If you cannot solve your problem, feel free to <a href='https://github.com/Integrative-Transcriptomics/MUSIAL-WEB/issues' target='_blank'>open an issue</a>.`,
-          color: "#747474",
-          background: "#fafafcd9",
-          allowOutsideClick: true,
-          allowEscapeKey: true,
-          showConfirmButton: true,
-          focusConfirm: true,
-          confirmButtonColor: "#6d81ad",
-          confirmButtonText: "Ok",
-          backdrop: `
-          rgba(239, 240, 248, 0.1)
-          left top
-          no-repeat
-        `,
-        });
+        Swal.fire(SWAL_SERVER_ERROR_CONFIGURATION);
         break;
       case API_PARAMETERS["SESSION_CODE_NONE"]:
-        Swal.fire({
-          title: "No Session Data",
-          iconHtml:
-            `<img src="` +
-            BACTERIA_GIF +
-            `" style="height: 100%; width: 100%; pointer-events: none; user-select: none;">`,
-          html:
-            `You must submit a request at the <a href='` +
-            _URL +
-            `/upload'>Upload</a> page before you can access any results.`,
-          color: "#747474",
-          background: "transparent",
-          heightAuto: false,
-          allowOutsideClick: false,
-          allowEscapeKey: false,
-          showConfirmButton: false,
-          backdrop: `
-          rgba(239, 240, 248, 0.1)
-          left top
-          no-repeat
-        `,
-        });
+        Swal.fire(SWAL_NO_SESSION_CONFIGURATION);
         break;
       case API_PARAMETERS["SESSION_CODE_ACTIVE"]:
         if (!_SESSION_DATA.SET) {
-          Swal.fire({
-            title: "Preparing Results",
-            iconHtml:
-              `<img src="` +
-              BACTERIA_GIF +
-              `" style="height: 100%; width: 100%; pointer-events: none; user-select: none;">`,
-            html: `Results of your analysis will be displayed shortly.`,
-            color: "#747474",
-            background: "transparent",
-            heightAuto: false,
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            showConfirmButton: false,
-            backdrop: `
-              rgba(239, 240, 248, 0.1)
-              left top
-              no-repeat
-            `,
-          });
+          Swal.fire(SWAL_PREPARE_RESULTS_CONFIGURATION);
           axios
             .get(_URL + "/session/data", {
               headers: {
@@ -98,7 +98,7 @@ axios
               },
             })
             .then((response) => {
-              if (response.data.code == API_PARAMETERS["SUCCESS_CODE"]) {
+              if (assessResponse(response)) {
                 Swal.close();
                 _SESSION_DATA.SET = true;
                 let responseContent = JSON.parse(response.data.content);
@@ -124,33 +124,10 @@ axios
                     _SESSION_DATA.VARIANTS.records.length +
                     `</span>`
                 );
-              } else {
-                Swal.fire({
-                  title: "Faulty Session Data",
-                  html:
-                    `Failed to retrieve session results.
-                    You can access the server log <a href='` +
-                    _URL +
-                    `/log' target='_blank'>here</a>.
-                    If you cannot solve your problem, feel free to <a href='https://github.com/Integrative-Transcriptomics/MUSIAL-WEB/issues' target='_blank'>open an issue</a>.`,
-                  color: "#747474",
-                  background: "#fafafcd9",
-                  allowOutsideClick: true,
-                  allowEscapeKey: true,
-                  showConfirmButton: true,
-                  focusConfirm: true,
-                  confirmButtonColor: "#6d81ad",
-                  confirmButtonText: "Ok",
-                  backdrop: `
-                    rgba(239, 240, 248, 0.1)
-                    left top
-                    no-repeat
-                  `,
-                });
               }
             })
             .catch((error) => {
-              displayError(error.message);
+              throwError(error.message);
             })
             .finally(() => {
               showSamples();
@@ -160,7 +137,7 @@ axios
     }
   })
   .catch((error) => {
-    displayError(error.message);
+    throwError(error.message);
   });
 
 function showContent(record) {
@@ -199,7 +176,7 @@ function showContent(record) {
 }
 
 function showSamples() {
-  ACTIVE_CATEGORY = "samples";
+  _ACTIVE_CATEGORY = "samples";
   if (showContent(_SESSION_DATA.SAMPLES)) {
     $("#main-results-table-set-samples-button").addClass("active-content");
     $("#main-results-dashboard-samples").show();
@@ -355,7 +332,7 @@ function dashboardSamplesClustering() {
 }
 
 function showFeatures() {
-  ACTIVE_CATEGORY = "features";
+  _ACTIVE_CATEGORY = "features";
   if (showContent(_SESSION_DATA.FEATURES)) {
     $("#main-results-table-set-features-button").addClass("active-content");
     $("#main-results-dashboard-features").show();
@@ -433,221 +410,222 @@ function dashboardFeaturesForms() {
       },
     })
     .then((response) => {
-      _CHARTS[1].setOption({
-        title: {
-          top: 0,
-          left: 0,
-          text: REQUEST.feature + " Forms Graph",
-          textStyle: { fontWeight: "lighter", fontStyle: "oblique" },
-        },
-        tooltip: {
-          alwaysShowContent: true,
-          position: ["1%", "7%"],
-          triggerOn: "click",
-          className: "dashboard-features-graph-tooltip",
-          backgroundColor: "rgba(228, 229, 237, 0.8)",
-          borderColor: "rgba(228, 229, 237, 0.8)",
-          textStyle: {
-            fontSize: 10,
+      if (assessResponse(response)) {
+        _CHARTS[1].setOption({
+          title: {
+            top: 0,
+            left: 0,
+            text: REQUEST.feature + " Forms Graph",
+            textStyle: { fontWeight: "lighter", fontStyle: "oblique" },
           },
-          formatter: (params, ticket, _) => {
-            if (!params.data.isNode) {
-              return;
-            } else {
-              content = "";
-              content +=
-                `<b>` +
-                params.data.name +
-                `</b><button class="plain" style="cursor: pointer;" onclick="document.getElementsByClassName('dashboard-features-graph-tooltip')[0].style.display = 'None'"><i class="fa-thin fa-xmark"></i></button><hr>`;
-              content +=
-                `<b>Frequency: </b>` +
-                parseFloat(params.data.annotations["frequency"]).toFixed(2) +
-                `%`;
-              content +=
-                `<br/><b>Variable Positions: </b>` +
-                parseFloat(
-                  params.data.annotations["variable_positions"]
-                ).toFixed(2) +
-                `%`;
-              content +=
-                `<br/><b>Substitutions: </b>` +
-                params.data.annotations["number_of_substitutions"];
-              content +=
-                `<br/><b>Insertions: </b>` +
-                params.data.annotations["number_of_insertions"];
-              content +=
-                `<br/><b>Deletions: </b>` +
-                params.data.annotations["number_of_deletions"];
-              content += `<br/><b>Variants: </b>`;
-              if (params.data.annotations["variants"] == "") {
-                content += `None`;
+          tooltip: {
+            alwaysShowContent: true,
+            position: ["1%", "7%"],
+            triggerOn: "click",
+            className: "dashboard-features-graph-tooltip",
+            backgroundColor: "rgba(228, 229, 237, 0.8)",
+            borderColor: "rgba(228, 229, 237, 0.8)",
+            textStyle: {
+              fontSize: 10,
+            },
+            formatter: (params, ticket, _) => {
+              if (!params.data.isNode) {
+                return;
               } else {
+                content = "";
                 content +=
-                  `<p class="dashboard-features-graph-tooltip-variants">` +
-                  params.data.annotations["variants"]
-                    .replaceAll(":", "")
-                    .replaceAll(";", "</br>") +
-                  `</p>`;
+                  `<b>` +
+                  params.data.name +
+                  `</b><button class="plain" style="cursor: pointer;" onclick="document.getElementsByClassName('dashboard-features-graph-tooltip')[0].style.display = 'None'"><i class="fa-thin fa-xmark"></i></button><hr>`;
+                content +=
+                  `<b>Frequency: </b>` +
+                  parseFloat(params.data.annotations["frequency"]).toFixed(2) +
+                  `%`;
+                content +=
+                  `<br/><b>Variable Positions: </b>` +
+                  parseFloat(
+                    params.data.annotations["variable_positions"]
+                  ).toFixed(2) +
+                  `%`;
+                content +=
+                  `<br/><b>Substitutions: </b>` +
+                  params.data.annotations["number_of_substitutions"];
+                content +=
+                  `<br/><b>Insertions: </b>` +
+                  params.data.annotations["number_of_insertions"];
+                content +=
+                  `<br/><b>Deletions: </b>` +
+                  params.data.annotations["number_of_deletions"];
+                content += `<br/><b>Variants: </b>`;
+                if (params.data.annotations["variants"] == "") {
+                  content += `None`;
+                } else {
+                  content +=
+                    `<p class="dashboard-features-graph-tooltip-variants">` +
+                    params.data.annotations["variants"]
+                      .replaceAll(":", "")
+                      .replaceAll(";", "</br>") +
+                    `</p>`;
+                }
+                return content;
               }
-              return content;
-            }
+            },
           },
-        },
-        legend: {
-          show: true,
-          textStyle: { fontSize: 10, color: "#747474" },
-          backgroundColor: "rgba(228, 229, 237, 0.8)",
-          bottom: "1%",
-          right: "1%",
-          orient: "vertical",
-          selectedMode: false,
-          data: [
-            {
-              name: "Proteoforms",
-              icon: "path://M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM184 128h92c50.8 0 92 41.2 92 92s-41.2 92-92 92H208v48c0 13.3-10.7 24-24 24s-24-10.7-24-24V288 152c0-13.3 10.7-24 24-24zm92 136c24.3 0 44-19.7 44-44s-19.7-44-44-44H208v88h68z",
-              itemStyle: {
-                color: "#607196",
-              },
-            },
-            {
-              name: "Alleles",
-              icon: "path://M256,512A256,256,0,1,0,256,0a256,256,0,1,0,0,512zm0-400c9.1,0,17.4,5.1,21.5,13.3l104,208c5.9,11.9,1.1,26.3-10.7,32.2s-26.3,1.1-32.2-10.7L321.2,320H190.8l-17.4,34.7c-5.9,11.9-20.3,16.7-32.2,10.7s-16.7-20.3-10.7-32.2l104-208c4.1-8.1,12.4-13.3,21.5-13.3zm0,77.7L214.8,272h82.3L256,189.7z",
-              itemStyle: {
-                color: "#9ba6bd",
-              },
-            },
-            {
-              name: "Reference",
-              icon: "circle",
-              itemStyle: {
-                color: "#FFBA08",
-              },
-            },
-            {
-              name: "Disordered",
-              icon: "circle",
-              itemStyle: {
-                color: "#FE4848",
-              },
-            },
-            {
-              name: "Form Relation",
-              icon: "path://M0 256c0-8.8 7.2-16 16-16H624c8.8 0 16 7.2 16 16s-7.2 16-16 16H16c-8.8 0-16-7.2-16-16z",
-              itemStyle: {
-                color: "#cbd0e0",
-              },
-            },
-            {
-              name: "Allele to Proteoform Interconnection",
-              icon: "path://M416 256a32 32 0 1 1 -64 0 32 32 0 1 1 64 0zm-160 0a32 32 0 1 1 -64 0 32 32 0 1 1 64 0zM64 288a32 32 0 1 1 0-64 32 32 0 1 1 0 64z",
-              itemStyle: {
-                color: "#cbd0e0",
-              },
-            },
-          ],
-        },
-        series: [
-          {
-            type: "graph",
-            layout: "force",
-            force: {
-              repulsion: 20,
-              gravity: 0.1,
-              friction: 0.4,
-              edgeLength: 10,
-              layoutAnimation: true,
-            },
-            roam: true,
-            data: response.data[0],
-            links: response.data[1],
-            top: "10%",
-            bottom: "10%",
-            emphasis: {
-              focus: "adjacency",
-              label: {
-                show: true,
-                color: "#747474",
-                backgroundColor: "rgba(228, 229, 237, 0.8)",
-                borderColor: "rgba(228, 229, 237, 0.8)",
-                fontSize: 10,
-              },
-              edgeLabel: {
-                show: true,
-                color: "#747474",
-                backgroundColor: "rgba(228, 229, 237, 0.8)",
-                borderColor: "rgba(228, 229, 237, 0.8)",
-                fontSize: 10,
-                formatter: (params) => {
-                  if (params.data.type == "relation") {
-                    let source_name = params.data.source.replace(
-                      "Proteoform ",
-                      "Pf. "
-                    );
-                    let target_name = params.data.target.replace(
-                      "Proteoform ",
-                      "Pf. "
-                    );
-                    return (
-                      source_name +
-                      " -" +
-                      params.data.value +
-                      " Variant(s)→ " +
-                      target_name
-                    );
-                  } else if (params.data.type == "interconnection") {
-                    let source_name = params.data.source.replace(
-                      "Allele ",
-                      "Al. "
-                    );
-                    let target_name = params.data.target.replace(
-                      "Proteoform ",
-                      "Pf. "
-                    );
-                    return (
-                      source_name +
-                      " (" +
-                      params.data.share +
-                      " Sample(s)) → " +
-                      target_name
-                    );
-                  }
+          legend: {
+            show: true,
+            textStyle: { fontSize: 10, color: "#747474" },
+            backgroundColor: "rgba(250, 250, 252, 0.7)",
+            bottom: "1%",
+            right: "1%",
+            orient: "vertical",
+            selectedMode: false,
+            data: [
+              {
+                name: "Proteoforms",
+                icon: "path://M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM184 128h92c50.8 0 92 41.2 92 92s-41.2 92-92 92H208v48c0 13.3-10.7 24-24 24s-24-10.7-24-24V288 152c0-13.3 10.7-24 24-24zm92 136c24.3 0 44-19.7 44-44s-19.7-44-44-44H208v88h68z",
+                itemStyle: {
+                  color: "#607196",
                 },
               },
+              {
+                name: "Alleles",
+                icon: "path://M256,512A256,256,0,1,0,256,0a256,256,0,1,0,0,512zm0-400c9.1,0,17.4,5.1,21.5,13.3l104,208c5.9,11.9,1.1,26.3-10.7,32.2s-26.3,1.1-32.2-10.7L321.2,320H190.8l-17.4,34.7c-5.9,11.9-20.3,16.7-32.2,10.7s-16.7-20.3-10.7-32.2l104-208c4.1-8.1,12.4-13.3,21.5-13.3zm0,77.7L214.8,272h82.3L256,189.7z",
+                itemStyle: {
+                  color: "#9ba6bd",
+                },
+              },
+              {
+                name: "Reference",
+                icon: "circle",
+                itemStyle: {
+                  color: "#FFBA08",
+                },
+              },
+              {
+                name: "Disordered",
+                icon: "circle",
+                itemStyle: {
+                  color: "#FE4848",
+                },
+              },
+              {
+                name: "Form Relation",
+                icon: "path://M0 256c0-8.8 7.2-16 16-16H624c8.8 0 16 7.2 16 16s-7.2 16-16 16H16c-8.8 0-16-7.2-16-16z",
+                itemStyle: {
+                  color: "#cbd0e0",
+                },
+              },
+              {
+                name: "Allele to Proteoform Interconnection",
+                icon: "path://M416 256a32 32 0 1 1 -64 0 32 32 0 1 1 64 0zm-160 0a32 32 0 1 1 -64 0 32 32 0 1 1 64 0zM64 288a32 32 0 1 1 0-64 32 32 0 1 1 0 64z",
+                itemStyle: {
+                  color: "#cbd0e0",
+                },
+              },
+            ],
+          },
+          series: [
+            {
+              type: "graph",
+              layout: "force",
+              force: {
+                repulsion: 20,
+                gravity: 0.1,
+                friction: 0.4,
+                edgeLength: 10,
+                layoutAnimation: true,
+              },
+              roam: true,
+              data: response.data[0],
+              links: response.data[1],
+              top: "10%",
+              bottom: "10%",
+              emphasis: {
+                focus: "adjacency",
+                label: {
+                  show: true,
+                  color: "#747474",
+                  backgroundColor: "rgba(228, 229, 237, 0.8)",
+                  borderColor: "rgba(228, 229, 237, 0.8)",
+                  fontSize: 10,
+                },
+                edgeLabel: {
+                  show: true,
+                  color: "#747474",
+                  backgroundColor: "rgba(228, 229, 237, 0.8)",
+                  borderColor: "rgba(228, 229, 237, 0.8)",
+                  fontSize: 10,
+                  formatter: (params) => {
+                    if (params.data.type == "relation") {
+                      let source_name = params.data.source.replace(
+                        "Proteoform ",
+                        "Pf. "
+                      );
+                      let target_name = params.data.target.replace(
+                        "Proteoform ",
+                        "Pf. "
+                      );
+                      return (
+                        source_name +
+                        " -" +
+                        params.data.value +
+                        " Variant(s)→ " +
+                        target_name
+                      );
+                    } else if (params.data.type == "interconnection") {
+                      let source_name = params.data.source.replace(
+                        "Allele ",
+                        "Al. "
+                      );
+                      let target_name = params.data.target.replace(
+                        "Proteoform ",
+                        "Pf. "
+                      );
+                      return (
+                        source_name +
+                        " (" +
+                        params.data.share +
+                        " Sample(s)) → " +
+                        target_name
+                      );
+                    }
+                  },
+                },
+              },
+              label: {
+                show: false,
+              },
             },
-            label: {
-              show: false,
+            {
+              type: "graph",
+              name: "Proteoforms",
             },
-          },
-          {
-            type: "graph",
-            name: "Proteoforms",
-          },
-          {
-            type: "graph",
-            name: "Alleles",
-          },
-          {
-            type: "graph",
-            name: "Reference",
-          },
-          {
-            type: "graph",
-            name: "Disordered",
-          },
-          {
-            type: "graph",
-            name: "Form Relation",
-          },
-          {
-            type: "graph",
-            name: "Allele to Proteoform Interconnection",
-          },
-        ],
-      });
+            {
+              type: "graph",
+              name: "Alleles",
+            },
+            {
+              type: "graph",
+              name: "Reference",
+            },
+            {
+              type: "graph",
+              name: "Disordered",
+            },
+            {
+              type: "graph",
+              name: "Form Relation",
+            },
+            {
+              type: "graph",
+              name: "Allele to Proteoform Interconnection",
+            },
+          ],
+        });
+      }
     })
     .catch((error) => {
-      console.log(error);
-      displayError(error.message);
+      throwError(error.message);
     })
     .finally(() => {
       _CHARTS[1].hideLoading();
@@ -667,7 +645,7 @@ function dashboardFeaturesProteoforms() {
 }
 
 function showVariants() {
-  ACTIVE_CATEGORY = "variants";
+  _ACTIVE_CATEGORY = "variants";
   if (showContent(_SESSION_DATA.VARIANTS)) {
     $("#main-results-table-set-variants-button").addClass("active-content");
     $("#main-results-dashboard-variants").show();
@@ -704,14 +682,14 @@ function showVariants() {
               entry.data[4] +
               "<br>" +
               "<b>Avg. Genotype Frequency</b>: " +
-              (mean(frequency) * 100).toFixed(2) +
+              (_mean(frequency) * 100).toFixed(2) +
               " %" +
               "<br>" +
               "<b>Avg. Quality</b>: " +
-              mean(quality).toFixed(2) +
+              _mean(quality).toFixed(2) +
               "<br>" +
               "<b>Avg. Coverage</b>: " +
-              mean(coverage).toFixed(2) +
+              _mean(coverage).toFixed(2) +
               "<br></div>"
           );
         }
@@ -915,7 +893,7 @@ function applyTableFilterAndGroups() {
   _OVERVIEW_TABLE.setGroupBy(groups);
   _OVERVIEW_TABLE.setFilter(filters);
   _OVERVIEW_TABLE.redraw(true);
-  if (ACTIVE_CATEGORY == "samples") {
+  if (_ACTIVE_CATEGORY == "samples") {
     _SESSION_DATA.ACTIVE_SAMPLES = getTableSamples(true);
   }
 }
@@ -955,7 +933,7 @@ function dataCorrelation() {
       "#main-results-dashboard-correlation-test",
       "select"
     ).val(),
-    data_type: ACTIVE_CATEGORY,
+    data_type: _ACTIVE_CATEGORY,
   };
   axios
     .post(_URL + "/calc/correlation", pako.deflate(JSON.stringify(REQUEST)), {
@@ -965,42 +943,48 @@ function dataCorrelation() {
       },
     })
     .then((response) => {
-      testValue = "Failed";
-      pValue = "Failed";
-      if (response.data[3] == "0") {
-        testValue = response.data[1].toString();
-        pValue = response.data[2].toString();
+      if (assessResponse(response)) {
+        testValue = "Failed";
+        pValue = "Failed";
+        if (response.data[3] == "0") {
+          testValue = response.data[1].toString();
+          pValue = response.data[2].toString();
+        }
+        $("#main-results-dashboard-correlation-results").html(
+          `Test Value: ` + testValue + `&nbsp;&nbsp;&nbsp;P-Value: ` + pValue
+        );
       }
-      $("#main-results-dashboard-correlation-results").html(
-        `Test Value: ` + testValue + `&nbsp;&nbsp;&nbsp;P-Value: ` + pValue
-      );
     })
     .catch((error) => {
-      displayError(error.message);
+      throwError(error.message);
     });
 }
 
-function downloadSessionData() {
-  displayToast(
-    "Request submitted. Your download will start once complete.",
-    4000
+function downloadSession() {
+  displayNotification(
+    "Request has been sent to the server. Your session data will be downloaded automatically as soon as processing is complete. Please do not close this page."
   );
   axios
-    .get(_URL + "/download_session_data", { responseType: "blob" })
+    .get(_URL + "/download_session")
     .then((response) => {
-      downloadBlob(response.data, "session.json.br");
+      if (assessResponse(response)) {
+        downloadBlob(response.data, "session.json.br");
+      }
     })
     .catch((error) => {
-      displayError(error.message);
+      throwError(error.message);
+    })
+    .finally(() => {
+      removeNotification();
     });
 }
 
-function downloadOverviewTable() {
-  _OVERVIEW_TABLE.download("csv", ACTIVE_CATEGORY + "_overview.csv");
+function downloadOverview() {
+  _OVERVIEW_TABLE.download("csv", _ACTIVE_CATEGORY + "_overview.csv");
 }
 
 function downloadSequences() {
-  Swal.fire({
+  var SWAL_DOWNLOAD_SEQUENCES_CONFIGURATION = {
     title: "Download Sequences",
     html:
       `
@@ -1135,7 +1119,8 @@ function downloadSequences() {
       left top
       no-repeat
     `,
-  }).then((result) => {
+  };
+  Swal.fire(SWAL_DOWNLOAD_SEQUENCES_CONFIGURATION).then((result) => {
     if (result.isConfirmed) {
       var request = {
         feature: $("#download-feature")[0].value,
@@ -1163,11 +1148,9 @@ function downloadSequences() {
           }
         );
       }
-      displayToast(
-        "Request submitted. Results will be downloaded once complete.",
-        4000
+      displayNotification(
+        "Request has been sent to the server. Your sequence data will be downloaded automatically as soon as processing is complete. Please do not close this page."
       );
-      console.log(request);
       axios
         .post(
           _URL + "/download_sequences",
@@ -1181,17 +1164,22 @@ function downloadSequences() {
           }
         )
         .then((response) => {
-          downloadBlob(response.data, request.feature + "_sequences.fasta");
+          if (assessResponse(response)) {
+            downloadBlob(response.data, request.feature + "_sequences.fasta");
+          }
         })
         .catch((error) => {
-          displayError(error.message);
+          throwError(error.message);
+        })
+        .finally(() => {
+          removeNotification();
         });
     }
   });
 }
 
 function downloadTable() {
-  Swal.fire({
+  var SWAL_DOWNLOAD_TABLE_CONFIGURATION = {
     title: "Download Variants Table",
     html:
       `
@@ -1309,7 +1297,8 @@ function downloadTable() {
       left top
       no-repeat
     `,
-  }).then((result) => {
+  };
+  Swal.fire(SWAL_DOWNLOAD_TABLE_CONFIGURATION).then((result) => {
     if (result.isConfirmed) {
       var request = {
         feature: $("#download-feature")[0].value,
@@ -1336,9 +1325,8 @@ function downloadTable() {
           }
         );
       }
-      displayToast(
-        "Request submitted. Results will be downloaded once complete.",
-        4000
+      displayNotification(
+        "Request has been sent to the server. Your variants table data will be downloaded automatically as soon as processing is complete. Please do not close this page."
       );
       axios
         .post(_URL + "/download_table", pako.deflate(JSON.stringify(request)), {
@@ -1346,22 +1334,18 @@ function downloadTable() {
             "Content-Type": "application/octet-stream",
             "Content-Encoding": "zlib",
           },
-          responseType: "blob",
         })
         .then((response) => {
-          downloadBlob(response.data, request.feature + "_variants.tsv");
+          if (assessResponse(assessResponse)) {
+            downloadBlob(response.data, request.feature + "_variants.tsv");
+          }
         })
         .catch((error) => {
-          displayError(error.message);
+          throwError(error.message);
+        })
+        .finally(() => {
+          removeNotification();
         });
     }
   });
-}
-
-function _transpose(arr2D) {
-  return arr2D[0].map((x, i) => arr2D.map((x) => x[i]));
-}
-
-function _clone(o) {
-  return JSON.parse(JSON.stringify(o));
 }

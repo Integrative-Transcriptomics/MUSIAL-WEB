@@ -154,11 +154,20 @@ body.swal2-shown > [aria-hidden="true"] {
   background: var(--color-tertiary) !important;
 }
 
-.custom-toast {
+.notification {
   position: absolute;
-  margin-bottom: 1vh;
-  background-color: var(--contrast-secondary);
-  color: black;
+  bottom: 0.5vh;
+  right: 0.5vw;
+  width: 16vw;
+  height: auto;
+  padding: 10px;
+  z-index: 5;
+  border-radius: 5px;
+  background-color: var(--color-quarternary);
+  opacity: 0.7;
+  font-size: small;
+  font-family: monospace;
+  color: var(--background-color-primary);
 }
 
 .tag-light {

@@ -328,6 +328,9 @@ function readFile(file) {
 async function submit() {
   if (CAN_SUBMIT) {
     document.body.style.cursor = "wait";
+    displayNotification(
+      "Your data is being pre.processed. Your request will subsequently be transmitted to the server."
+    );
     $("#upload-data-button")[0].disabled = true;
     CAN_SUBMIT = false;
     /*
@@ -448,9 +451,9 @@ async function submit() {
       REQUEST.maximalHeterozygousFrequency / 100;
     // Send the request to the server.
     document.body.style.cursor = "default";
-    displayToast(
-      "Request submitted. You will be redirected once complete.",
-      4000
+    removeNotification();
+    displayNotification(
+      "Request has been sent to the server. You will be forwarded automatically."
     );
     axios
       .post(_URL + "/session/start", pako.deflate(JSON.stringify(REQUEST)), {
@@ -460,14 +463,16 @@ async function submit() {
         },
       })
       .then((response) => {
-        handleResponse(response);
-        window.location.href = _URL + "/results";
+        if (assessResponse(response)) {
+          window.location.href = _URL + "/results";
+        }
       })
       .catch((error) => {
-        displayError(error.message);
+        throwError(error.message);
       })
       .finally(() => {
         resetForm();
+        removeNotification();
       });
   }
 }

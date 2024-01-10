@@ -262,8 +262,7 @@ def samples_clustering_scatter( profiles, projection, clustering ):
             "bottom": "10%",
             "align": "right",
             "icon": "circle",
-            "backgroundColor": "rgba(228, 229, 237, 0.8)",
-            "borderColor": "rgba(228, 229, 237, 0.8)",
+            "backgroundColor": "rgba(250, 250, 252, 0.7)",
             "borderRadius": 2,
             "selector": True,
             "selectorLabel": {
@@ -386,8 +385,7 @@ def features_overview_parallel(df):
             "right": 40,
             "align": "right",
             "icon": "circle",
-            "backgroundColor": "rgba(228, 229, 237, 0.8)",
-            "borderColor": "rgba(228, 229, 237, 0.8)",
+            "backgroundColor": "rgba(250, 250, 252, 0.7)",
             "borderRadius": 2,
             "selector": True,
             "selectorLabel": {
@@ -546,7 +544,7 @@ def variants_overview_bar(df, max, df_features):
                 "top": "10%",
                 "left": "5%",
                 "height": "40%",
-                "width": "90%",
+                "width": "87%",
             },
         ],
         "legend": [
@@ -570,9 +568,9 @@ def variants_overview_bar(df, max, df_features):
                     },
                 ],
                 "textStyle": {"fontSize": 10, "color": "#747474"},
-                "backgroundColor": "rgba(228, 229, 237, 0.8)",
+                "backgroundColor": "rgba(250, 250, 252, 0.7)",
                 "top": "10%",
-                "right": "5%",
+                "right": "0%",
                 "orient": "vertical",
                 "selectedMode": False,
             },
@@ -591,7 +589,9 @@ def variants_overview_bar(df, max, df_features):
                     "xAxisIndex": [0],
                     "yAxisIndex": [],
                 },
-            }
+            },
+            "left": 0,
+            "bottom": 0,
         },
         "xAxis": [
             {

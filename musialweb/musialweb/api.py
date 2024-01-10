@@ -80,7 +80,6 @@ def session_start():
     # Variables to store output of MUSIAL run.
     stdout = ""
     stderr = ""
-    result = ""
     response_code = API_CODES["SUCCESS_CODE"]
     try:
         # Generate directory to store data temporary in the local file system.
@@ -203,7 +202,6 @@ def session_start():
 
 @app.route("/session/data", methods=["GET"])
 def session_data():
-    """TODO"""
     if not API_CODES["RESULT_KEY"] in session:
         return {
             "code": API_CODES["FAILURE_CODE"],
@@ -282,12 +280,6 @@ def session_data():
                 sample_records["columns"] += [ "cluster_proteoforms" ]
                 for record in sample_records[ "records" ] :
                     record[ "cluster_proteoforms" ] = per_sample_clusters[ record[ "name" ] ]
-            # Add counts per category in dataframe to samples dataframe.
-            counts = {}
-            for column in sample_df:
-                if column != "name":
-                    counts[column] = sample_df.groupby(column)["name"].count().to_dict()
-            sample_records[ "counts" ] = counts
             session[SESSION_KEY_SAMPLES_DF] = sample_df
             if stderr != "":
                 _log(
@@ -295,7 +287,13 @@ def session_data():
                     "Error when retrieving sample data; " + _remove_ansi(stderr),
                 )
         else:
-            _, sample_records = _view_samples_output_to_dict(None)
+            sample_df, sample_records = _view_samples_output_to_dict(None)
+        # Add counts per category in dataframe to samples dataframe.
+        counts = {}
+        for column in sample_df:
+            if column != "name":
+                counts[column] = sample_df.groupby(column)["name"].count().to_dict()
+        sample_records[ "counts" ] = counts
         response.append(sample_records)
 
         # (ii) Run MUSIAL on the specified data to view features.
@@ -372,8 +370,8 @@ def session_data():
         }
 
 
-@app.route("/log", methods=["GET"])
-def log():
+@app.route("/get_log", methods=["GET"])
+def get_log():
     if "LOG" in session :
         html_log_content = '<ul>'
         for log_entry in session["LOG"] :
@@ -431,8 +429,8 @@ def example_session():
         return {"code": response_code}
 
 
-@app.route("/download_session_data", methods=["GET"])
-def download_session_data():
+@app.route("/download_session", methods=["GET"])
+def download_session():
     # Generate unique hex string to use as directory name in the local file system.
     unique_hex_key = _generate_random_string()
     response_code = API_CODES["SUCCESS_CODE"]
@@ -891,7 +889,7 @@ def _view_samples_output_to_dict(out):
             list(filter(lambda line: line != "", _remove_ansi(out).split("\n")[4:]))
         )
         content_df = pd.read_csv(StringIO(string_content), sep="\t")
-        records = content_df.to_dict(orient="records")
+    records = content_df.to_dict(orient="records")
     return content_df, {
         "columns": columns,
         "records": records,
