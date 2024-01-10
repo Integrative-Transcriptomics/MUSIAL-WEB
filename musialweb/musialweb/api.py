@@ -283,6 +283,12 @@ def session_data():
                 sample_records["columns"] += [ "cluster_proteoforms" ]
                 for record in sample_records[ "records" ] :
                     record[ "cluster_proteoforms" ] = per_sample_clusters[ record[ "name" ] ]
+            # Add counts per category in dataframe to samples dataframe.
+            counts = {}
+            for column in sample_df:
+                if column != "name":
+                    counts[column] = sample_df.groupby(column)["name"].count().to_dict()
+            sample_records[ "counts" ] = counts
             session[SESSION_KEY_SAMPLES_DF] = sample_df
             if stderr != "":
                 _log(
@@ -886,16 +892,10 @@ def _view_samples_output_to_dict(out):
             list(filter(lambda line: line != "", _remove_ansi(out).split("\n")[4:]))
         )
         content_df = pd.read_csv(StringIO(string_content), sep="\t")
-
-    counts = {}
-    for column in content_df:
-        if column != "name":
-            counts[column] = content_df.groupby(column)["name"].count().to_dict()
-    records = content_df.to_dict(orient="records")
+        records = content_df.to_dict(orient="records")
     return content_df, {
         "columns": columns,
         "records": records,
-        "counts": counts,
         "dashboard": {
             "overview_area": mwchart.samples_overview_bar(),
             "clustering_allele": mwchart.samples_clustering_scatter(
