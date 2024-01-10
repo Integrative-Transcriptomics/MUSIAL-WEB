@@ -124,7 +124,7 @@
         data-hint-text="Download the displayed table in CSV format."
         data-hint-position="bottom"
       >
-        Overview Table
+        Table
       </button>
       <button
         class="button small rounded"
@@ -133,7 +133,7 @@
         data-hint-text="Download the binary session sata"
         data-hint-position="bottom"
       >
-        Session Data
+        Session
       </button>
       <button
         class="button small rounded"
@@ -151,7 +151,7 @@
         data-hint-text="Download variants data in TSV format (opens a popup for more options)"
         data-hint-position="bottom"
       >
-        Variants Table
+        Variants
       </button>
     </div>
     <div
@@ -312,31 +312,7 @@
                 data-hint-text="Display proteoform structure dashboard of the selected feature in a new tab."
                 data-hint-position="bottom"
               >
-                <i class="fa-duotone fa-play"></i
-                ><i
-                  class="fa-solid fa-plus"
-                  style="
-                    font-size: xx-small !important;
-                    position: absolute;
-                    bottom: 2px;
-                  "
-                ></i>
-              </button>
-              <select
-                id="main-results-dashboard-features-proteoforms-feature"
-                class="input-small w-25 float-right ml-2"
-                data-role="select"
-                data-prepend="Feature"
-                data-filter="false"
-              ></select>
-              <button
-                class="button small rounded green-button float-right ml-2"
-                onclick="dashboardFeaturesForms()"
-                data-role="hint"
-                data-hint-text="Display allele and proteoform interconnection graph of the selected feature."
-                data-hint-position="bottom"
-              >
-                <i class="fa-duotone fa-play"></i>
+                Proteoform Dashboard
               </button>
               <select
                 id="main-results-dashboard-features-forms-feature"
@@ -344,6 +320,7 @@
                 data-role="select"
                 data-prepend="Feature"
                 data-filter="false"
+                data-on-item-select="dashboardFeaturesFormsGraph"
               ></select>
             </div>
             <div id="main-results-dashboard-features-right"></div>

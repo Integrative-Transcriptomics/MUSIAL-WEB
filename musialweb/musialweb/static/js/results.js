@@ -373,6 +373,7 @@ function showFeatures() {
       $("#main-results-dashboard-features-right")[0],
       _SESSION_DATA.FEATURES.dashboard.forms_graph
     );
+    dashboardFeaturesFormsGraph(_SESSION_DATA.FEATURES.records[0]["name"]);
     let featureSelectOptions = {};
     for (let featureRecord of _SESSION_DATA.FEATURES.records) {
       featureSelectOptions[featureRecord.name] = featureRecord.name;
@@ -390,32 +391,36 @@ function showFeatures() {
   }
 }
 
-function dashboardFeaturesForms() {
-  var REQUEST = {
+function dashboardFeaturesFormsGraph(feature) {
+  /*var REQUEST = {
     feature: Metro.getPlugin(
       "#main-results-dashboard-features-forms-feature",
       "select"
     ).val(),
-  };
+  };*/
   _CHARTS[1].showLoading({
     color: "#6d81ad",
     text: "Loading...",
     maskColor: "rgb(250, 250, 252, 0.8)",
   });
   axios
-    .post(_URL + "/calc/forms_graph", pako.deflate(JSON.stringify(REQUEST)), {
-      headers: {
-        "Content-Type": "application/octet-stream",
-        "Content-Encoding": "zlib",
-      },
-    })
+    .post(
+      _URL + "/calc/forms_graph",
+      pako.deflate(JSON.stringify({ feature: feature })),
+      {
+        headers: {
+          "Content-Type": "application/octet-stream",
+          "Content-Encoding": "zlib",
+        },
+      }
+    )
     .then((response) => {
       if (assessResponse(response)) {
         _CHARTS[1].setOption({
           title: {
             top: 0,
             left: 0,
-            text: REQUEST.feature + " Forms Graph",
+            text: feature + " Forms Graph",
             textStyle: { fontWeight: "lighter", fontStyle: "oblique" },
           },
           tooltip: {
@@ -634,7 +639,7 @@ function dashboardFeaturesForms() {
 
 function dashboardFeaturesProteoforms() {
   var target = Metro.getPlugin(
-    "#main-results-dashboard-features-proteoforms-feature",
+    "#main-results-dashboard-features-forms-feature",
     "select"
   ).val();
   var dashboard = window.open(
