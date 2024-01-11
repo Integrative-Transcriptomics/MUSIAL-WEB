@@ -31,7 +31,7 @@ const SWAL_SERVER_ERROR_CONFIGURATION = {
   html:
     `Please check your input data. You can access the server log <a href='` +
     _URL +
-    `/get_log' target='_blank'>here</a>. If you cannot solve your problem, feel free to <a href='https://github.com/Integrative-Transcriptomics/MUSIAL-WEB/issues' target='_blank'>open an issue</a>.`,
+    `/session/log' target='_blank'>here</a>. If you cannot solve your problem, feel free to <a href='https://github.com/Integrative-Transcriptomics/MUSIAL-WEB/issues' target='_blank'>open an issue</a>.`,
   color: "#747474",
   background: "#fafafcd9",
   allowOutsideClick: true,
@@ -386,12 +386,6 @@ function showFeatures() {
 }
 
 function dashboardFeaturesFormsGraph(feature) {
-  /*var REQUEST = {
-    feature: Metro.getPlugin(
-      "#main-results-dashboard-features-forms-feature",
-      "select"
-    ).val(),
-  };*/
   _CHARTS[1].showLoading({
     color: "#6d81ad",
     text: "Loading...",
@@ -535,8 +529,8 @@ function dashboardFeaturesFormsGraph(feature) {
                 layoutAnimation: true,
               },
               roam: true,
-              data: response.data[0],
-              links: response.data[1],
+              data: response.data.nodes,
+              links: response.data.links,
               top: "10%",
               bottom: "10%",
               emphasis: {
@@ -942,15 +936,13 @@ function dataCorrelation() {
       },
     })
     .then((response) => {
+      console.log(response);
       if (assessResponse(response)) {
-        testValue = "Failed";
-        pValue = "Failed";
-        if (response.data[3] == "0") {
-          testValue = response.data[1].toString();
-          pValue = response.data[2].toString();
-        }
         $("#main-results-dashboard-correlation-results").html(
-          `Test Value: ` + testValue + `&nbsp;&nbsp;&nbsp;P-Value: ` + pValue
+          `Test Value: ` +
+            response.data.t +
+            `&nbsp;&nbsp;&nbsp;P-Value: ` +
+            response.data.p
         );
       }
     })

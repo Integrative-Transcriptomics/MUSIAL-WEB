@@ -34,7 +34,7 @@ function throwError(text) {
     html:
       `Your request failed. Please check your input data. You can access the server log <a href='` +
       _URL +
-      `/get_log' target='_blank'>here</a>. If you cannot solve your problem, feel free to <a href='https://github.com/Integrative-Transcriptomics/MUSIAL-WEB/issues' target='_blank'>open an issue</a>.` +
+      `/session/log' target='_blank'>here</a>. If you cannot solve your problem, feel free to <a href='https://github.com/Integrative-Transcriptomics/MUSIAL-WEB/issues' target='_blank'>open an issue</a>.` +
       `</br><div class='remark alert'>` +
       text +
       `</div>`,

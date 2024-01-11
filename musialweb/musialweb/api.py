@@ -56,9 +56,9 @@ def session_status():
     GET route to check whether an active session exists.
     """
     if not SESSION_KEY_STATUS in session:
-        return {"code": API_CODES["SESSION_CODE_NONE"]}
+        return {"code": API_CODES["SESSION_CODE_NONE"], "cause": "No session data available."}
     else:
-        return {"code": session[SESSION_KEY_STATUS]}
+        return {"code": session[SESSION_KEY_STATUS], "cause": ""}
 
 @app.route("/session/start", methods=["POST"])
 def session_start():
@@ -80,6 +80,7 @@ def session_start():
     stdout = ""
     stderr = ""
     response_code = API_CODES["SUCCESS_CODE"]
+    response_cause = ""
     try:
         # Generate directory to store data temporary in the local file system.
         os.makedirs(PATH_PREFIX + "tmp/" + unique_hex_key)
@@ -168,8 +169,9 @@ def session_start():
             > 0
         ):
             response_code = API_CODES["FAILURE_CODE"]
+            response_cause = "Backend Error (Cf. Error Log)"
+            _log(request.url, "Backend Error: " + _remove_ansi(stdout).replace( "\n", "</br>" ) + "</br>" + _remove_ansi(stderr).replace("\n", "</br>"))
             session[SESSION_KEY_STATUS] = API_CODES["SESSION_CODE_FAILED"]
-            _log(request.url, _remove_ansi(stdout) + "\n" + _remove_ansi(stderr))
             if DEBUG:
                 print("\033[41m ERROR \033[0m")
                 print(_remove_ansi(stdout) + "\n" + _remove_ansi(stderr))
@@ -183,26 +185,26 @@ def session_start():
     # If any error is thrown by the server, set response code to 1 (failed).
     except Exception as e:
         response_code = API_CODES["FAILURE_CODE"]
+        response_cause = "API Error: " + repr(e)
+        _log( request.url, response_cause + "\n" + traceback.format_exc( ).replace( "\n", "</br>" ) )
         session[SESSION_KEY_STATUS] = API_CODES["SESSION_CODE_FAILED"]
-        _log(request.url, _remove_ansi(str(e)))
         if DEBUG:
             print("\033[41m ERROR \033[0m")
-            print(_remove_ansi(str(e)))
             traceback.print_exc()
     finally:
         # Remove temporary files, store results and log in session and return response code.
         shutil.rmtree(PATH_PREFIX + "tmp/" + unique_hex_key)
-        _log(request.url, _remove_ansi(stdout) + "\n" + _remove_ansi(stderr))
         if DEBUG:
             print("\033[46m LOG \033[0m")
             print(_remove_ansi(stdout) + "\n" + _remove_ansi(stderr))
-        return {"code": response_code}
+        return {"code": response_code, "cause": response_cause}
 
 @app.route("/session/data", methods=["GET"])
 def session_data():
     if not API_CODES["RESULT_KEY"] in session:
         return {
             "code": API_CODES["FAILURE_CODE"],
+            "cause": "API Warning: No session data available."
         }
     # Generate unique hex string to use as directory name in the local file system.
     unique_hex_key = _generate_random_string()
@@ -211,6 +213,7 @@ def session_data():
     stderr = ""
     response = []
     response_code = API_CODES["SUCCESS_CODE"]
+    response_cause = ""
     try:
         # If any view results are not stored, generate directory to store MUSIAL run result temp. in the local file system.
         if (
@@ -280,10 +283,9 @@ def session_data():
                     record[ "cluster_proteoforms" ] = per_sample_clusters[ record[ "name" ] ]
             session[SESSION_KEY_SAMPLES_DF] = sample_df
             if stderr != "":
-                _log(
-                    request.url,
-                    "Error when retrieving sample data; " + _remove_ansi(stderr),
-                )
+                response_code = API_CODES["FAILURE_CODE"]
+                response_cause = "Backend Error (Cf. Error Log)"
+                _log(request.url, "Backend Error: " + _remove_ansi(stdout).replace( "\n", "</br>" ) + "</br>" + _remove_ansi(stderr).replace("\n", "</br>"))
         else:
             sample_df, sample_records = _view_samples_output_to_dict(None)
         # Add counts per category in dataframe to samples dataframe.
@@ -314,10 +316,9 @@ def session_data():
             feature_df, feature_records = _view_features_output_to_dict(stdout)
             session[SESSION_KEY_FEATURES_DF] = feature_df
             if stderr != "":
-                _log(
-                    request.url,
-                    "Error when retrieving feature data; " + _remove_ansi(stderr),
-                )
+                response_code = API_CODES["FAILURE_CODE"]
+                response_cause = "Backend Error (Cf. Error Log)"
+                _log(request.url, "Backend Error: " + _remove_ansi(stdout).replace( "\n", "</br>" ) + "</br>" + _remove_ansi(stderr).replace("\n", "</br>"))
         else:
             _, feature_records = _view_features_output_to_dict(None)
         response.append(feature_records)
@@ -342,41 +343,43 @@ def session_data():
             variants_df, variants_records = _view_variants_output_to_dict(stdout)
             session[SESSION_KEY_VARIANTS_DF] = variants_df
             if stderr != "":
-                _log(
-                    request.url,
-                    "Error when retrieving variants data; " + _remove_ansi(stderr),
-                )
+                response_code = API_CODES["FAILURE_CODE"]
+                response_cause = "Backend Error (Cf. Error Log)"
+                _log(request.url, "Backend Error: " + _remove_ansi(stdout).replace( "\n", "</br>" ) + "</br>" + _remove_ansi(stderr).replace("\n", "</br>"))
         else:
             _, variants_records = _view_variants_output_to_dict(None)
         response.append(variants_records)
     # If any error is thrown by the server, set response code to 1 (failed).
     except Exception as e:
         response_code = API_CODES["FAILURE_CODE"]
-        _log(request.url, _remove_ansi(str(e)))
+        response_cause = "API Error: " + repr(e)
+        _log( request.url, response_cause + "\n" + traceback.format_exc( ).replace( "\n", "</br>" ) )
         if DEBUG:
             print("\033[41m ERROR \033[0m")
-            print(_remove_ansi(str(e)))
             traceback.print_exc()
     finally:
         # Remove temporary files, store results and log in session and return response code.
         if os.path.isdir(PATH_PREFIX + "tmp/" + unique_hex_key):
             shutil.rmtree(PATH_PREFIX + "tmp/" + unique_hex_key)
-        _log(request.url, "Retrieved session data.")
         return {
             "code": response_code,
+            "cause": response_cause,
             "content": json.dumps(response).replace("NaN", "null"),
         }
 
-@app.route("/get_log", methods=["GET"])
-def get_log():
+@app.route("/session/log", methods=["GET"])
+def session_log():
+    content = "<div style='padding: 5px; font-family: monospace;'>"
+    content += "<h3 style='color: #747474'>MUSIAL (Web v1.2.0) Session Error Log <small>[" + str(datetime.now()) + "]</small></h3>"
     if "LOG" in session :
-        html_log_content = '<ul>'
+        content += '<ul>'
         for log_entry in session["LOG"] :
-            html_log_content += '<li>' + log_entry + '</li>'
-        html_log_content += '</ul>'
+            content += '<li>' + log_entry + '</li>'
+        content += '</ul>'
     else :
-        html_log_content = "<p>No log is available for the session.</p>"
-    return html_log_content
+        content += "<h4 style='color: #39c093'>There is no error log information for the session.</h4>"
+    content += "</div>"
+    return content
 
 @app.route("/example/data", methods=["GET"])
 def example_data():
@@ -394,6 +397,7 @@ def example_session():
     # Variables to store output of MUSIAL run.
     result = ""
     response_code = API_CODES["SUCCESS_CODE"]
+    response_cause = ""
     try:
         # Load static example session.
         with open(
@@ -403,11 +407,11 @@ def example_session():
     # If any error is thrown by the server, set response code to failed.
     except Exception as e:
         response_code = API_CODES["FAILURE_CODE"]
+        response_cause = "API Error: " + repr(e)
+        _log( request.url, response_cause + "\n" + traceback.format_exc( ).replace( "\n", "</br>" ) )
         session[SESSION_KEY_STATUS] = API_CODES["SESSION_CODE_FAILED"]
-        _log(request.url, _remove_ansi(str(e)))
         if DEBUG:
             print("\033[41m ERROR \033[0m")
-            print(str(e))
             traceback.print_exc()
     finally:
         session[API_CODES["RESULT_KEY"]] = result
@@ -420,8 +424,7 @@ def example_session():
             del session[SESSION_KEY_FEATURES_DF]
         if SESSION_KEY_VARIANTS_DF in session:
             del session[SESSION_KEY_VARIANTS_DF]
-        _log(request.url, "Example session initialized.")
-        return {"code": response_code}
+        return {"code": response_code, "cause": response_cause}
 
 @app.route("/download_session", methods=["GET"])
 def download_session():
@@ -446,18 +449,19 @@ def download_session():
             )
     except Exception as e:
         response_code = API_CODES["FAILURE_CODE"]
-        session[API_CODES["LOG_KEY"]] = _remove_ansi(str(e))
+        response_cause = "API Error: " + repr(e)
+        _log( request.url, response_cause + "\n" + traceback.format_exc( ).replace( "\n", "</br>" ) )
         if DEBUG:
             print("\033[41m ERROR \033[0m")
-            print(session[API_CODES["LOG_KEY"]])
             traceback.print_exc()
-        return response_code
+        return {"code": response_code, "cause": response_cause}
     finally:
        shutil.rmtree(PATH_PREFIX + "tmp/" + unique_hex_key)
 
 @app.route("/download_sequences", methods=["POST"])
 def download_sequences():
     response_code = API_CODES["SUCCESS_CODE"]
+    response_cause = ""
     # Inflate the request data and transform into python dictionary.
     inflated_request_data = zlib.decompress(request.data)
     json_string_request_data = inflated_request_data.decode("utf8")
@@ -503,11 +507,10 @@ def download_sequences():
         stdout = stdout.decode(encoding="utf-8")
         stderr = stderr.decode(encoding="utf-8")
         if stderr != "":
-            _log( request.url, "Error when retrieving sequence data; " + _remove_ansi(stderr) )
             response_code = API_CODES["FAILURE_CODE"]
-            return {
-                "code": response_code,
-            }
+            response_cause = "Backend Error (Cf. Error Log)"
+            _log(request.url, "Backend Error: " + _remove_ansi(stdout).replace( "\n", "</br>" ) + "</br>" + _remove_ansi(stderr).replace("\n", "</br>"))
+            return {"code": response_code, "cause": response_cause}
         else :
             return send_file(
                 PATH_PREFIX + "tmp/" + unique_hex_key + "/" + json_request_data[ "feature" ] + "_sequences.fasta",
@@ -515,14 +518,12 @@ def download_sequences():
             )
     except Exception as e:
         response_code = API_CODES["FAILURE_CODE"]
-        session[API_CODES["LOG_KEY"]] = _remove_ansi(str(e))
+        response_cause = "API Error: " + repr(e)
+        _log( request.url, response_cause + "\n" + traceback.format_exc( ).replace( "\n", "</br>" ) )
         if DEBUG:
             print("\033[41m ERROR \033[0m")
-            print(session[API_CODES["LOG_KEY"]])
             traceback.print_exc()
-        return {
-            "code": response_code,
-        }
+        return { "code": response_code, "cause": response_cause }
     finally:
        shutil.rmtree(PATH_PREFIX + "tmp/" + unique_hex_key)
 
@@ -573,11 +574,10 @@ def download_table():
         stdout = stdout.decode(encoding="utf-8")
         stderr = stderr.decode(encoding="utf-8")
         if stderr != "":
-            _log( request.url, "Error when retrieving sequence data; " + _remove_ansi(stderr) )
             response_code = API_CODES["FAILURE_CODE"]
-            return {
-                "code": response_code,
-            }
+            response_cause = "Backend Error (Cf. Error Log)"
+            _log(request.url, "Backend Error: " + _remove_ansi(stdout).replace( "\n", "</br>" ) + "</br>" + _remove_ansi(stderr).replace("\n", "</br>"))
+            return {"code": response_code, "cause": response_cause}
         else :
             return send_file(
                 PATH_PREFIX + "tmp/" + unique_hex_key + "/" + json_request_data[ "feature" ] + "_variants.tsv",
@@ -585,19 +585,19 @@ def download_table():
             )
     except Exception as e:
         response_code = API_CODES["FAILURE_CODE"]
-        session[API_CODES["LOG_KEY"]] = _remove_ansi(str(e))
+        response_cause = "API Error: " + repr(e)
+        _log( request.url, response_cause + "\n" + traceback.format_exc( ).replace( "\n", "</br>" ) )
         if DEBUG:
             print("\033[41m ERROR \033[0m")
-            print(session[API_CODES["LOG_KEY"]])
             traceback.print_exc()
-        return {
-            "code": response_code,
-        }
+        return {"code": response_code, "cause": response_cause}
     finally:
        shutil.rmtree(PATH_PREFIX + "tmp/" + unique_hex_key)
 
 @app.route("/calc/correlation", methods=["POST"])
 def clc_correlation():
+    response_code = API_CODES["SUCCESS_CODE"]
+    response_cause = ""
     # Inflate the request data and transform into python dictionary.
     inflated_request_data = zlib.decompress(request.data)
     json_string_request_data = inflated_request_data.decode("utf8")
@@ -617,15 +617,12 @@ def clc_correlation():
         if test == "pearsonr":
             n = "Pearson"
             t, p = sc.stats.pearsonr(df[key1].to_numpy(), df[key2].to_numpy())
-            status = "0"
         elif test == "spearmanr":
             n = "Spearman"
             t, p = sc.stats.spearmanr(df[key1].to_numpy(), df[key2].to_numpy())
-            status = "0"
         elif test == "kendalltau":
             n = "Kendall's Tau"
             t, p = sc.stats.kendalltau(df[key1].to_numpy(), df[key2].to_numpy())
-            status = "0"
         elif test == "cramer":
             n = "Cramer's V"
             t = sc.stats.contingency.association(
@@ -637,22 +634,29 @@ def clc_correlation():
                 .to_numpy(),
                 method="cramer",
             )
-            p = 0.0
-            status = "0"
+            p = None
         else:
-            n = "None"
-            t = 0.0
-            p = 0.0
-            status = "1"
+            response_code = API_CODES["FAILURE_CODE"]
+            response_cause = "API Warning: Specified test " + test + " not implemented."
+            n = "Not implemented"
+            t = None
+            p = None
     except Exception as e:
-        t = 0.0
-        p = 0.0
-        status = "1"
+        response_code = API_CODES["FAILURE_CODE"]
+        response_cause = "API Error: " + repr(e)
+        _log( request.url, response_cause + "\n" + traceback.format_exc( ).replace( "\n", "</br>" ) )
+        t = None
+        p = None
         if DEBUG:
             print("\033[41m ERROR \033[0m")
-            print(str(e))
             traceback.print_exc()
-    return [n, format(t, ".6g"), format(p, ".6g"), status]
+    return {
+        "code": response_code,
+        "cause": response_cause,
+        "t": format(t, ".6g"),
+        "p": format(p, ".6g"),
+        "name": n
+    }
 
 @app.route("/calc/forms_graph", methods=["POST"])
 def clc_feature_graph():
@@ -723,6 +727,9 @@ def clc_feature_graph():
                     })
         return links
     
+    response_code = API_CODES["SUCCESS_CODE"]
+    response_cause = ""
+
     symbol_proteoform = "path://M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM184 128h92c50.8 0 92 41.2 92 92s-41.2 92-92 92H208v48c0 13.3-10.7 24-24 24s-24-10.7-24-24V288 152c0-13.3 10.7-24 24-24zm92 136c24.3 0 44-19.7 44-44s-19.7-44-44-44H208v88h68z"
     symbol_allele = "path://M256,512A256,256,0,1,0,256,0a256,256,0,1,0,0,512zm0-400c9.1,0,17.4,5.1,21.5,13.3l104,208c5.9,11.9,1.1,26.3-10.7,32.2s-26.3,1.1-32.2-10.7L321.2,320H190.8l-17.4,34.7c-5.9,11.9-20.3,16.7-32.2,10.7s-16.7-20.3-10.7-32.2l104-208c4.1-8.1,12.4-13.3,21.5-13.3zm0,77.7L214.8,272h82.3L256,189.7z"
 
@@ -734,7 +741,6 @@ def clc_feature_graph():
     feature = json_request_data["feature"]
     nodes = []
     links = []
-    status = "0"
     try:
         if storage["features"][feature]["type"] == "coding":
             for proteoform in storage["features"][feature]["proteoforms"].values():
@@ -808,12 +814,18 @@ def clc_feature_graph():
     except Exception as e:
         nodes = []
         links = []
-        status = "1"
+        response_code = API_CODES["FAILURE_CODE"]
+        response_cause = "API Error: " + repr(e)
+        _log( request.url, response_cause + "</br>" + traceback.format_exc( ).replace( "\n", "</br>" ) )
         if DEBUG:
             print("\033[41m ERROR \033[0m")
-            print(str(e))
             traceback.print_exc()
-    return [nodes, links, status]
+    return {
+        "code": response_code,
+        "cause": response_cause,
+        "nodes": nodes,
+        "links": links
+    }
 
 @app.route("/extension/feature_proteoforms", methods=["GET"])
 def extension_feature_proteoforms():
@@ -1033,7 +1045,7 @@ def _log(url: str, content: str):
     if not "LOG" in session:
         session["LOG"] = [ ]
     session["LOG"].append(
-        "<b>Datetime</b> " + str(datetime.now()) + "<br/><b>URL</b> " + str(url) + "<br/><b>Response</b> " + content
+        str(url) + ' <small>[' + str(datetime.now()) + ']</small>' + '</br>' + '<div style="padding: 5px; margin-top: 5px; border-radius: 2px; background-color: #ffcccc; width: 70%;">' + content + '</div>'
     )
 
 def _brotli_decompress(content: str):
