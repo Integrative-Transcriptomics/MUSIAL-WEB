@@ -175,11 +175,10 @@ var STATE = {
         }
         return content;
       },
-      backgroundColor: "rgba(90, 90, 90, 0.8)",
-      borderColor: "rgb(90, 90, 90)",
+      backgroundColor: "rgba(228, 229, 237, 0.5)",
+      borderColor: "rgba(228, 229, 237, 0.5)",
       textStyle: {
-        color: "#fafafc",
-        fontSize: 10,
+        fontSize: 11,
       },
     },
     axisPointer: {
@@ -190,7 +189,9 @@ var STATE = {
       triggerOn: "mousemove",
       show: true,
       label: {
-        backgroundColor: "rgba(90, 90, 90, 0.8)",
+        backgroundColor: "rgba(228, 229, 237, 0.8)",
+        borderColor: "rgba(228, 229, 237, 0.5)",
+        color: "#343434",
         fontWeight: "bold",
         fontSize: 10,
         formatter: (o) => {
@@ -320,7 +321,7 @@ var STATE = {
         axisLabel: {
           show: false,
         },
-        name: "No. Variants",
+        name: "Entropy",
         nameLocation: "center",
         nameRotate: 0,
         nameGap: 40,
@@ -516,54 +517,26 @@ var STATE = {
         show: true,
         selectedMode: false,
         orient: "horizontal",
-        align: "right",
+        align: "left",
         right: "center",
         top: "top",
+        itemGap: 30,
       },
       {
-        type: "piecewise",
-        pieces: [
-          {
-            gt: 0,
-            lte: 1,
-            color: "#607196",
-            label: "1",
-          },
-          {
-            gt: 1,
-            lte: 2,
-            color: "#9c73af",
-            label: "2",
-          },
-          {
-            gt: 2,
-            lte: 4,
-            color: "#e56b9d",
-            label: ">2",
-          },
-          {
-            gt: 4,
-            lte: 8,
-            color: "#ff7764",
-            label: ">4",
-          },
-          {
-            gt: 8,
-            lte: 23,
-            color: "#ffa600",
-            label: ">8",
-          },
-        ],
+        type: "continuous",
+        min: 0.0,
+        max: 0.1,
+        precision: 4,
+        color: ["#fe4848", "#c2d1f2"],
         seriesIndex: 1,
-        show: false,
         selectMode: false,
-        itemWidth: 4,
-        itemHeight: 10,
-        textGap: 1,
-        itemGap: 4,
         orient: "horizontal",
-        top: "4.5%",
+        align: "left",
         left: "5%",
+        top: "top",
+        text: ["≥ 0.1", "Entropy 0.0"],
+        itemWidth: 10,
+        itemHeight: 100,
       },
     ],
     series: [
@@ -582,14 +555,11 @@ var STATE = {
         hoverLayerThreshold: 1000,
       },
       {
-        type: "line",
-        name: "NO_VARIANTS",
+        type: "bar",
+        name: "POSITION_ENTROPY",
         xAxisIndex: 1,
         yAxisIndex: 1,
         data: [],
-        smooth: 0.1,
-        showSymbol: false,
-        animation: false,
       },
       {
         type: "bar",
@@ -658,7 +628,7 @@ var _SETTINGS = {
   },
   STRUCTURE_VIEW_STYLE_CARTOON: {
     colorfunc: (atom) => {
-      return _structureViewColorByEntropy(atom, 0.2);
+      return _structureViewEntropyBasedColorByAtom(atom, 0.1);
     },
     opacity: 0.95,
     thickness: 0.2,
@@ -681,8 +651,8 @@ window.onload = (_) => {
       STATE.NO_SAMPLES += DATA.alleles[allele]["occurrence"].length;
     });
     STATE.NO_FORMS = Object.keys(DATA.proteoforms).length;
-    _initializeStructureView();
     _collectVariantsInformation();
+    _initializeStructureView();
     _initializeSequenceView();
   }
 };
@@ -695,58 +665,19 @@ function _initializeStructureView() {
       cartoonQuality: 6,
     });
     _STRUCTURE_VIEW.addModel(DATA.structure, "pdb");
-    _structureViewApplyStyle();
+    _structureViewSetDefaultStyle();
     _STRUCTURE_VIEW.setHoverable(
       {
         // Empty object -> trigger hovering on all atoms.
       },
       true, // Enable hovering.
       (atom, viewer, event, container) => {
-        if (!atom.hover_label) {
-          atom.hover_label = viewer.addLabel(
-            "Position " +
-              atom.resi +
-              " " +
-              atom.resn +
-              " | No. Variants " +
-              _getVariantsCount(atom.resi) +
-              " | Entropy " +
-              _getVariantsEntropy(atom.resi),
-            {
-              position: atom,
-              backgroundColor: "rgb(90, 90, 90)",
-              backgroundOpacity: 0.8,
-              fontColor: "#fafafc",
-              fontSize: 10,
-            }
-          );
-          viewer.addStyle(
-            { resi: atom.resi },
-            {
-              stick: {
-                color: "#747474",
-                radius: 0.3,
-              },
-            }
-          );
-          viewer.render();
-        }
+        _structureViewHighlightPosition(atom.resi);
+        viewer.render();
       },
       (atom, viewer, event, container) => {
-        if (atom.hover_label) {
-          _STRUCTURE_VIEW.removeLabel(atom.hover_label);
-          viewer.addStyle(
-            { resi: atom.resi },
-            {
-              stick: {
-                color: "#747474",
-                radius: 0.05,
-              },
-            }
-          );
-          delete atom.hover_label;
-          _STRUCTURE_VIEW.render();
-        }
+        _structureViewHighlightPosition(undefined);
+        viewer.render();
       }
     );
     _STRUCTURE_VIEW.setHoverDuration(100);
@@ -760,7 +691,7 @@ function _initializeStructureView() {
   }
 }
 
-function _structureViewApplyStyle() {
+function _structureViewSetDefaultStyle() {
   _STRUCTURE_VIEW.setStyle(
     {
       // Select all residues.
@@ -770,7 +701,60 @@ function _structureViewApplyStyle() {
       stick: _SETTINGS.STRUCTURE_VIEW_STYLE_STICK,
     }
   );
-  _STRUCTURE_VIEW.render();
+}
+
+function _structureViewEntropyBasedColorByAtom(atom, e_max) {
+  return _structureViewEntropyBasedColorByResI(atom.resi, e_max);
+}
+
+function _structureViewEntropyBasedColorByResI(resi, e_max) {
+  let colors = [
+    [194, 209, 242],
+    [254, 72, 72],
+  ];
+  let entropy = _getPositionEntropy(resi);
+  if (entropy >= 0 && entropy < e_max) {
+    return (
+      "rgb(" +
+      (194 + (254 - 194) * (entropy / e_max)).toFixed(0) +
+      "," +
+      (209 - (209 - 72) * (entropy / e_max)).toFixed(0) +
+      "," +
+      (242 - (242 - 72) * (entropy / e_max)).toFixed(0) +
+      ")"
+    );
+  } else {
+    return "rgb(" + colors[1].join(",") + ")";
+  }
+}
+
+function _structureViewHighlightPosition(resi) {
+  _STRUCTURE_VIEW.removeAllLabels();
+  _structureViewSetDefaultStyle();
+  if (resi != undefined) {
+    _STRUCTURE_VIEW.addStyle(
+      {
+        resi: [resi],
+      },
+      {
+        stick: {
+          radius: 0.6,
+          color: "#2bff95",
+        },
+      }
+    );
+    _STRUCTURE_VIEW.addResLabels(
+      {
+        resi: [resi],
+      },
+      {
+        backgroundColor: "rgb(228, 229, 237)",
+        backgroundOpacity: 0.9,
+        fontColor: "#343434",
+        fontSize: 11,
+      }
+    );
+  }
 }
 
 function _collectVariantsInformation() {
@@ -802,14 +786,16 @@ function _collectVariantsInformation() {
       let insertionIndex = 0;
       let variantContents = variantContent.split("");
       let inDel = false;
-      if (variantContent.length > 1) {
-        variantContents = variantContent.slice(1);
+      let isFirst = true;
+      if (variantContents.length > 1) {
         inDel = true;
       }
       let variantProperties =
         DATA.aminoacidVariants[variantPosition][variantContent].properties;
       for (let c of variantContents) {
-        if (c == "-") {
+        if (isFirst) {
+          isFirst = false;
+        } else if (c == "-") {
           position++;
         } else if (inDel) {
           insertionIndex++;
@@ -836,6 +822,24 @@ function _collectVariantsInformation() {
         DATA.alleles[allele]["occurrence"].length;
     }
   }
+
+  // Compute per-position entropy.
+  for (var [position, content] of Object.entries(STATE.POSITION_DATA)) {
+    var counts = {};
+    var entropy = 0;
+    for (var [proteoform, aa] of Object.entries(content)) {
+      counts.hasOwnProperty(aa)
+        ? (counts[aa] += DATA.proteoforms[proteoform].annotations.samples)
+        : (counts[aa] = DATA.proteoforms[proteoform].annotations.samples);
+    }
+    counts[content["reference"]] +=
+      STATE.NO_SAMPLES - _sumValuesOfArray(Object.values(counts));
+    for (var [aa, count] of Object.entries(counts)) {
+      let p = count / STATE.NO_SAMPLES;
+      entropy += p * Math.log2(p);
+    }
+    STATE.POSITION_DATA[position]["entropy"] = -1 * entropy.toFixed(4);
+  }
 }
 
 function _initializeSequenceView() {
@@ -850,8 +854,10 @@ function _initializeSequenceView() {
   // Inizialize Y-axis label data.
   STATE.SEQUENCE_VIEW_OPTION.yAxis[0].data = proteoformLabels;
   STATE.SEQUENCE_VIEW_OPTION.yAxis[0].name =
-    "Proteoforms (" + proteoformLabels.length + ")";
+    "Proteoforms (Total: " + STATE.NO_FORMS + ")";
   STATE.SEQUENCE_VIEW_OPTION.yAxis[2].data = proteoformLabels;
+  STATE.SEQUENCE_VIEW_OPTION.yAxis[2].name =
+    "Samples (Total: " + STATE.NO_SAMPLES + ")";
 
   // Initialize X-axis label and `variants heatmap` series data.
   for (let position of Object.keys(STATE.POSITION_DATA).sort(
@@ -869,16 +875,10 @@ function _initializeSequenceView() {
         AMINO_ACID_ENCODING[variant],
       ]);
     }
-    let variantsCount;
-    if (_SETTINGS.TOGGLE_DISORDERED_PROTEOFORMS) {
-      variantsCount =
-        Object.keys(STATE.POSITION_DATA[position]).filter(
-          (l) => !DATA.proteoforms[l].annotations.hasOwnProperty("novel_stops")
-        ).length - 1;
-    } else {
-      variantsCount = Object.keys(STATE.POSITION_DATA[position]).length - 1;
-    }
-    STATE.SEQUENCE_VIEW_OPTION.series[1].data.push([position, variantsCount]);
+    STATE.SEQUENCE_VIEW_OPTION.series[1].data.push([
+      position,
+      STATE.POSITION_DATA[position].entropy,
+    ]);
   }
 
   // Initialize `sample count` series data.
@@ -897,6 +897,8 @@ function _initializeSequenceView() {
   _SEQUENCE_VIEW.setOption(STATE.SEQUENCE_VIEW_OPTION, {
     notMerge: true,
   });
+
+  // Observe size changes of instance.
   new ResizeObserver((entries) => {
     _SEQUENCE_VIEW.resize({
       width: entries[0].width,
@@ -904,9 +906,18 @@ function _initializeSequenceView() {
     });
   }).observe($("#sequence-view-container")[0]);
   _SEQUENCE_VIEW.resize();
+
+  // Set API options.
+  _SEQUENCE_VIEW.on("click", { seriesName: "POSITION_CONTENT" }, (params) => {
+    let position = params.name;
+    if (position.split("+")[1] == 0) {
+      _structureViewHighlightPosition(parseInt(position.split("+")[0]));
+      _STRUCTURE_VIEW.render();
+    }
+  });
 }
 
-function _getVariantsCount(pos) {
+function _getPositionVariantsCount(pos) {
   if (DATA.aminoacidVariants.hasOwnProperty(pos)) {
     return Object.keys(DATA.aminoacidVariants[pos]).length;
   } else {
@@ -914,34 +925,12 @@ function _getVariantsCount(pos) {
   }
 }
 
-function _getVariantsEntropy(pos) {
-  S = 0;
-  if (DATA.aminoacidVariants.hasOwnProperty(pos)) {
-    for (const aa of Object.keys(AMINO_ACID_ENCODING)) {
-      if (DATA.aminoacidVariants[pos].hasOwnProperty(aa)) {
-        let occurrence = Object.keys(
-          DATA.aminoacidVariants[pos][aa]["properties"]
-        ).filter((property) =>
-          String(property).startsWith("of_sample_")
-        ).length;
-        p = occurrence / STATE.NO_SAMPLES;
-        S += -1 * (p * Math.log2(p));
-      }
-    }
+function _getPositionEntropy(p) {
+  let position = p.toString();
+  if (!position.includes("+")) {
+    position = p + "+0";
   }
-  return S.toFixed(4);
-}
-
-function _structureViewColorByEntropy(atom, t) {
-  // 0 | 223, 241, 255
-  // 1 | 254, 72, 72
-  let rgb = [223, 241, 255];
-  let entropy = _getVariantsEntropy(atom.resi);
-  let d = Math.min(...[entropy / t, 1]);
-  rgb[0] = rgb[0] + (254 - 223) * d;
-  rgb[1] = rgb[1] - (241 - 72) * d;
-  rgb[2] = rgb[2] - (255 - 72) * d;
-  return "rgb(" + rgb.join(",") + ")";
+  return STATE.POSITION_DATA[position].entropy;
 }
 
 let _sequenceViewSortProteoforms = (pfId1, pfId2) => {
@@ -984,4 +973,8 @@ let _sequenceViewSortPositions = (a, b) => {
 
 let _countValuesOfArray = (arr) => {
   return arr.reduce((acc, e) => acc.set(e, (acc.get(e) || 0) + 1), new Map());
+};
+
+let _sumValuesOfArray = (arr) => {
+  return arr.reduce((acc, e) => acc + e, 0);
 };
