@@ -1,21 +1,4 @@
-/**
-MUSIAL WEB APPLICATION
-AUTHOR: Simon Hackl
-CONTACT: simon.hackl@uni-tuebingen.de
-VERSION: 2.1
-
-LICENSE
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+/* MUSIAL (Webserver) | Simon Hackl - simon.hackl@uni-tuebingen.de | v1.2.0 | GPL-3.0 license | github.com/Integrative-Transcriptomics/MUSIAL-WEB */
 #main-results {
   overflow-y: auto;
   flex-direction: column;
@@ -117,27 +100,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   display: none !important;
 }
 
-.data-download-copy-from-table-button {
-  background-color: var(--color-primary) !important;
-  color: var(--background-color-primary) !important;
-}
-
 .active-content {
   background-color: var(--color-tertiary) !important;
 }
 
 .tabulator-col-title {
-  padding-left: 1.5vw;
+  padding-left: 1.5vw !important;
 }
 
 .tabulator-col-sorter {
-  padding: 2px;
+  padding: 2px !important;
 }
 
 .tabulator-selected {
-  font-style: bold;
+  font-style: bold !important;
   background-color: var(--color-secondary) !important;
-  border-radius: 4px;
+  border-radius: 4px !important;
 }
 
 .dashboard-features-graph-tooltip {

@@ -1,13 +1,12 @@
-{% extends 'index.html' %} {% block styles %}
+<!-- MUSIAL (Webserver) | Simon Hackl - simon.hackl@uni-tuebingen.de | v1.2.0 | GPL-3.0 license | github.com/Integrative-Transcriptomics/MUSIAL-WEB -->
 
+{% extends 'index.html' %} {% block styles %}
 <link
   rel="stylesheet"
   type="text/css"
   href="{{url_for('static', filename='css/legal.css')}}"
 />
-
 {% endblock %} {% block menu %}
-
 <!-- Menu elements floating left -->
 <div class="app-bar-container mr-auto d-none d-flex-fs">
   <a
@@ -48,9 +47,7 @@
     class="p-2 fa-duotone fa-hexagon"
   ></i>
 </div>
-
 {% endblock %} {% block content %}
-
 <div id="main-legal" class="main">
   <div class="remark m-4">
     <h2 class="p-2 text-center">
@@ -171,5 +168,4 @@
     </address>
   </div>
 </div>
-
 {% endblock %}

@@ -1,0 +1,15 @@
+/* MUSIAL (Webserver) | Simon Hackl - simon.hackl@uni-tuebingen.de | v1.2.0 | GPL-3.0 license | github.com/Integrative-Transcriptomics/MUSIAL-WEB */
+#menu {
+  display: flex !important;
+  height: 5vh;
+}
+
+#main {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  width: 100%;
+  height: 94.5%;
+  background-color: #fafafc;
+  padding: 4px;
+}

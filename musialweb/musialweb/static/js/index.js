@@ -1,34 +1,37 @@
-SUCCESS_CODE = ""; // Code returned by the server for succ. requests.
-FAILURE_CODE = ""; // Code returned by the server for faulty requests.
-SESSION_CODE_NONE = ""; // Code indicating no active session.
-SESSION_CODE_ACTIVE = ""; // Code indicating an active session.
-SESSION_CODE_FAILED = ""; // Code indicating a failed session.
-RESULT_KEY = ""; // Server session key to access results.
+/* MUSIAL (Webserver) | Simon Hackl - simon.hackl@uni-tuebingen.de | v1.2.0 | GPL-3.0 license | github.com/Integrative-Transcriptomics/MUSIAL-WEB */
+
+REQUEST_SUCCESS = ""; // Code returned by the server for succ. requests.
+REQUEST_FAILURE = ""; // Code returned by the server for faulty requests.
+SESSION_STATE_NONE = ""; // Code indicating no active session.
+SESSION_STATE_ACTIVE = ""; // Code indicating an active session.
+SESSION_STATE_FAILED = ""; // Code indicating a failed session.
+SESSION_RESULT = ""; // Server session key to access results.
 _URL = ""; // URL to access server.
 
 /**
- * Initialize global application settings.
+ * Initializes global application settings and checks for an active session.
  */
 function init() {
-  // Store server response keys at client side.
-  SUCCESS_CODE = API_PARAMETERS["SUCCESS_CODE"];
-  FAILURE_CODE = API_PARAMETERS["FAILURE_CODE"];
-  SESSION_CODE_NONE = API_PARAMETERS["SESSION_CODE_NONE"];
-  SESSION_CODE_ACTIVE = API_PARAMETERS["SESSION_CODE_ACTIVE"];
-  SESSION_CODE_FAILED = API_PARAMETERS["SESSION_CODE_FAILED"];
-  RESULT_KEY = API_PARAMETERS["RESULT_KEY"];
+  REQUEST_SUCCESS = API_PARAMETERS["REQUEST_SUCCESS"];
+  REQUEST_FAILURE = API_PARAMETERS["REQUEST_FAILURE"];
+  SESSION_STATE_NONE = API_PARAMETERS["SESSION_STATE_NONE"];
+  SESSION_STATE_ACTIVE = API_PARAMETERS["SESSION_STATE_ACTIVE"];
+  SESSION_STATE_FAILED = API_PARAMETERS["SESSION_STATE_FAILED"];
+  SESSION_RESULT = API_PARAMETERS["SESSION_RESULT"];
   _URL = API_PARAMETERS["URL"];
   // Check for session status.
-  sessionStatus();
+  displaySessionState();
   // Display main component.
   $("#menu")[0].style.display = "flex";
   $(".main")[0].style.display = "block";
 }
 
 /**
- * Displays a generic error message, if the MUSIAL web api returned an error code in the passed response.
+ * Displays an error popup with the specified text.
+ *
+ * @param {String} text Text to display in advance to generic information in the error popup.
  */
-function throwError(text) {
+function alertError(text) {
   Swal.fire({
     title: "Error",
     html:
@@ -51,11 +54,11 @@ function throwError(text) {
 }
 
 /**
- * Displays the specific warning text as an alert.
+ * Displays a warning popup with the specified text.
  *
- * @param {String} text Message to display in the alert.
+ * @param {String} text Text to display in advance to generic information in the warning popup.
  */
-function displayWarning(text) {
+function alertWarning(text) {
   Swal.fire({
     iconHtml: `<i class="warning-icon fa-duotone fa-circle-info"></i>`,
     title: "Warning",
@@ -65,13 +68,13 @@ function displayWarning(text) {
 }
 
 /**
- * Displays an error message, if the specified response yields a failure code as data.
+ * Assesses the response object; Alerts an error popup if the response yields a failure code.
  *
- * @param {JSON} response JSON format response of the MUSIAL web api.
+ * @param {JSON} response JSON response sent by the MUSIAL web api.
  */
 function assessResponse(response) {
-  if (response.data.code == FAILURE_CODE) {
-    throwError(response.data.cause);
+  if (response.data.code == REQUEST_FAILURE) {
+    alertError(response.data.cause);
     return false;
   } else {
     return true;
@@ -93,49 +96,36 @@ function downloadBlob(blob, name) {
 }
 
 /**
- * Check for an active session and colorize the session indicator accordingly.
+ * Displays the session state in the session indicatior element.
  */
-function sessionStatus() {
+function displaySessionState() {
   axios
     .get(_URL + "/session/status")
     .then((response) => {
       switch (String(response.data.code)) {
-        case SESSION_CODE_ACTIVE:
+        case SESSION_STATE_ACTIVE:
           $("#menu-active-session-indicator")[0].classList =
             "p-2 fa-duotone fa-hexagon-check";
           break;
-        case SESSION_CODE_FAILED:
+        case SESSION_STATE_FAILED:
           $("#menu-active-session-indicator")[0].classList =
             "p-2 fa-duotone fa-hexagon-exclamation";
           break;
-        case SESSION_CODE_NONE:
+        case SESSION_STATE_NONE:
           $("#menu-active-session-indicator")[0].classList =
             "p-2 fa-duotone fa-hexagon";
           break;
       }
     })
     .catch((error) => {
-      throwError(error.message);
+      alertError(error.message);
     });
 }
 
 /**
- * Converts a html string into a html node.
+ * Displays a notification with the specified text.
  *
- * @param {String} html String content of the html element to generate.
- * @returns The html Node object defined by the specified string content.
- */
-function htmlToElement(html) {
-  var template = document.createElement("template");
-  html = html.trim();
-  template.innerHTML = html;
-  return template.content.firstChild;
-}
-
-/**
- * Displays a notification at the bottom of the page.
- *
- * @param {String} text Content to display.
+ * @param {String} text Text to display in the notification.
  */
 function displayNotification(text) {
   $("body").append(
@@ -143,12 +133,29 @@ function displayNotification(text) {
       text +
       `</div>`
   );
-  // Metro.toast.create(text, null, Number.MAX_SAFE_INTEGER, "custom-toast");
 }
 
 /**
- * Removes all notifications from the document.
+ * Removes all notification elements from the document.
  */
 function removeNotification() {
   $(".notification").remove();
+}
+
+/**
+ * Requests to write specified content into the session log.
+ *
+ * @param {String} content Content to write to session log.
+ */
+function log_interaction(content) {
+  axios.put(
+    _URL + "/log_interaction",
+    pako.deflate(JSON.stringify({ content: content })),
+    {
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "Content-Encoding": "zlib",
+      },
+    }
+  );
 }

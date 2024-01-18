@@ -1,3 +1,5 @@
+/* MUSIAL (Webserver) | Simon Hackl - simon.hackl@uni-tuebingen.de | v1.2.0 | GPL-3.0 license | github.com/Integrative-Transcriptomics/MUSIAL-WEB */
+
 // Definition of constants.
 var PASS_REFERENCE_SEQUENCE = false;
 var PASS_REFERENCE_FEATURES = false;
@@ -101,7 +103,7 @@ $("#input-parameter-min-coverage").on("change", function (event) {
   let oldValue = REQUEST.minimalCoverage;
   let newValue = undefined;
   let cancel = () => {
-    displayWarning(
+    alertWarning(
       "Minimal variant call coverage is expected to be an integer greater than 0."
     );
     $("#input-parameter-min-coverage")[0].value = oldValue;
@@ -123,7 +125,7 @@ $("#input-parameter-min-quality").on("change", function (event) {
   let oldValue = REQUEST.minimalQuality;
   let newValue = undefined;
   let cancel = () => {
-    displayWarning(
+    alertWarning(
       "Minimal variant call quality is expected to be an integer greater than 0."
     );
     $("#input-parameter-min-quality")[0].value = oldValue;
@@ -145,7 +147,7 @@ $("#input-parameter-min-hom-frequency").on("change", function (event) {
   let oldValue = REQUEST.minimalHomozygousFrequency;
   let newValue = undefined;
   let cancel = () => {
-    displayWarning(
+    alertWarning(
       "Minimal homozygous variant call frequency has to be an integer between 0 and 100."
     );
     $("#input-parameter-min-hom-frequency")[0].value = oldValue;
@@ -168,7 +170,7 @@ $("#input-parameter-min-het-frequency").on("change", function (event) {
   let oldValue = REQUEST.minimalHeterozygousFrequency;
   let newValue = undefined;
   let cancel = () => {
-    displayWarning(
+    alertWarning(
       "Minimal heterozygous variant call frequency has to be an integer between 0 and 100 and less than the maximal heterozygous variant call frequency."
     );
     $("#input-parameter-min-het-frequency")[0].value = oldValue;
@@ -195,7 +197,7 @@ $("#input-parameter-max-het-frequency").on("change", function (event) {
   let oldValue = REQUEST.maximalHeterozygousFrequency;
   let newValue = undefined;
   let cancel = () => {
-    displayWarning(
+    alertWarning(
       "Maximal heterozygous variant call frequency has to be an integer between 0 and 100 and greater than the minimal heterozygous variant call frequency."
     );
     $("#input-parameter-max-het-frequency")[0].value = oldValue;
@@ -329,7 +331,7 @@ async function submit() {
   if (CAN_SUBMIT) {
     document.body.style.cursor = "wait";
     displayNotification(
-      "Your data is being pre.processed. Your request will subsequently be transmitted to the server."
+      "Your data is being pre-processed. Your request will subsequently be transmitted to the server."
     );
     $("#upload-data-button")[0].disabled = true;
     CAN_SUBMIT = false;
@@ -455,8 +457,10 @@ async function submit() {
     displayNotification(
       "Request has been sent to the server. You will be forwarded automatically."
     );
+    const deflated_request = pako.deflate(JSON.stringify(REQUEST));
+    log_interaction("Submit Data.");
     axios
-      .post(_URL + "/session/start", pako.deflate(JSON.stringify(REQUEST)), {
+      .post(_URL + "/session/start", deflated_request, {
         headers: {
           "Content-Type": "application/octet-stream",
           "Content-Encoding": "zlib",
@@ -468,7 +472,7 @@ async function submit() {
         }
       })
       .catch((error) => {
-        throwError(error.message);
+        alertError(error.message);
       })
       .finally(() => {
         resetForm();

@@ -1,3 +1,5 @@
+/* MUSIAL (Webserver) | Simon Hackl - simon.hackl@uni-tuebingen.de | v1.2.0 | GPL-3.0 license | github.com/Integrative-Transcriptomics/MUSIAL-WEB */
+
 const AMINO_ACID_ENCODING = {
   // Polar (positive), Basic
   H: 1, // HIS

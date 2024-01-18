@@ -1,13 +1,11 @@
+<!-- MUSIAL (Webserver) | Simon Hackl - simon.hackl@uni-tuebingen.de | v1.2.0 | GPL-3.0 license | github.com/Integrative-Transcriptomics/MUSIAL-WEB -->
 {% extends 'index.html' %} {% block styles %}
-
 <link
   rel="stylesheet"
   type="text/css"
   href="{{url_for('static', filename='css/help.css')}}"
 />
-
 {% endblock %} {% block menu %}
-
 <!-- Menu elements floating left -->
 <div class="app-bar-container mr-auto d-none d-flex-fs">
   <a
@@ -45,9 +43,7 @@
 <div class="app-bar-container ml-auto d-none d-flex-fs">
   <i id="menu-active-session-indicator" class="p-2 fa-duotone fa-hexagon"></i>
 </div>
-
 {% endblock %} {% block content %}
-
 <div id="main-help" class="main">
   <div style="text-align: center; padding: 100px">
     <i
@@ -267,5 +263,4 @@
   </div>
   -->
 </div>
-
 {% endblock %}

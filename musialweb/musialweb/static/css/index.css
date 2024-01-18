@@ -1,21 +1,4 @@
-/**
-MUSIAL WEB APPLICATION
-AUTHOR: Simon Hackl
-CONTACT: simon.hackl@uni-tuebingen.de
-VERSION: 2.1
-
-LICENSE
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+/* MUSIAL (Webserver) | Simon Hackl - simon.hackl@uni-tuebingen.de | v1.2.0 | GPL-3.0 license | github.com/Integrative-Transcriptomics/MUSIAL-WEB */
 /* Definition of root properties and variables. */
 * {
   -webkit-font-smoothing: antialiased;
@@ -54,7 +37,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 body {
   min-width: 1200px;
-  height: 100%;
+  height: 100vh;
   overflow-x: scroll;
 }
 

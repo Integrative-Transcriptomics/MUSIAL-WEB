@@ -1,33 +1,23 @@
-{% extends 'index.html' %} {% block styles %}
+<!-- MUSIAL (Webserver) | Simon Hackl - simon.hackl@uni-tuebingen.de | v1.2.0 | GPL-3.0 license | github.com/Integrative-Transcriptomics/MUSIAL-WEB -->
 
+{% extends 'index.html' %} {% block styles %}
 <link
   rel="stylesheet"
   type="text/css"
   href="{{url_for('static', filename='css/upload.css')}}"
 />
-
 {% endblock %} {% block scripts %}
-
-<script
-  type="text/javascript"
-  src="{{url_for('static', filename='js/upload.js')}}"
-  defer
-></script>
-
 <script
   type="text/javascript"
   src="{{url_for('static', filename='js/papaparse.min.js')}}"
   defer
 ></script>
-
 <script
   type="text/javascript"
-  src="{{url_for('static', filename='js/pako.min.js')}}"
+  src="{{url_for('static', filename='js/upload.js')}}"
   defer
 ></script>
-
 {% endblock %} {% block menu %}
-
 <!-- Menu elements floating left -->
 <div class="app-bar-container mr-auto d-none d-flex-fs">
   <a
@@ -65,9 +55,7 @@
 <div class="app-bar-container ml-auto d-none d-flex-fs">
   <i id="menu-active-session-indicator" class="p-2 fa-duotone fa-hexagon"></i>
 </div>
-
 {% endblock %} {% block content %}
-
 <div id="main-upload" class="main">
   <div class="remark m-4">
     <h3 class="p-2 text-left">
@@ -543,5 +531,4 @@
     >
   </div>
 </div>
-
 {% endblock %}

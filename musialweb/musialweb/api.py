@@ -27,21 +27,24 @@ app.config["SESSION_USE_SIGNER"] = True
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=5.0)
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # Limit content lengths to 50 MB.
+
 """ Set constant session keys. """
-SESSION_KEY_REFERENCE_SEQUENCE = "UkVGRVJFTkNFX1NFUVVFTkNF"
-SESSION_KEY_STATUS = "U1RBVFVT"
-SESSION_KEY_SAMPLES_DF = "U0FNUExFU19ERg"
-SESSION_KEY_SAMPLES_CLUSTERING = "U0FNUExFU19DTFVTVEVSSU5H"
-SESSION_KEY_FEATURES_DF = "RkVBVFVSRVNfREY"
-SESSION_KEY_VARIANTS_DF = "VkFSSUFOVFNfREY"
+SESSION_KEY_REFERENCE_SEQUENCE = "pARM5DeVY0"
+SESSION_KEY_STATUS = "NQHMTbuHNH"
+SESSION_KEY_SAMPLES_DF = "XnNOwNJl0x"
+SESSION_KEY_SAMPLES_CLUSTERING = "B0MdMXSLUr"
+SESSION_KEY_FEATURES_DF = "XCaskJgQDv"
+SESSION_KEY_VARIANTS_DF = "Gycu5aRrVn"
+SESSION_KEY_LOG = "QL6MMUYVz5"
+
 """ Set API parameters. """
 API_CODES = {
-    "SUCCESS_CODE": "0",  # Response return code for successful requests.
-    "FAILURE_CODE": "1",  # Response return code for failed requests (due to server internal error).
-    "SESSION_CODE_NONE": "2",  # Response code indicating no active session.
-    "SESSION_CODE_ACTIVE": "0",  # Response code  indicating an active session.
-    "SESSION_CODE_FAILED": "1",  # Response code  indicating a failed session.
-    "RESULT_KEY": os.getenv("RESULT_KEY"),
+    "REQUEST_SUCCESS": "0",  # Response return code for successful requests.
+    "REQUEST_FAILURE": "1",  # Response return code for failed requests (due to server internal error).
+    "SESSION_STATE_NONE": "2",  # Response code indicating no active session.
+    "SESSION_STATE_ACTIVE": "0",  # Response code  indicating an active session.
+    "SESSION_STATE_FAILURE": "1",  # Response code  indicating a failed session.
+    "SESSION_RESULT": os.getenv("RESULT_KEY"),
     "URL": os.getenv("URL"),
 }
 """ Set DEBUG to true in order to display log as console output. """
@@ -56,7 +59,7 @@ def session_status():
     GET route to check whether an active session exists.
     """
     if not SESSION_KEY_STATUS in session:
-        return {"code": API_CODES["SESSION_CODE_NONE"], "cause": "No session data available."}
+        return {"code": API_CODES["SESSION_STATE_NONE"], "cause": "No session data available."}
     else:
         return {"code": session[SESSION_KEY_STATUS], "cause": ""}
 
@@ -79,7 +82,7 @@ def session_start():
     # Variables to store output of MUSIAL run.
     stdout = ""
     stderr = ""
-    response_code = API_CODES["SUCCESS_CODE"]
+    response_code = API_CODES["REQUEST_SUCCESS"]
     response_cause = ""
     try:
         # Generate directory to store data temporary in the local file system.
@@ -168,10 +171,10 @@ def session_start():
             )
             > 0
         ):
-            response_code = API_CODES["FAILURE_CODE"]
+            response_code = API_CODES["REQUEST_FAILURE"]
             response_cause = "Backend Error (Cf. Error Log)"
             _log(request.url, "Backend Error: " + _remove_ansi(stdout).replace( "\n", "</br>" ) + "</br>" + _remove_ansi(stderr).replace("\n", "</br>"))
-            session[SESSION_KEY_STATUS] = API_CODES["SESSION_CODE_FAILED"]
+            session[SESSION_KEY_STATUS] = API_CODES["SESSION_STATE_FAILURE"]
             if DEBUG:
                 print("\033[41m ERROR \033[0m")
                 print(_remove_ansi(stdout) + "\n" + _remove_ansi(stderr))
@@ -180,14 +183,14 @@ def session_start():
             with open(
                 PATH_PREFIX + "tmp/" + unique_hex_key + "/output.json", "r"
             ) as run_out_file:
-                session[API_CODES["RESULT_KEY"]] = json.load(run_out_file)
-            session[SESSION_KEY_STATUS] = API_CODES["SESSION_CODE_ACTIVE"]
+                session[API_CODES["SESSION_RESULT"]] = json.load(run_out_file)
+            session[SESSION_KEY_STATUS] = API_CODES["SESSION_STATE_ACTIVE"]
     # If any error is thrown by the server, set response code to 1 (failed).
     except Exception as e:
-        response_code = API_CODES["FAILURE_CODE"]
+        response_code = API_CODES["REQUEST_FAILURE"]
         response_cause = "API Error: " + repr(e)
         _log( request.url, response_cause + "\n" + traceback.format_exc( ).replace( "\n", "</br>" ) )
-        session[SESSION_KEY_STATUS] = API_CODES["SESSION_CODE_FAILED"]
+        session[SESSION_KEY_STATUS] = API_CODES["SESSION_STATE_FAILURE"]
         if DEBUG:
             print("\033[41m ERROR \033[0m")
             traceback.print_exc()
@@ -201,9 +204,9 @@ def session_start():
 
 @app.route("/session/data", methods=["GET"])
 def session_data():
-    if not API_CODES["RESULT_KEY"] in session:
+    if not API_CODES["SESSION_RESULT"] in session:
         return {
-            "code": API_CODES["FAILURE_CODE"],
+            "code": API_CODES["REQUEST_FAILURE"],
             "cause": "API Warning: No session data available."
         }
     # Generate unique hex string to use as directory name in the local file system.
@@ -212,7 +215,7 @@ def session_data():
     stdout = ""
     stderr = ""
     response = []
-    response_code = API_CODES["SUCCESS_CODE"]
+    response_code = API_CODES["REQUEST_SUCCESS"]
     response_cause = ""
     try:
         # If any view results are not stored, generate directory to store MUSIAL run result temp. in the local file system.
@@ -226,7 +229,7 @@ def session_data():
             with open(
                 PATH_PREFIX + "tmp/" + unique_hex_key + "/results.json", "w+"
             ) as session_results:
-                session_results.write(json.dumps(session[API_CODES["RESULT_KEY"]]))
+                session_results.write(json.dumps(session[API_CODES["SESSION_RESULT"]]))
 
         # (i) Run MUSIAL on the specified data to view samples.
         if not SESSION_KEY_SAMPLES_CLUSTERING in session:
@@ -283,7 +286,7 @@ def session_data():
                     record[ "cluster_proteoforms" ] = per_sample_clusters[ record[ "name" ] ]
             session[SESSION_KEY_SAMPLES_DF] = sample_df
             if stderr != "":
-                response_code = API_CODES["FAILURE_CODE"]
+                response_code = API_CODES["REQUEST_FAILURE"]
                 response_cause = "Backend Error (Cf. Error Log)"
                 _log(request.url, "Backend Error: " + _remove_ansi(stdout).replace( "\n", "</br>" ) + "</br>" + _remove_ansi(stderr).replace("\n", "</br>"))
         else:
@@ -316,7 +319,7 @@ def session_data():
             feature_df, feature_records = _view_features_output_to_dict(stdout)
             session[SESSION_KEY_FEATURES_DF] = feature_df
             if stderr != "":
-                response_code = API_CODES["FAILURE_CODE"]
+                response_code = API_CODES["REQUEST_FAILURE"]
                 response_cause = "Backend Error (Cf. Error Log)"
                 _log(request.url, "Backend Error: " + _remove_ansi(stdout).replace( "\n", "</br>" ) + "</br>" + _remove_ansi(stderr).replace("\n", "</br>"))
         else:
@@ -343,7 +346,7 @@ def session_data():
             variants_df, variants_records = _view_variants_output_to_dict(stdout)
             session[SESSION_KEY_VARIANTS_DF] = variants_df
             if stderr != "":
-                response_code = API_CODES["FAILURE_CODE"]
+                response_code = API_CODES["REQUEST_FAILURE"]
                 response_cause = "Backend Error (Cf. Error Log)"
                 _log(request.url, "Backend Error: " + _remove_ansi(stdout).replace( "\n", "</br>" ) + "</br>" + _remove_ansi(stderr).replace("\n", "</br>"))
         else:
@@ -351,7 +354,7 @@ def session_data():
         response.append(variants_records)
     # If any error is thrown by the server, set response code to 1 (failed).
     except Exception as e:
-        response_code = API_CODES["FAILURE_CODE"]
+        response_code = API_CODES["REQUEST_FAILURE"]
         response_cause = "API Error: " + repr(e)
         _log( request.url, response_cause + "\n" + traceback.format_exc( ).replace( "\n", "</br>" ) )
         if DEBUG:
@@ -369,15 +372,16 @@ def session_data():
 
 @app.route("/session/log", methods=["GET"])
 def session_log():
+    format_log_entry = lambda e :  e[0] + '<div style="padding: 5px; margin-top: 5px; margin-bottom: 5px; border-radius: 2px; background-color: #cbd0e0; width: 50%;">' + e[1] + '</div>'
     content = "<div style='padding: 5px; font-family: monospace;'>"
-    content += "<h3 style='color: #747474'>MUSIAL (Web v1.2.0) Session Error Log <small>[" + str(datetime.now()) + "]</small></h3>"
-    if "LOG" in session :
+    content += "<h3 style='color: #747474'>MUSIAL (Web v1.2.0) Session Log <small>[" + str(datetime.now()) + "]</small></h3>"
+    if SESSION_KEY_LOG in session :
         content += '<ul>'
-        for log_entry in session["LOG"] :
-            content += '<li>' + log_entry + '</li>'
+        for log_entry in session[SESSION_KEY_LOG] :
+            content += '<li>' + format_log_entry(log_entry) + '</li>'
         content += '</ul>'
     else :
-        content += "<h4 style='color: #39c093'>There is no error log information for the session.</h4>"
+        content += "<h4 style='color: #747474'>There is no log information for the session.</h4>"
     content += "</div>"
     return content
 
@@ -396,7 +400,7 @@ def example_session():
     session.clear()
     # Variables to store output of MUSIAL run.
     result = ""
-    response_code = API_CODES["SUCCESS_CODE"]
+    response_code = API_CODES["REQUEST_SUCCESS"]
     response_cause = ""
     try:
         # Load static example session.
@@ -406,18 +410,18 @@ def example_session():
             result = json.load(example_session_file)
     # If any error is thrown by the server, set response code to failed.
     except Exception as e:
-        response_code = API_CODES["FAILURE_CODE"]
+        response_code = API_CODES["REQUEST_FAILURE"]
         response_cause = "API Error: " + repr(e)
         _log( request.url, response_cause + "\n" + traceback.format_exc( ).replace( "\n", "</br>" ) )
-        session[SESSION_KEY_STATUS] = API_CODES["SESSION_CODE_FAILED"]
+        session[SESSION_KEY_STATUS] = API_CODES["SESSION_STATE_FAILURE"]
         if DEBUG:
             print("\033[41m ERROR \033[0m")
             traceback.print_exc()
     finally:
-        session[API_CODES["RESULT_KEY"]] = result
+        session[API_CODES["SESSION_RESULT"]] = result
         with open( PATH_PREFIX + "static/resources/example_reference.fasta", "r" ) as reference :
             session[SESSION_KEY_REFERENCE_SEQUENCE] = reference.read( )
-        session[SESSION_KEY_STATUS] = API_CODES["SESSION_CODE_ACTIVE"]
+        session[SESSION_KEY_STATUS] = API_CODES["SESSION_STATE_ACTIVE"]
         if SESSION_KEY_SAMPLES_DF in session:
             del session[SESSION_KEY_SAMPLES_DF]
         if SESSION_KEY_FEATURES_DF in session:
@@ -430,7 +434,7 @@ def example_session():
 def download_session():
     # Generate unique hex string to use as directory name in the local file system.
     unique_hex_key = _generate_random_string()
-    response_code = API_CODES["SUCCESS_CODE"]
+    response_code = API_CODES["REQUEST_SUCCESS"]
     try:
         # Generate directory to store data temporary in the local file system.
         os.mkdir(PATH_PREFIX + "tmp/" + unique_hex_key)
@@ -440,7 +444,7 @@ def download_session():
             # Write compressed session result.
             compressed_result.write(
                 brotli.compress(
-                    json.dumps(session[API_CODES["RESULT_KEY"]]).encode("utf-8")
+                    json.dumps(session[API_CODES["SESSION_RESULT"]]).encode("utf-8")
                 )
             )
             return send_file(
@@ -448,7 +452,7 @@ def download_session():
                 as_attachment=True,
             )
     except Exception as e:
-        response_code = API_CODES["FAILURE_CODE"]
+        response_code = API_CODES["REQUEST_FAILURE"]
         response_cause = "API Error: " + repr(e)
         _log( request.url, response_cause + "\n" + traceback.format_exc( ).replace( "\n", "</br>" ) )
         if DEBUG:
@@ -460,7 +464,7 @@ def download_session():
 
 @app.route("/download_sequences", methods=["POST"])
 def download_sequences():
-    response_code = API_CODES["SUCCESS_CODE"]
+    response_code = API_CODES["REQUEST_SUCCESS"]
     response_cause = ""
     # Inflate the request data and transform into python dictionary.
     inflated_request_data = zlib.decompress(request.data)
@@ -472,7 +476,7 @@ def download_sequences():
         # Generate directory to store data temporary in the local file system.
         os.mkdir(PATH_PREFIX + "tmp/" + unique_hex_key)
         with open( PATH_PREFIX + "tmp/" + unique_hex_key + "/results.json", "w+" ) as session_results:
-            session_results.write(json.dumps(session[API_CODES["RESULT_KEY"]]))
+            session_results.write(json.dumps(session[API_CODES["SESSION_RESULT"]]))
         if json_request_data[ "content" ] == "nucleotide" and json_request_data[ "conserved" ] :
             with open( PATH_PREFIX + "tmp/" + unique_hex_key + "/reference.fasta", "w+" ) as nucleotide_reference:
                 nucleotide_reference.write(session[SESSION_KEY_REFERENCE_SEQUENCE])
@@ -507,7 +511,7 @@ def download_sequences():
         stdout = stdout.decode(encoding="utf-8")
         stderr = stderr.decode(encoding="utf-8")
         if stderr != "":
-            response_code = API_CODES["FAILURE_CODE"]
+            response_code = API_CODES["REQUEST_FAILURE"]
             response_cause = "Backend Error (Cf. Error Log)"
             _log(request.url, "Backend Error: " + _remove_ansi(stdout).replace( "\n", "</br>" ) + "</br>" + _remove_ansi(stderr).replace("\n", "</br>"))
             return {"code": response_code, "cause": response_cause}
@@ -517,7 +521,7 @@ def download_sequences():
                 as_attachment=True,
             )
     except Exception as e:
-        response_code = API_CODES["FAILURE_CODE"]
+        response_code = API_CODES["REQUEST_FAILURE"]
         response_cause = "API Error: " + repr(e)
         _log( request.url, response_cause + "\n" + traceback.format_exc( ).replace( "\n", "</br>" ) )
         if DEBUG:
@@ -529,7 +533,7 @@ def download_sequences():
 
 @app.route("/download_table", methods=["POST"])
 def download_table():
-    response_code = API_CODES["SUCCESS_CODE"]
+    response_code = API_CODES["REQUEST_SUCCESS"]
     # Inflate the request data and transform into python dictionary.
     inflated_request_data = zlib.decompress(request.data)
     json_string_request_data = inflated_request_data.decode("utf8")
@@ -540,7 +544,7 @@ def download_table():
         # Generate directory to store data temporary in the local file system.
         os.mkdir(PATH_PREFIX + "tmp/" + unique_hex_key)
         with open( PATH_PREFIX + "tmp/" + unique_hex_key + "/results.json", "w+" ) as session_results:
-            session_results.write(json.dumps(session[API_CODES["RESULT_KEY"]]))
+            session_results.write(json.dumps(session[API_CODES["SESSION_RESULT"]]))
         if json_request_data[ "content" ] == "nucleotide" and json_request_data[ "conserved" ] :
             with open( PATH_PREFIX + "tmp/" + unique_hex_key + "/reference.fasta", "w+" ) as nucleotide_reference:
                 nucleotide_reference.write(session[SESSION_KEY_REFERENCE_SEQUENCE])
@@ -574,7 +578,7 @@ def download_table():
         stdout = stdout.decode(encoding="utf-8")
         stderr = stderr.decode(encoding="utf-8")
         if stderr != "":
-            response_code = API_CODES["FAILURE_CODE"]
+            response_code = API_CODES["REQUEST_FAILURE"]
             response_cause = "Backend Error (Cf. Error Log)"
             _log(request.url, "Backend Error: " + _remove_ansi(stdout).replace( "\n", "</br>" ) + "</br>" + _remove_ansi(stderr).replace("\n", "</br>"))
             return {"code": response_code, "cause": response_cause}
@@ -584,7 +588,7 @@ def download_table():
                 as_attachment=True,
             )
     except Exception as e:
-        response_code = API_CODES["FAILURE_CODE"]
+        response_code = API_CODES["REQUEST_FAILURE"]
         response_cause = "API Error: " + repr(e)
         _log( request.url, response_cause + "\n" + traceback.format_exc( ).replace( "\n", "</br>" ) )
         if DEBUG:
@@ -596,7 +600,7 @@ def download_table():
 
 @app.route("/calc/correlation", methods=["POST"])
 def clc_correlation():
-    response_code = API_CODES["SUCCESS_CODE"]
+    response_code = API_CODES["REQUEST_SUCCESS"]
     response_cause = ""
     # Inflate the request data and transform into python dictionary.
     inflated_request_data = zlib.decompress(request.data)
@@ -636,13 +640,13 @@ def clc_correlation():
             )
             p = None
         else:
-            response_code = API_CODES["FAILURE_CODE"]
+            response_code = API_CODES["REQUEST_FAILURE"]
             response_cause = "API Warning: Specified test " + test + " not implemented."
             n = "Not implemented"
             t = None
             p = None
     except Exception as e:
-        response_code = API_CODES["FAILURE_CODE"]
+        response_code = API_CODES["REQUEST_FAILURE"]
         response_cause = "API Error: " + repr(e)
         _log( request.url, response_cause + "\n" + traceback.format_exc( ).replace( "\n", "</br>" ) )
         t = None
@@ -727,7 +731,7 @@ def clc_feature_graph():
                     })
         return links
     
-    response_code = API_CODES["SUCCESS_CODE"]
+    response_code = API_CODES["REQUEST_SUCCESS"]
     response_cause = ""
 
     symbol_proteoform = "path://M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM184 128h92c50.8 0 92 41.2 92 92s-41.2 92-92 92H208v48c0 13.3-10.7 24-24 24s-24-10.7-24-24V288 152c0-13.3 10.7-24 24-24zm92 136c24.3 0 44-19.7 44-44s-19.7-44-44-44H208v88h68z"
@@ -737,7 +741,7 @@ def clc_feature_graph():
     inflated_request_data = zlib.decompress(request.data)
     json_string_request_data = inflated_request_data.decode("utf8")
     json_request_data = json.loads(json_string_request_data)
-    storage = session[API_CODES["RESULT_KEY"]]
+    storage = session[API_CODES["SESSION_RESULT"]]
     feature = json_request_data["feature"]
     nodes = []
     links = []
@@ -814,7 +818,7 @@ def clc_feature_graph():
     except Exception as e:
         nodes = []
         links = []
-        response_code = API_CODES["FAILURE_CODE"]
+        response_code = API_CODES["REQUEST_FAILURE"]
         response_cause = "API Error: " + repr(e)
         _log( request.url, response_cause + "</br>" + traceback.format_exc( ).replace( "\n", "</br>" ) )
         if DEBUG:
@@ -827,20 +831,20 @@ def clc_feature_graph():
         "links": links
     }
 
-@app.route("/extension/feature_proteoforms", methods=["GET"])
-def extension_feature_proteoforms():
+@app.route("/ext/proteoforms_dashboard", methods=["GET"])
+def ext_proteoformsDashboard():
     target = request.args.get("target")
     if (
-        API_CODES["RESULT_KEY"] in session
-        and target in session[API_CODES["RESULT_KEY"]]["features"]
-        and session[API_CODES["RESULT_KEY"]]["features"][target]["type"] == "coding"
+        API_CODES["SESSION_RESULT"] in session
+        and target in session[API_CODES["SESSION_RESULT"]]["features"]
+        and session[API_CODES["SESSION_RESULT"]]["features"][target]["type"] == "coding"
     ):
         # Decode PDB format structure into raw string, if it exists.
         target_data = copy.deepcopy(
-            session[API_CODES["RESULT_KEY"]]["features"][target]
+            session[API_CODES["SESSION_RESULT"]]["features"][target]
         )
         target_data["samples"] = copy.deepcopy(
-            session[API_CODES["RESULT_KEY"]]["samples"]
+            session[API_CODES["SESSION_RESULT"]]["samples"]
         )
         if "structure" in target_data:
             target_data["structure"] = _brotli_decompress(target_data["structure"])
@@ -851,10 +855,19 @@ def extension_feature_proteoforms():
         )
     else :
         return render_template(
-            "extension_feature_proteoforms.html",
+            "ext_proteoformsDashboard.html",
             data=None,
             target=target,
         )
+
+@app.route("/log_interaction", methods=["PUT"])
+def log_interaction():
+    # Parse request data.
+    inflated_request_data = zlib.decompress(request.data)
+    json_string_request_data = inflated_request_data.decode("utf8")
+    json_request_data = json.loads(json_string_request_data)
+    _log( "User Interaction", json_request_data[ "content" ] )
+    return { "code": API_CODES[ "REQUEST_SUCCESS" ] }
 
 def _view_features_output_to_dict(out):
     if SESSION_KEY_FEATURES_DF in session:
@@ -947,7 +960,7 @@ def _view_variants_output_to_dict(out):
         "dashboard": {
             "variants_bar": mwchart.variants_overview_bar(
                 content_df,
-                session[API_CODES["RESULT_KEY"]]["referenceLength"],
+                session[API_CODES["SESSION_RESULT"]]["referenceLength"],
                 # FIXME: Will cause a bug, if entry does not exist!
                 session[SESSION_KEY_FEATURES_DF],
             ),
@@ -956,7 +969,7 @@ def _view_variants_output_to_dict(out):
 
 def _run_sample_clustering(form_type):
     # Collect variants from sequence alignment per feature.
-    storage = session[API_CODES["RESULT_KEY"]]
+    storage = session[API_CODES["SESSION_RESULT"]]
     unique_hex_key = _generate_random_string()
     data = {
         "features": { },
@@ -1042,11 +1055,9 @@ def _remove_ansi(text):
     return ansi_remove_expression.sub("", text)
 
 def _log(url: str, content: str):
-    if not "LOG" in session:
-        session["LOG"] = [ ]
-    session["LOG"].append(
-        str(url) + ' <small>[' + str(datetime.now()) + ']</small>' + '</br>' + '<div style="padding: 5px; margin-top: 5px; border-radius: 2px; background-color: #ffcccc; width: 70%;">' + content + '</div>'
-    )
-
+    if not SESSION_KEY_LOG in session:
+        session[SESSION_KEY_LOG] = [ ]
+    session[SESSION_KEY_LOG].append(( url + ' <small>[' + str(datetime.now()) + ']</small>', content ))
+    
 def _brotli_decompress(content: str):
     return brotli.decompress(base64.standard_b64decode(content)).decode()

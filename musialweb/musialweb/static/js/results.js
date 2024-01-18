@@ -1,3 +1,5 @@
+/* MUSIAL (Webserver) | Simon Hackl - simon.hackl@uni-tuebingen.de | v1.2.0 | GPL-3.0 license | github.com/Integrative-Transcriptomics/MUSIAL-WEB */
+
 var _OVERVIEW_TABLE;
 var _OVERVIEW_TABLE_FILTERS_AND_GROUPS = [];
 var _SESSION_DATA = {
@@ -127,7 +129,7 @@ axios
               }
             })
             .catch((error) => {
-              throwError(error.message);
+              alertError(error.message);
             })
             .finally(() => {
               showSamples();
@@ -137,7 +139,7 @@ axios
     }
   })
   .catch((error) => {
-    throwError(error.message);
+    alertError(error.message);
   });
 
 function showContent(record) {
@@ -178,6 +180,7 @@ function showContent(record) {
 function showSamples() {
   _ACTIVE_CATEGORY = "samples";
   if (showContent(_SESSION_DATA.SAMPLES)) {
+    log_interaction("Display Sample Data.");
     $("#main-results-table-set-samples-button").addClass("active-content");
     $("#main-results-dashboard-samples").show();
     constructEChartInstance(
@@ -196,6 +199,7 @@ function showSamples() {
 }
 
 function dashboardSamplesOverview(val, option) {
+  log_interaction("Set Sample Overview to '" + val + "'.");
   let counts = _SESSION_DATA.SAMPLES.counts[val];
   let axisTitle =
     option.innerText.charAt(0).toUpperCase() + option.innerText.slice(1);
@@ -258,14 +262,12 @@ function dashboardSamplesOverview(val, option) {
 }
 
 function dashboardSamplesClustering() {
-  let option =
-    _SESSION_DATA.SAMPLES.dashboard[
-      "clustering_" +
-        Metro.getPlugin(
-          "#main-results-dashboard-samples-clustering-type",
-          "select"
-        ).val()
-    ];
+  let cluster_type = Metro.getPlugin(
+    "#main-results-dashboard-samples-clustering-type",
+    "select"
+  ).val();
+  log_interaction("Set Sample Clustering to '" + cluster_type + "'.");
+  let option = _SESSION_DATA.SAMPLES.dashboard["clustering_" + cluster_type];
   option["tooltip"] = {
     trigger: "item",
     backgroundColor: "rgba(228, 229, 237, 0.8)",
@@ -334,6 +336,7 @@ function dashboardSamplesClustering() {
 function showFeatures() {
   _ACTIVE_CATEGORY = "features";
   if (showContent(_SESSION_DATA.FEATURES)) {
+    log_interaction("Display Features Data.");
     $("#main-results-table-set-features-button").addClass("active-content");
     $("#main-results-dashboard-features").show();
     constructEChartInstance(
@@ -386,6 +389,7 @@ function showFeatures() {
 }
 
 function dashboardFeaturesFormsGraph(feature) {
+  log_interaction("Display Feature Graph for Feature '" + feature + "'.");
   _CHARTS[1].showLoading({
     color: "#6d81ad",
     text: "Loading...",
@@ -618,7 +622,7 @@ function dashboardFeaturesFormsGraph(feature) {
       }
     })
     .catch((error) => {
-      throwError(error.message);
+      alertError(error.message);
     })
     .finally(() => {
       _CHARTS[1].hideLoading();
@@ -630,8 +634,9 @@ function dashboardFeaturesProteoforms() {
     "#main-results-dashboard-features-forms-feature",
     "select"
   ).val();
+  log_interaction("Request Proteoform Dashboard for Feature '" + sel + "'.");
   var dashboard = window.open(
-    _URL + "/extension/feature_proteoforms?target=" + sel,
+    _URL + "/ext/proteoforms_dashboard?target=" + sel,
     "_blank"
   );
   dashboard.location;
@@ -640,6 +645,7 @@ function dashboardFeaturesProteoforms() {
 function showVariants() {
   _ACTIVE_CATEGORY = "variants";
   if (showContent(_SESSION_DATA.VARIANTS)) {
+    log_interaction("Display Variants Data.");
     $("#main-results-table-set-variants-button").addClass("active-content");
     $("#main-results-dashboard-variants").show();
     _SESSION_DATA.VARIANTS.dashboard.variants_bar["tooltip"] = {
@@ -840,13 +846,13 @@ function constructEChartInstance(element, option) {
 }
 
 function addTableFilter() {
-  _OVERVIEW_TABLE_FILTERS_AND_GROUPS.push(
+  var filter =
     $("#main-results-table-filter-field")[0].value +
-      " " +
-      $("#main-results-table-filter-type")[0].value +
-      " " +
-      $("#main-results-table-filter-value")[0].value
-  );
+    " " +
+    $("#main-results-table-filter-type")[0].value +
+    " " +
+    $("#main-results-table-filter-value")[0].value;
+  _OVERVIEW_TABLE_FILTERS_AND_GROUPS.push(filter);
   Metro.getPlugin("#main-results-table-manage-tags", "taginput").val(
     _OVERVIEW_TABLE_FILTERS_AND_GROUPS
   );
@@ -854,9 +860,8 @@ function addTableFilter() {
 }
 
 function addTableGroup() {
-  _OVERVIEW_TABLE_FILTERS_AND_GROUPS.push(
-    "groupby " + $("#main-results-table-group-field")[0].value
-  );
+  let group = "groupby " + $("#main-results-table-group-field")[0].value;
+  _OVERVIEW_TABLE_FILTERS_AND_GROUPS.push(group);
   Metro.getPlugin("#main-results-table-manage-tags", "taginput").val(
     _OVERVIEW_TABLE_FILTERS_AND_GROUPS
   );
@@ -885,6 +890,17 @@ function applyTableFilterAndGroups() {
   }
   _OVERVIEW_TABLE.setGroupBy(groups);
   _OVERVIEW_TABLE.setFilter(filters);
+  log_interaction(
+    "Set Table Filter/Groups to " +
+      filters
+        .map((o) => {
+          return [o.field, o.type, o.value].join(" ");
+        })
+        .join(", ") +
+      " / " +
+      groups.join(", ") +
+      "'."
+  );
   _OVERVIEW_TABLE.redraw(true);
   if (_ACTIVE_CATEGORY == "samples") {
     _SESSION_DATA.ACTIVE_SAMPLES = getTableSamples(true);
@@ -936,7 +952,6 @@ function dataCorrelation() {
       },
     })
     .then((response) => {
-      console.log(response);
       if (assessResponse(response)) {
         $("#main-results-dashboard-correlation-results").html(
           `Test Value: ` +
@@ -947,7 +962,7 @@ function dataCorrelation() {
       }
     })
     .catch((error) => {
-      throwError(error.message);
+      alertError(error.message);
     });
 }
 
@@ -955,6 +970,7 @@ function downloadSession() {
   displayNotification(
     "Request has been sent to the server. Your session data will be downloaded automatically as soon as processing is complete. Please do not close this page."
   );
+  log_interaction("Request Download Session Data.");
   axios
     .get(_URL + "/download_session")
     .then((response) => {
@@ -963,7 +979,7 @@ function downloadSession() {
       }
     })
     .catch((error) => {
-      throwError(error.message);
+      alertError(error.message);
     })
     .finally(() => {
       removeNotification();
@@ -971,6 +987,9 @@ function downloadSession() {
 }
 
 function downloadOverview() {
+  log_interaction(
+    "Request Download '" + _ACTIVE_CATEGORY + "' Overview Table."
+  );
   _OVERVIEW_TABLE.download("csv", _ACTIVE_CATEGORY + "_overview.csv");
 }
 
@@ -1142,6 +1161,10 @@ function downloadSequences() {
       displayNotification(
         "Request has been sent to the server. Your sequence data will be downloaded automatically as soon as processing is complete. Please do not close this page."
       );
+      log_interaction(
+        "Request Download Sequences with Parameters " +
+          JSON.stringify(request, undefined, 2)
+      );
       axios
         .post(
           _URL + "/download_sequences",
@@ -1160,7 +1183,7 @@ function downloadSequences() {
           }
         })
         .catch((error) => {
-          throwError(error.message);
+          alertError(error.message);
         })
         .finally(() => {
           removeNotification();
@@ -1319,6 +1342,10 @@ function downloadTable() {
       displayNotification(
         "Request has been sent to the server. Your variants table data will be downloaded automatically as soon as processing is complete. Please do not close this page."
       );
+      log_interaction(
+        "Request Download Variants Table with Parameters " +
+          JSON.stringify(request, undefined, 2)
+      );
       axios
         .post(_URL + "/download_table", pako.deflate(JSON.stringify(request)), {
           headers: {
@@ -1332,7 +1359,7 @@ function downloadTable() {
           }
         })
         .catch((error) => {
-          throwError(error.message);
+          alertError(error.message);
         })
         .finally(() => {
           removeNotification();
