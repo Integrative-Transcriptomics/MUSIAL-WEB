@@ -62,7 +62,7 @@ def compute_clusters(data: dict):
         else :
             SAMPLE_PROFILES[ profile_name ] = {  "cluster": None, "assignment_probability": None, "samples": [ sample_name ]  }    
 
-    # Clustering is computed based on profile Hamming distance to all feature forms (feature space) using HDBSCAN algorithm.
+    # Clustering is computed based on profile Cityblock distance to all feature forms (feature space) using HDBSCAN algorithm.
     METRIC = "cityblock"
     METRIC_FUNCTION = cityblock
     SEED = 0

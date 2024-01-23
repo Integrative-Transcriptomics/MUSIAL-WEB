@@ -1,10 +1,9 @@
 /* MUSIAL (Webserver) | Simon Hackl - simon.hackl@uni-tuebingen.de | v1.2.0 | GPL-3.0 license | github.com/Integrative-Transcriptomics/MUSIAL-WEB */
 
 /**
- * Returns the example dataset from the webserver as download.
+ * Requests a downloadable Blob with example data from the webserver.
  */
 function getExampleData() {
-  log_interaction("Request Example Data.");
   axios
     .get(_URL + "/example/data")
     .then((response) => {
@@ -18,10 +17,9 @@ function getExampleData() {
 }
 
 /**
- * Starts the example session at the webserver.
+ * Requests to start an example session with information from the webserver.
  */
 function startExampleSession() {
-  log_interaction("Request Example Session.");
   axios
     .get(_URL + "/example/session")
     .then((response) => {
@@ -35,7 +33,7 @@ function startExampleSession() {
 }
 
 /**
- * Redirect to the source code of the project in a new tab.
+ * Redirects to the GitHub repository of the project in a new tab.
  */
 function redirectSource() {
   window.open(
@@ -45,7 +43,7 @@ function redirectSource() {
 }
 
 /**
- * Redirect to the help page of the project in a new tab.
+ * Redirects to the help page of the project in a new tab.
  */
 function redirectHelp() {
   window.open(_URL + "/help", "_blank");

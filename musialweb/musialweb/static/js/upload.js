@@ -1,16 +1,44 @@
 /* MUSIAL (Webserver) | Simon Hackl - simon.hackl@uni-tuebingen.de | v1.2.0 | GPL-3.0 license | github.com/Integrative-Transcriptomics/MUSIAL-WEB */
 
-// Definition of constants.
+/**
+ * {@link Boolean} flag that indicates whether a reference sequence (fasta) file has already been defined.
+ */
 var PASS_REFERENCE_SEQUENCE = false;
+/**
+ * {@link Boolean} flag that indicates whether a feature (gff) file has already been defined.
+ */
 var PASS_REFERENCE_FEATURES = false;
+/**
+ * {@link Boolean} flag that indicates whether sample (vcf) files have already been defined.
+ */
 var PASS_SAMPLES = false;
+/**
+ * {@link Boolean} flag that indicates whether features to analyze have already been defined.
+ */
 var PASS_FEATURES = false;
+/**
+ * {@link Boolean} flag that indicates whether the user can submit the request.
+ */
 var CAN_SUBMIT = false;
+/**
+ * {@link Boolean} flag that indicates whether feature proteoforms shall be analyzed.
+ */
 var PROTEOFORM_ANALYSIS = true;
+/**
+ * {@link Array} of {@link String}s that sepcify paths to protein structure (pdb) files.
+ */
 var PDB_FILES = [];
+/**
+ * Two-layer {@link Object} storing {@link String} data for sample meta information ([SampleName]->[FieldName]->[FieldValue]).
+ */
 var SAMPLE_META_DATA = {};
+/**
+ * Two-layer {@link Object} storing {@link String} data for feature meta information ([FeatureName]->[FieldName]->[FieldValue]).
+ */
 var FEATURES_META_DATA = {};
-var HAS_SESSION = false;
+/**
+ * Skeleton {@link Object} for the request sent to the server; Based on the MUSIAL input parameters.
+ */
 var REQUEST = {
   minimalCoverage: 5,
   minimalHomozygousFrequency: 90,
@@ -25,8 +53,10 @@ var REQUEST = {
   excludedPositions: {},
 };
 
-// Definition of change observers to track if users can submit.
-$("#input-reference-genome").on("change", function (event) {
+/*
+ Definition of change event observers to track if users can submit their request.
+ */
+$("#input-reference-genome").on("change", function (_) {
   REQUEST.referenceSequenceFile = $("#input-reference-genome")[0].files[0];
   if (REQUEST.referenceSequenceFile !== undefined) {
     PASS_REFERENCE_SEQUENCE = true;
@@ -37,7 +67,7 @@ $("#input-reference-genome").on("change", function (event) {
   checkCanSubmit();
 });
 
-$("#input-samples-files").on("change", function (event) {
+$("#input-samples-files").on("change", function (_) {
   REQUEST.samples = $("#input-samples-files")[0].files;
   if (REQUEST.samples !== undefined) {
     PASS_SAMPLES = true;
@@ -47,7 +77,7 @@ $("#input-samples-files").on("change", function (event) {
   checkCanSubmit();
 });
 
-$("#input-samples-meta").on("change", function (event) {
+$("#input-samples-meta").on("change", function (_) {
   $("#input-samples-meta").parse({
     config: {
       complete: function (results, _) {
@@ -64,7 +94,7 @@ $("#input-samples-meta").on("change", function (event) {
   });
 });
 
-$("#input-features-file").on("change", function (event) {
+$("#input-features-file").on("change", function (_) {
   REQUEST.referenceFeaturesFile = $("#input-features-file")[0].files[0];
   if (REQUEST.referenceFeaturesFile !== undefined) {
     PASS_REFERENCE_FEATURES = true;
@@ -74,7 +104,7 @@ $("#input-features-file").on("change", function (event) {
   checkCanSubmit();
 });
 
-$("#input-features-meta").on("change", function (event) {
+$("#input-features-meta").on("change", function (_) {
   $("#input-features-meta").parse({
     config: {
       complete: function (results, _) {
@@ -91,15 +121,15 @@ $("#input-features-meta").on("change", function (event) {
   });
 });
 
-$("#input-features-proteins").on("change", function (event) {
+$("#input-features-proteins").on("change", function (_) {
   PDB_FILES = $("#input-features-proteins")[0].files;
 });
 
-$("#input-infer-proteoforms").on("change", function (event) {
+$("#input-infer-proteoforms").on("change", function (_) {
   PROTEOFORM_ANALYSIS = $("#input-infer-proteoforms").is(":checked");
 });
 
-$("#input-parameter-min-coverage").on("change", function (event) {
+$("#input-parameter-min-coverage").on("change", function (_) {
   let oldValue = REQUEST.minimalCoverage;
   let newValue = undefined;
   let cancel = () => {
@@ -121,7 +151,7 @@ $("#input-parameter-min-coverage").on("change", function (event) {
   }
 });
 
-$("#input-parameter-min-quality").on("change", function (event) {
+$("#input-parameter-min-quality").on("change", function (_) {
   let oldValue = REQUEST.minimalQuality;
   let newValue = undefined;
   let cancel = () => {
@@ -143,7 +173,7 @@ $("#input-parameter-min-quality").on("change", function (event) {
   }
 });
 
-$("#input-parameter-min-hom-frequency").on("change", function (event) {
+$("#input-parameter-min-hom-frequency").on("change", function (_) {
   let oldValue = REQUEST.minimalHomozygousFrequency;
   let newValue = undefined;
   let cancel = () => {
@@ -166,7 +196,7 @@ $("#input-parameter-min-hom-frequency").on("change", function (event) {
   }
 });
 
-$("#input-parameter-min-het-frequency").on("change", function (event) {
+$("#input-parameter-min-het-frequency").on("change", function (_) {
   let oldValue = REQUEST.minimalHeterozygousFrequency;
   let newValue = undefined;
   let cancel = () => {
@@ -193,7 +223,7 @@ $("#input-parameter-min-het-frequency").on("change", function (event) {
   }
 });
 
-$("#input-parameter-max-het-frequency").on("change", function (event) {
+$("#input-parameter-max-het-frequency").on("change", function (_) {
   let oldValue = REQUEST.maximalHeterozygousFrequency;
   let newValue = undefined;
   let cancel = () => {
@@ -221,10 +251,9 @@ $("#input-parameter-max-het-frequency").on("change", function (event) {
 });
 
 /**
- * Sets a change observer for the feature list input.
+ * Initializes a {@link MutationObserver} for the feature input form.
  *
- * The function is called after the DOM generation of the resp. tag input and initializes
- * a mutation observer of the parent node. This tracks all changes of added or deleted tags.
+ * Is called after the DOM generation of the resp. tag input and initializes a mutation observer of the parent node. Tracks all changes of added or deleted tags.
  */
 function observeFeaturesList() {
   new MutationObserver(() => {
@@ -289,7 +318,7 @@ function resetForm() {
 }
 
 /**
- * Check whether users can submit their request.
+ * Checks whether users can submit their request.
  */
 function checkCanSubmit() {
   if (
@@ -311,7 +340,7 @@ function checkCanSubmit() {
  * Returns the content of a client side file as a string.
  *
  * @param {String} file Client side local file path.
- * @returns Promise of the file content.
+ * @returns {Promise<String>} File content as a {@link String}.
  */
 function readFile(file) {
   return new Promise((resolve, reject) => {
@@ -325,13 +354,13 @@ function readFile(file) {
 }
 
 /**
- * Submits the user request.
+ * Submit user request.
  */
 async function submit() {
   if (CAN_SUBMIT) {
     document.body.style.cursor = "wait";
     displayNotification(
-      "Your data is being pre-processed. Your request will subsequently be transmitted to the server."
+      "Your data is pre-processed and will be transferred to the server once the process is complete. If you close this page, the process will be canceled."
     );
     $("#upload-data-button")[0].disabled = true;
     CAN_SUBMIT = false;
@@ -451,16 +480,16 @@ async function submit() {
       REQUEST.minimalHeterozygousFrequency / 100;
     REQUEST.maximalHeterozygousFrequency =
       REQUEST.maximalHeterozygousFrequency / 100;
+    REQUEST_DEFLATED = pako.deflate(JSON.stringify(REQUEST));
     // Send the request to the server.
-    document.body.style.cursor = "default";
     removeNotification();
     displayNotification(
-      "Request has been sent to the server. You will be forwarded automatically."
+      "Your data is analyzed on the server and you will be redirected to the results page once the process is complete. If you close this page, the process will be canceled."
     );
-    const deflated_request = pako.deflate(JSON.stringify(REQUEST));
-    log_interaction("Submit Data.");
+    // REQUEST_SIZE = new Blob([REQUEST_DEFLATED]).size;
+    // console.log(REQUEST_SIZE + " Bytes");
     axios
-      .post(_URL + "/session/start", deflated_request, {
+      .patch(_URL + "/session/patch", REQUEST_DEFLATED, {
         headers: {
           "Content-Type": "application/octet-stream",
           "Content-Encoding": "zlib",
@@ -468,13 +497,11 @@ async function submit() {
       })
       .then((response) => {
         if (assessResponse(response)) {
-          window.location.href = _URL + "/results";
+          window.location(_URL + "/results");
         }
       })
-      .catch((error) => {
-        alertError(error.message);
-      })
       .finally(() => {
+        document.body.style.cursor = "default";
         resetForm();
         removeNotification();
       });

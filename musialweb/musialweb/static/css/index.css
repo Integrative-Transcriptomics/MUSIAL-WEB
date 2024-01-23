@@ -36,9 +36,8 @@
 }
 
 body {
-  min-width: 1200px;
   height: 100vh;
-  overflow-x: scroll;
+  overflow-x: auto;
 }
 
 .option-list li.active {
@@ -51,7 +50,6 @@ body {
   height: 5vh;
   display: none;
   min-width: 1200px;
-  overflow-x: scroll;
 }
 
 #menu .active {
@@ -69,7 +67,6 @@ body {
   display: none;
   min-width: 1200px;
   height: calc(100%-5vh);
-  overflow-x: scroll;
 }
 
 .brand {

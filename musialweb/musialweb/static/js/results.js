@@ -1,33 +1,38 @@
 /* MUSIAL (Webserver) | Simon Hackl - simon.hackl@uni-tuebingen.de | v1.2.0 | GPL-3.0 license | github.com/Integrative-Transcriptomics/MUSIAL-WEB */
 
+/**
+ * Tabulator (see {@link https://tabulator.info/docs/5.5/release}) instance to display interactive table.
+ */
 var _OVERVIEW_TABLE;
+/**
+ *{@link Array} of {@link String} values that match either `<FieldName> <FilterKeyword> <FieldValue>` or `groupby <FieldName>`. See {@link https://tabulator.info/docs/5.5/filter} for <FilterKeyword> options available.
+ */
 var _OVERVIEW_TABLE_FILTERS_AND_GROUPS = [];
+/**
+ * TODO
+ */
 var _SESSION_DATA = {
   SET: false,
-  ACTIVE_SAMPLES: [],
+  FILTERED_SAMPLES: [],
   SAMPLES: {},
   FEATURES: {},
   VARIANTS: {},
 };
-var _ACTIVE_CATEGORY = null;
+/**
+ * The active record; Either `null` or one of the {@link String} values `samples`, `features` or `variants`.
+ */
+var _ACTIVE_RECORD = null;
+/**
+ * {@link Array} of EChart instances (see {@link https://echarts.apache.org/en/option.html#title}).
+ */
 var _CHARTS = [];
+/**
+ * {@link Array} of {@link ResizeObserver} instances (see {@link https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver}).
+ */
 var _CHART_OBSERVERS = [];
-
-function _mean(data) {
-  if (data.length < 1) {
-    return;
-  }
-  return data.reduce((p, c) => p + c) / data.length;
-}
-
-function _transpose(arr2D) {
-  return arr2D[0].map((x, i) => arr2D.map((x) => x[i]));
-}
-
-function _clone(o) {
-  return JSON.parse(JSON.stringify(o));
-}
-
+/**
+ * Constant definition of a SweetAlert2 (see {@link https://sweetalert2.github.io/}) popup to display in case of a server error.
+ */
 const SWAL_SERVER_ERROR_CONFIGURATION = {
   title: "Faulty Session Data",
   html:
@@ -44,7 +49,9 @@ const SWAL_SERVER_ERROR_CONFIGURATION = {
   confirmButtonText: "Ok",
   backdrop: `rgba(239, 240, 248, 0.1) left top no-repeat`,
 };
-
+/**
+ * Constant definition of a SweetAlert2 (see {@link https://sweetalert2.github.io/}) popup to display in case of no session data.
+ */
 const SWAL_NO_SESSION_CONFIGURATION = {
   title: "No Session Data",
   iconHtml:
@@ -63,14 +70,16 @@ const SWAL_NO_SESSION_CONFIGURATION = {
   showConfirmButton: false,
   backdrop: `rgba(239, 240, 248, 0.1) left top no-repeat`,
 };
-
+/**
+ * Constant definition of a SweetAlert2 (see {@link https://sweetalert2.github.io/}) popup to display in case of session data retrieval.
+ */
 const SWAL_PREPARE_RESULTS_CONFIGURATION = {
-  title: "Preparing Results",
+  title: "Retrieving Session Data",
   iconHtml:
     `<img src="` +
     BACTERIA_GIF +
     `" style="height: 100%; width: 100%; pointer-events: none; user-select: none;">`,
-  html: `Results of your analysis will be displayed shortly.`,
+  html: `The results of your analysis will be displayed shortly.`,
   color: "#747474",
   background: "transparent",
   heightAuto: false,
@@ -80,17 +89,22 @@ const SWAL_PREPARE_RESULTS_CONFIGURATION = {
   backdrop: `rgba(239, 240, 248, 0.1) left top no-repeat`,
 };
 
+/*
+ * Request session status and initialize data retrieval as soon as this script loads into an HTML document.
+ */
 axios
   .get(_URL + "/session/status")
   .then((response) => {
     switch (String(response.data.code)) {
-      case API_PARAMETERS["SESSION_CODE_FAILED"]:
+      case API_PARAMETERS.SESSSION_STATE_FAILED:
+        _SESSION_DATA.SET = false;
         Swal.fire(SWAL_SERVER_ERROR_CONFIGURATION);
         break;
-      case API_PARAMETERS["SESSION_CODE_NONE"]:
+      case API_PARAMETERS.SESSION_STATE_NONE:
+        _SESSION_DATA.SET = false;
         Swal.fire(SWAL_NO_SESSION_CONFIGURATION);
         break;
-      case API_PARAMETERS["SESSION_CODE_ACTIVE"]:
+      case API_PARAMETERS.SESSION_STATE_ACTIVE:
         if (!_SESSION_DATA.SET) {
           Swal.fire(SWAL_PREPARE_RESULTS_CONFIGURATION);
           axios
@@ -110,9 +124,9 @@ axios
                     _SESSION_DATA.SAMPLES.records.length +
                     `</span>`
                 );
-                _SESSION_DATA.ACTIVE_SAMPLES = [];
+                _SESSION_DATA.FILTERED_SAMPLES = [];
                 for (let sample_entry of _SESSION_DATA.SAMPLES.records) {
-                  _SESSION_DATA.ACTIVE_SAMPLES.push(sample_entry.name);
+                  _SESSION_DATA.FILTERED_SAMPLES.push(sample_entry.name);
                 }
                 _SESSION_DATA.FEATURES = responseContent[1];
                 $("#main-results-table-set-features-button").html(
@@ -126,13 +140,15 @@ axios
                     _SESSION_DATA.VARIANTS.records.length +
                     `</span>`
                 );
+              } else {
+                _SESSION_DATA.SET = false;
               }
             })
             .catch((error) => {
               alertError(error.message);
             })
             .finally(() => {
-              showSamples();
+              displaySamplesRecord();
             });
         }
         break;
@@ -142,8 +158,14 @@ axios
     alertError(error.message);
   });
 
-function showContent(record) {
-  if (_SESSION_DATA.SET) {
+/**
+ * Initializes the results page with the specified record, i.e. displays the content of the record in the {@link _OVERVIEW_TABLE} and deletes all {@link _CHARTS}.
+ *
+ * @param {Object} record Either the `SAMPLES`, `FEATURES` or `VARIANTS` entry stored in {@link _SESSION_DATA}.
+ * @returns {Boolean} Flag indicating whether the initialization was successful.
+ */
+function initRecord(record) {
+  try {
     if (typeof _OVERVIEW_TABLE == "object") _OVERVIEW_TABLE.setData();
     _OVERVIEW_TABLE = new Tabulator("#main-results-table", {
       nestedFieldSeparator: "$",
@@ -153,7 +175,7 @@ function showContent(record) {
         width: "8vw",
         tooltip: true,
       },
-      columns: constructTableColumns(record.columns),
+      columns: patchTableColumns(record.columns),
       data: record.records,
       selectable: 1,
     });
@@ -172,22 +194,27 @@ function showContent(record) {
     _CHARTS.length = 0;
     _CHART_OBSERVERS.length = 0;
     return true;
-  } else {
+  } catch (_) {
     return false;
   }
 }
 
-function showSamples() {
-  _ACTIVE_CATEGORY = "samples";
-  if (showContent(_SESSION_DATA.SAMPLES)) {
+/**
+ * Sets the `SAMPLES` record in {@link _SESSION_DATA} as the active record.
+ *
+ * This affects the content of {@link _OVERVIEW_TABLE} and the composition of {@link _CHARTS}.
+ */
+function displaySamplesRecord() {
+  _ACTIVE_RECORD = "samples";
+  if (initRecord(_SESSION_DATA.SAMPLES)) {
     log_interaction("Display Sample Data.");
     $("#main-results-table-set-samples-button").addClass("active-content");
     $("#main-results-dashboard-samples").show();
-    constructEChartInstance(
+    addEChartsInstance(
       $("#main-results-dashboard-samples-left")[0],
       _SESSION_DATA.SAMPLES.dashboard.overview_area
     );
-    constructEChartInstance(
+    addEChartsInstance(
       $("#main-results-dashboard-samples-right")[0],
       _SESSION_DATA.SAMPLES.dashboard.clustering_allele
     );
@@ -196,6 +223,861 @@ function showSamples() {
     });
     dashboardSamplesClustering();
   }
+}
+
+/**
+ * Sets the `FEATURES` record in {@link _SESSION_DATA} as the active record.
+ *
+ * This affects the content of {@link _OVERVIEW_TABLE} and the composition of {@link _CHARTS}.
+ */
+function displayFeaturesRecord() {
+  _ACTIVE_RECORD = "features";
+  if (initRecord(_SESSION_DATA.FEATURES)) {
+    log_interaction("Display Features Data.");
+    $("#main-results-table-set-features-button").addClass("active-content");
+    $("#main-results-dashboard-features").show();
+    addEChartsInstance(
+      $("#main-results-dashboard-features-left")[0],
+      _SESSION_DATA.FEATURES.dashboard.overview_parallel
+    );
+    _CHARTS[0].setOption({
+      tooltip: {
+        backgroundColor: "rgba(228, 229, 237, 0.8)",
+        borderColor: "rgba(228, 229, 237, 0.8)",
+        textStyle: {
+          fontSize: 11,
+        },
+        formatter: (params, ticket, _) => {
+          return (
+            params.marker +
+            "<b>" +
+            params.seriesName +
+            "</b> " +
+            "<br/><b>Alleles:</b> " +
+            params.data[0] +
+            "<br/><b>Proteoforms:</b> " +
+            params.data[1] +
+            "<br/><b>Substitutions:</b> " +
+            params.data[2] +
+            "<br/><b>Insertions:</b> " +
+            params.data[3] +
+            "<br/><b>Deletions:</b> " +
+            params.data[4] +
+            "<br/><b>Variable Positions (%):</b> " +
+            params.data[5]
+          );
+        },
+      },
+    });
+    addEChartsInstance(
+      $("#main-results-dashboard-features-right")[0],
+      _SESSION_DATA.FEATURES.dashboard.forms_graph
+    );
+    dashboardFeaturesFormsGraph(_SESSION_DATA.FEATURES.records[0]["name"]);
+    let featureSelectOptions = {};
+    for (let featureRecord of _SESSION_DATA.FEATURES.records) {
+      featureSelectOptions[featureRecord.name] = featureRecord.name;
+    }
+    Metro.getPlugin(
+      document.getElementById("main-results-dashboard-features-forms-feature"),
+      "select"
+    ).data(featureSelectOptions);
+  }
+}
+
+/**
+ * Sets the `VARIANTS` record in {@link _SESSION_DATA} as the active record.
+ *
+ * This affects the content of {@link _OVERVIEW_TABLE} and the composition of {@link _CHARTS}.
+ */
+function displayVariantsRecord() {
+  _ACTIVE_RECORD = "variants";
+  if (initRecord(_SESSION_DATA.VARIANTS)) {
+    log_interaction("Display Variants Data.");
+    $("#main-results-table-set-variants-button").addClass("active-content");
+    $("#main-results-dashboard-variants").show();
+    _SESSION_DATA.VARIANTS.dashboard.variants_bar["tooltip"] = {
+      trigger: "axis",
+      formatter: (params, ticket, callback) => {
+        let contents = [];
+        for (let entry of params.filter((e) => e.componentSubType == "bar")) {
+          let frequency = [];
+          let quality = [];
+          let coverage = [];
+          for (let occurrence of entry.data[5].split(",")) {
+            let fields = occurrence.split(":");
+            if (fields[2] == "false") {
+              frequency.push(parseFloat(fields[3]));
+              quality.push(parseFloat(fields[4]));
+              coverage.push(parseFloat(fields[5]));
+            }
+          }
+          contents.push(
+            "<div style='display: inline-block; margin-right: 10px;'><b>Position</b>: " +
+              entry.data[0] +
+              "<br>" +
+              "<b>Frequency (Pass)</b>: " +
+              parseFloat(entry.data[1]).toFixed(2) +
+              " %<br>" +
+              "<b>Reference Content</b>: " +
+              entry.data[2] +
+              "<br>" +
+              "<b>Variant Content</b>: " +
+              entry.data[3] +
+              "<br>" +
+              "<b>Type (SnpEff)</b>: " +
+              entry.data[4] +
+              "<br>" +
+              "<b>Avg. Genotype Frequency</b>: " +
+              (_mean(frequency) * 100).toFixed(2) +
+              " %" +
+              "<br>" +
+              "<b>Avg. Quality</b>: " +
+              _mean(quality).toFixed(2) +
+              "<br>" +
+              "<b>Avg. Coverage</b>: " +
+              _mean(coverage).toFixed(2) +
+              "<br></div>"
+          );
+        }
+        return contents.join("");
+      },
+      alwaysShowContent: true,
+      position: ["5%", "65%"],
+      backgroundColor: "rgba(228, 229, 237, 0.5)",
+      borderColor: "rgba(228, 229, 237, 0.5)",
+      textStyle: {
+        fontSize: 11,
+      },
+    };
+    _SESSION_DATA.VARIANTS.dashboard.variants_bar["yAxis"][0]["axisLabel"] = {
+      formatter: (value, index) => {
+        return value.toFixed(1) + "%";
+      },
+    };
+    addEChartsInstance(
+      $("#main-results-dashboard-variants")[0],
+      _SESSION_DATA.VARIANTS.dashboard.variants_bar
+    );
+    _CHARTS[0].on("legendselectchanged", (event) => {
+      let series = _CHARTS[0]
+        .getModel()
+        .getSeries()
+        .filter((series) => {
+          return series.option.name == event.name;
+        })[0];
+      _CHARTS[0].dispatchAction({
+        type: "dataZoom",
+        startValue: series.option.pStart,
+        endValue: series.option.pEnd,
+      });
+      _CHARTS[0].dispatchAction({
+        type: "legendAllSelect",
+      });
+    });
+    _CHARTS[0].dispatchAction({
+      type: "legendAllSelect",
+    });
+  }
+}
+
+/**
+ * Constructs Tabulator column definitions from a list of strings and updates relevant user interface elements with column name information.
+ *
+ * @param {Array} columnNames {@link Array} of {@link String}
+ * @returns {Array} List of {@link Objects} that match Tabulator.js column definitions (see {@link https://tabulator.info/docs/5.5/columns#definition})
+ */
+function patchTableColumns(columnNames) {
+  let columnDefinitions = [];
+  let propertySelectOptions = {};
+  for (let columnName of columnNames) {
+    let titleValue = columnName
+      .split(/[._]+/)
+      .join(" ")
+      .replaceAll("number of ", "");
+    if (
+      columnName.startsWith("allele") ||
+      columnName.startsWith("proteoform")
+    ) {
+      columnDefinitions.push({
+        title: titleValue,
+        field: columnName,
+        headerTooltip: true,
+        formatter: function (cell, formatterParams, onRendered) {
+          if (cell.getValue().includes(".x")) {
+            return "<b style='color: #fe4848;'>disrupted</b>";
+          } else if (cell.getValue() != "reference") {
+            return "<b style='color: #6d81ad;'>alternative</b>";
+          } else {
+            return "reference";
+          }
+        },
+      });
+    } else if (columnName.startsWith("occurrence")) {
+      columnDefinitions.push({
+        title: titleValue,
+        field: columnName,
+        headerTooltip: true,
+        formatter: function (cell, formatterParams, onRendered) {
+          let o = cell.getValue().split(",");
+          let contents = [];
+          for (let e of o) {
+            contents.push(
+              e.split(":")[2] == "true"
+                ? "<b style='color: #fe4848;'>" + e.split(":")[0] + "</b>"
+                : e.split(":")[0]
+            );
+          }
+          return contents.join(", ");
+        },
+      });
+    } else if (
+      columnName.startsWith("frequency") ||
+      columnName.startsWith("variable")
+    ) {
+      columnDefinitions.push({
+        title: titleValue,
+        field: columnName,
+        headerTooltip: true,
+        formatter: function (cell, formatterParams, onRendered) {
+          return parseFloat(cell.getValue()).toFixed(2) + " %";
+        },
+      });
+    } else {
+      columnDefinitions.push({
+        title: titleValue,
+        field: columnName,
+        headerTooltip: true,
+      });
+    }
+    propertySelectOptions[columnName] = titleValue;
+  }
+  Metro.getPlugin(
+    document.getElementById("main-results-table-filter-field"),
+    "select"
+  ).data(propertySelectOptions);
+  delete propertySelectOptions["name"];
+  Metro.getPlugin(
+    document.getElementById("main-results-table-group-field"),
+    "select"
+  ).data(propertySelectOptions);
+  Metro.getPlugin(
+    document.getElementById("main-results-dashboard-samples-overview-field"),
+    "select"
+  ).data(propertySelectOptions);
+  Metro.getPlugin(
+    document.getElementById("main-results-dashboard-correlation-1"),
+    "select"
+  ).data(propertySelectOptions);
+  Metro.getPlugin(
+    document.getElementById("main-results-dashboard-correlation-2"),
+    "select"
+  ).data(propertySelectOptions);
+  if (typeof _OVERVIEW_TABLE != "undefined") {
+    _OVERVIEW_TABLE_FILTERS_AND_GROUPS = [];
+    applyTableFilterAndGroups();
+  }
+  return columnDefinitions;
+}
+
+/**
+ * Returns a column vector of the {@link _OVERVIEW_TABLE}.
+ *
+ * @param {String} field The column (field name) to access.
+ * @param {Boolean} active Whether to return only data of rows that pass the currently applied filters.
+ * @returns {Array} Column vector.
+ */
+function getTableColumnData(field, active) {
+  let column_values = [];
+  let components = active
+    ? _OVERVIEW_TABLE.getData("active")
+    : _OVERVIEW_TABLE.getData();
+  for (let component of components) {
+    if (component.hasOwnProperty(field)) {
+      column_values.push(component[field]);
+    }
+  }
+  return column_values;
+}
+
+/**
+ * Returns the current display of the {@link _OVERVIEW_TABLE} as a file (csv).
+ */
+function downloadOverviewTable() {
+  log_interaction("Save '" + _ACTIVE_RECORD + "' Overview Table.");
+  _OVERVIEW_TABLE.download("csv", _ACTIVE_RECORD + "_overview.csv");
+}
+
+/**
+ * Updates the value of {@link _OVERVIEW_TABLE_FILTERS_AND_GROUPS} from the (filter) user interface and redraws the table.
+ */
+function addTableFilter() {
+  var filter =
+    $("#main-results-table-filter-field")[0].value +
+    " " +
+    $("#main-results-table-filter-type")[0].value +
+    " " +
+    $("#main-results-table-filter-value")[0].value;
+  _OVERVIEW_TABLE_FILTERS_AND_GROUPS.push(filter);
+  Metro.getPlugin("#main-results-table-manage-tags", "taginput").val(
+    _OVERVIEW_TABLE_FILTERS_AND_GROUPS
+  );
+  applyTableFilterAndGroups();
+}
+
+/**
+ * Updates the value of {@link _OVERVIEW_TABLE_FILTERS_AND_GROUPS} from the (group) user interface and redraws the table.
+ */
+function addTableGroup() {
+  let group = "groupby " + $("#main-results-table-group-field")[0].value;
+  _OVERVIEW_TABLE_FILTERS_AND_GROUPS.push(group);
+  Metro.getPlugin("#main-results-table-manage-tags", "taginput").val(
+    _OVERVIEW_TABLE_FILTERS_AND_GROUPS
+  );
+  applyTableFilterAndGroups();
+}
+
+/**
+ * Initializes a new ECharts instance to {@link element} from {@link option} (see {@link https://echarts.apache.org/en/option.html#title}) and sets a new {@link ResizeObserver}. The ECharts instance and the observer are saved in {@link _CHARTS} and {@link _CHART_OBSERVERS}.
+ *
+ * @param {HTML} element HTML element for rendering the ECharts instance.
+ * @param {object} option ECharts `option` object.
+ */
+function addEChartsInstance(element, option) {
+  var chart = echarts.init(element, {
+    devicePixelRatio: 2,
+    renderer: "canvas",
+    width: "auto",
+    height: "auto",
+  });
+  var chart_observer = new ResizeObserver((entries) => {
+    chart.resize({
+      width: entries[0].width,
+      height: entries[0].height,
+    });
+  });
+  chart_observer.observe(element);
+  chart.setOption(option);
+  _CHARTS.push(chart);
+  _CHART_OBSERVERS.push(chart_observer);
+}
+
+/**
+ * Executes table filtering and grouping according to current values in {@link _OVERVIEW_TABLE_FILTERS_AND_GROUPS}.
+ *
+ * Value in {@link _OVERVIEW_TABLE_FILTERS_AND_GROUPS} is updated from user interface.
+ */
+function applyTableFilterAndGroups() {
+  _OVERVIEW_TABLE_FILTERS_AND_GROUPS = Metro.getPlugin(
+    "#main-results-table-manage-tags",
+    "taginput"
+  ).val();
+  if (typeof _OVERVIEW_TABLE !== "undefined") {
+    _OVERVIEW_TABLE.setGroupBy();
+    _OVERVIEW_TABLE.clearFilter();
+    var groups = [];
+    var filters = [];
+    for (let entry of _OVERVIEW_TABLE_FILTERS_AND_GROUPS) {
+      let entryFields = entry.split(" ");
+      if (entryFields[0] == "groupby") {
+        groups.push(entryFields[1]);
+      } else {
+        filters.push({
+          field: entryFields[0],
+          type: entryFields[1],
+          value: entryFields[2],
+        });
+      }
+    }
+    _OVERVIEW_TABLE.setGroupBy(groups);
+    _OVERVIEW_TABLE.setFilter(filters);
+    if (groups.length > 0 || filters.length > 0) {
+      log_interaction(
+        "Set Table Filter/Groups to " +
+          filters
+            .map((o) => {
+              return [o.field, o.type, o.value].join(" ");
+            })
+            .join(", ") +
+          "/" +
+          groups.join(", ") +
+          "'."
+      );
+    }
+    _OVERVIEW_TABLE.redraw(true);
+    if (_ACTIVE_RECORD == "samples") {
+      _SESSION_DATA.FILTERED_SAMPLES = getTableColumnData("name", true);
+    }
+  }
+}
+
+/**
+ * Executes data correlation tests of column vectors of the current {@link _OVERVIEW_TABLE} by request to the server. The specification is taken from the user interface (communicates with the server).
+ */
+function requestTableDataCorrelation() {
+  var REQUEST = {
+    field1: Metro.getPlugin(
+      "#main-results-dashboard-correlation-1",
+      "select"
+    ).val(),
+    field2: Metro.getPlugin(
+      "#main-results-dashboard-correlation-2",
+      "select"
+    ).val(),
+    test: Metro.getPlugin(
+      "#main-results-dashboard-correlation-test",
+      "select"
+    ).val(),
+    data_type: _ACTIVE_RECORD,
+  };
+  axios
+    .post(_URL + "/calc/correlation", pako.deflate(JSON.stringify(REQUEST)), {
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "Content-Encoding": "zlib",
+      },
+    })
+    .then((response) => {
+      if (assessResponse(response)) {
+        $("#main-results-dashboard-correlation-results").html(
+          `Test Value: ` +
+            response.data.t +
+            `&nbsp;&nbsp;&nbsp;P-Value: ` +
+            response.data.p
+        );
+      }
+    })
+    .catch((error) => {
+      alertError(error.message);
+    });
+}
+
+/**
+ * Executes download of the session data (binary, brotli-compressed bytes) stored on the server (communicates with the server).
+ */
+function requestDownloadSession() {
+  displayNotification(
+    "Request has been sent to the server. Your session data will be downloaded automatically as soon as processing is complete. Please do not close this page."
+  );
+  axios
+    .get(_URL + "/download_session")
+    .then((response) => {
+      if (assessResponse(response)) {
+        downloadBlob(response.data, "session.json.br");
+      }
+    })
+    .catch((error) => {
+      alertError(error.message);
+    })
+    .finally(() => {
+      removeNotification();
+    });
+}
+
+/**
+ * Displays a pop-up window for the specification of the sequence download request (communicates with the server).
+ */
+function requestDownloadSequences() {
+  var SWAL_DOWNLOAD_SEQUENCES_CONFIGURATION = {
+    title: "Download Sequences",
+    html:
+      `
+    <p>Please specify the following parameters and proceed with Download.</p>
+    <br>
+    <div class="remark m-4">
+      <div class="grid">
+
+        <div class="row">
+          <div class="cell-3 m-2 text-left">
+            <small><span class="rounded input-info-tag text-upper">feature for which sequences should be downloaded</span></small>
+          </div>
+          <div class="cell-3 m-2">
+            <select
+              id="download-feature"
+              class="input-small"
+              data-role="select"
+              data-prepend="Feature"
+              data-filter="false"
+            >
+              ` +
+      _SESSION_DATA.FEATURES.records
+        .map((r) => '<option value="' + r.name + '">' + r.name + "</option>")
+        .join("") +
+      `
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="cell-3 m-2 text-left">
+            <small><span class="rounded input-info-tag text-upper">sequence content</span></small>
+          </div>
+          <div class="cell-3 m-2">
+            <select
+              id="download-data-content"
+              class="input-small"
+              data-role="select"
+              data-prepend="Content"
+              data-filter="false"
+            >
+              <option value="nucleotide">Nucleotide</option>
+              <option value="aminoacid">Aminoacid</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="cell-3 m-2 text-left">
+            <small><span class="rounded input-info-tag text-upper">align sequences</span></small>
+          </div>
+          <div class="cell-3 m-2">
+            <input
+              id="download-data-align"
+              type="checkbox"
+              checked
+              data-role="switch"
+              data-cls-switch="custom-switch-on-off"
+              data-material="true"
+            />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="cell-3 m-2 text-left">
+            <small><span class="rounded input-info-tag text-upper">merge samples</span></small>
+          </div>
+          <div class="cell-3 m-2">
+            <input
+              id="download-data-merge"
+              type="checkbox"
+              checked
+              data-role="switch"
+              data-cls-switch="custom-switch-on-off"
+              data-material="true"
+            />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="cell-3 m-2 text-left">
+            <small><span class="rounded input-info-tag text-upper">include conserved positions</span></small>
+          </div>
+          <div class="cell-3 m-2">
+            <input
+              id="download-data-include-conserved-positions"
+              type="checkbox"
+              data-role="switch"
+              data-cls-switch="custom-switch-on-off"
+              data-material="true"
+            />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="cell-3 m-2 text-left">
+            <small><span class="rounded input-info-tag text-upper">include only or exclude specified samples (default 'all')</span></small>
+            <button data-role="hint" data-hint-text="Copy samples from table." data-hint-position="bottom" class="ml-1 button small rounded" onclick="Metro.getPlugin('#download-data-samples-list','taginput').val(_SESSION_DATA.ACTIVE_SAMPLES)"><i class="fa-duotone fa-paste"></i></button>
+          </div>
+          <div class="cell-1 mt-2 text-right">Include</div>
+          <div class="cell-1 ml-2">
+            <input
+              id="download-data-samples"
+              type="checkbox"
+              data-role="switch"
+              data-cls-switch="custom-switch-choice"
+              data-material="true"
+            />
+          </div>
+          <div class="cell-1 mt-2 text-left">Exclude</div>
+          <div class="cell-5 m-2">
+            <input id="download-data-samples-list" class="input-small" type="text" data-role="taginput" style="overflow-y: hide"/>
+          </div>
+        </div>
+
+      </div>
+    </div>`,
+    width: "100vw",
+    padding: "0.5em",
+    position: "bottom",
+    showCancelButton: true,
+    grow: true,
+    heightAuto: false,
+    cancelButtonColor: "#fe4848cc",
+    cancelButtonText: "Cancel",
+    confirmButtonColor: "#39c093cc",
+    confirmButtonText: "Download",
+    color: "#747474",
+    background: "transparent",
+    backdrop: `
+      #fafafcd9
+      left top
+      no-repeat
+    `,
+  };
+  Swal.fire(SWAL_DOWNLOAD_SEQUENCES_CONFIGURATION).then((result) => {
+    if (result.isConfirmed) {
+      var request = {
+        feature: $("#download-feature")[0].value,
+        content: $("#download-data-content")[0].value,
+        align: $("#download-data-align").is(":checked"),
+        merge: $("#download-data-merge").is(":checked"),
+        conserved: $("#download-data-include-conserved-positions").is(
+          ":checked"
+        ),
+        samples: [],
+      };
+      let include = !$("#download-data-samples").is(":checked");
+      let specified_samples = Metro.getPlugin(
+        "#download-data-samples-list",
+        "taginput"
+      ).val();
+      if (specified_samples.length == 0) {
+        request["samples"] = _clone(_SESSION_DATA.FILTERED_SAMPLES);
+      } else if (include) {
+        request["samples"] = specified_samples;
+      } else {
+        request["samples"] = _clone(_SESSION_DATA.FILTERED_SAMPLES).filter(
+          (s) => {
+            return !specified_samples.includes(s);
+          }
+        );
+      }
+      displayNotification(
+        "The results of your request will be downloaded automatically as soon as processing is complete. If you close this page, the process will be canceled."
+      );
+      axios
+        .post(
+          _URL + "/download_sequences",
+          pako.deflate(JSON.stringify(request)),
+          {
+            headers: {
+              "Content-Type": "application/octet-stream",
+              "Content-Encoding": "zlib",
+            },
+            responseType: "blob",
+          }
+        )
+        .then((response) => {
+          if (assessResponse(response)) {
+            downloadBlob(response.data, request.feature + "_sequences.fasta");
+          }
+        })
+        .catch((error) => {
+          alertError(error.message);
+        })
+        .finally(() => {
+          removeNotification();
+        });
+    }
+  });
+}
+
+/**
+ * Displays a pop-up window for the specification of the table download request (communicates with the server).
+ */
+function requestDownloadTable() {
+  var SWAL_DOWNLOAD_TABLE_CONFIGURATION = {
+    title: "Download Variants Table",
+    html:
+      `
+    <p>Please specify the following parameters and proceed with Download.</p>
+    <br>
+    <div class="remark m-4">
+      <div class="grid">
+
+        <div class="row">
+          <div class="cell-3 m-2 text-left">
+            <small><span class="rounded input-info-tag text-upper">feature for which sequences should be downloaded</span></small>
+          </div>
+          <div class="cell-3 m-2">
+            <select
+              id="download-feature"
+              class="input-small"
+              data-role="select"
+              data-prepend="Feature"
+              data-filter="false"
+            >
+              ` +
+      _SESSION_DATA.FEATURES.records
+        .map((r) => '<option value="' + r.name + '">' + r.name + "</option>")
+        .join("") +
+      `
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="cell-3 m-2 text-left">
+            <small><span class="rounded input-info-tag text-upper">sequence content</span></small>
+          </div>
+          <div class="cell-3 m-2">
+            <select
+              id="download-data-content"
+              class="input-small"
+              data-role="select"
+              data-prepend="Content"
+              data-filter="false"
+            >
+              <option value="nucleotide">Nucleotide</option>
+              <option value="aminoacid">Aminoacid</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="cell-3 m-2 text-left">
+            <small><span class="rounded input-info-tag text-upper">merge samples</span></small>
+          </div>
+          <div class="cell-3 m-2">
+            <input
+              id="download-data-merge"
+              type="checkbox"
+              checked
+              data-role="switch"
+              data-cls-switch="custom-switch-on-off"
+              data-material="true"
+            />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="cell-3 m-2 text-left">
+            <small><span class="rounded input-info-tag text-upper">include conserved positions</span></small>
+          </div>
+          <div class="cell-3 m-2">
+            <input
+              id="download-data-include-conserved-positions"
+              type="checkbox"
+              data-role="switch"
+              data-cls-switch="custom-switch-on-off"
+              data-material="true"
+            />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="cell-3 m-2 text-left">
+            <small><span class="rounded input-info-tag text-upper">include only or exclude specified samples</span></small>
+            <button data-role="hint" data-hint-text="Copy samples from table." data-hint-position="bottom" class="ml-1 button small rounded" onclick="Metro.getPlugin('#download-data-samples-list','taginput').val(_SESSION_DATA.ACTIVE_SAMPLES)"><i class="fa-duotone fa-paste"></i></button>
+          </div>
+          <div class="cell-1 mt-2 text-right">Include</div>
+          <div class="cell-1 ml-2">
+            <input
+              id="download-data-samples"
+              type="checkbox"
+              data-role="switch"
+              data-cls-switch="custom-switch-choice"
+              data-material="true"
+            />
+          </div>
+          <div class="cell-1 mt-2 text-left">Exclude</div>
+          <div class="cell-5 m-2">
+            <input id="download-data-samples-list" class="input-small" type="text" data-role="taginput" style="overflow-y: hide"/>
+          </div>
+        </div>
+      </div>
+    </div>`,
+    width: "100vw",
+    padding: "0.5em",
+    position: "bottom",
+    showCancelButton: true,
+    grow: true,
+    heightAuto: true,
+    cancelButtonColor: "#fe4848cc",
+    cancelButtonText: "Cancel",
+    confirmButtonColor: "#39c093cc",
+    confirmButtonText: "Download",
+    color: "#747474",
+    background: "transparent",
+    backdrop: `
+      #fafafcd9
+      left top
+      no-repeat
+    `,
+  };
+  Swal.fire(SWAL_DOWNLOAD_TABLE_CONFIGURATION).then((result) => {
+    if (result.isConfirmed) {
+      var request = {
+        feature: $("#download-feature")[0].value,
+        content: $("#download-data-content")[0].value,
+        merge: $("#download-data-merge").is(":checked"),
+        conserved: $("#download-data-include-conserved-positions").is(
+          ":checked"
+        ),
+        samples: [],
+      };
+      let include = !$("#download-data-samples").is(":checked");
+      let specified_samples = Metro.getPlugin(
+        "#download-data-samples-list",
+        "taginput"
+      ).val();
+      if (specified_samples.length == 0) {
+        request["samples"] = _clone(_SESSION_DATA.FILTERED_SAMPLES);
+      } else if (include) {
+        request["samples"] = specified_samples;
+      } else {
+        request["samples"] = _clone(_SESSION_DATA.FILTERED_SAMPLES).filter(
+          (s) => {
+            return !specified_samples.includes(s);
+          }
+        );
+      }
+      displayNotification(
+        "The results of your request will be downloaded automatically as soon as processing is complete. If you close this page, the process will be canceled."
+      );
+      axios
+        .post(_URL + "/download_table", pako.deflate(JSON.stringify(request)), {
+          headers: {
+            "Content-Type": "application/octet-stream",
+            "Content-Encoding": "zlib",
+          },
+        })
+        .then((response) => {
+          if (assessResponse(assessResponse)) {
+            downloadBlob(response.data, request.feature + "_variants.tsv");
+          }
+        })
+        .catch((error) => {
+          alertError(error.message);
+        })
+        .finally(() => {
+          removeNotification();
+        });
+    }
+  });
+}
+
+/**
+ * Computes the mean of an 1D array.
+ *
+ * @param {Array<Numer>} arr1D List of numbers.
+ * @returns {Float} Mean of input list.
+ */
+function _mean(arr1D) {
+  if (arr1D.length < 1) {
+    return;
+  }
+  return arr1D.reduce((p, c) => p + c) / arr1D.length;
+}
+
+/**
+ * Transposes a matrix.
+ *
+ * @param {Array} arr2D List of lists.
+ * @returns {Array} Transposed input list.
+ */
+function _transpose(arr2D) {
+  return arr2D[0].map((x, i) => arr2D.map((x) => x[i]));
+}
+
+/**
+ * Clones an object.
+ *
+ * @param {Object} o Object to clone.
+ * @returns {Object} Cloned object.
+ */
+function _clone(o) {
+  return JSON.parse(JSON.stringify(o));
 }
 
 function dashboardSamplesOverview(val, option) {
@@ -331,61 +1213,6 @@ function dashboardSamplesClustering() {
     },
   };
   _CHARTS[1].setOption(option, true, false);
-}
-
-function showFeatures() {
-  _ACTIVE_CATEGORY = "features";
-  if (showContent(_SESSION_DATA.FEATURES)) {
-    log_interaction("Display Features Data.");
-    $("#main-results-table-set-features-button").addClass("active-content");
-    $("#main-results-dashboard-features").show();
-    constructEChartInstance(
-      $("#main-results-dashboard-features-left")[0],
-      _SESSION_DATA.FEATURES.dashboard.overview_parallel
-    );
-    _CHARTS[0].setOption({
-      tooltip: {
-        backgroundColor: "rgba(228, 229, 237, 0.8)",
-        borderColor: "rgba(228, 229, 237, 0.8)",
-        textStyle: {
-          fontSize: 11,
-        },
-        formatter: (params, ticket, _) => {
-          return (
-            params.marker +
-            "<b>" +
-            params.seriesName +
-            "</b> " +
-            "<br/><b>Alleles:</b> " +
-            params.data[0] +
-            "<br/><b>Proteoforms:</b> " +
-            params.data[1] +
-            "<br/><b>Substitutions:</b> " +
-            params.data[2] +
-            "<br/><b>Insertions:</b> " +
-            params.data[3] +
-            "<br/><b>Deletions:</b> " +
-            params.data[4] +
-            "<br/><b>Variable Positions (%):</b> " +
-            params.data[5]
-          );
-        },
-      },
-    });
-    constructEChartInstance(
-      $("#main-results-dashboard-features-right")[0],
-      _SESSION_DATA.FEATURES.dashboard.forms_graph
-    );
-    dashboardFeaturesFormsGraph(_SESSION_DATA.FEATURES.records[0]["name"]);
-    let featureSelectOptions = {};
-    for (let featureRecord of _SESSION_DATA.FEATURES.records) {
-      featureSelectOptions[featureRecord.name] = featureRecord.name;
-    }
-    Metro.getPlugin(
-      document.getElementById("main-results-dashboard-features-forms-feature"),
-      "select"
-    ).data(featureSelectOptions);
-  }
 }
 
 function dashboardFeaturesFormsGraph(feature) {
@@ -640,730 +1467,4 @@ function dashboardFeaturesProteoforms() {
     "_blank"
   );
   dashboard.location;
-}
-
-function showVariants() {
-  _ACTIVE_CATEGORY = "variants";
-  if (showContent(_SESSION_DATA.VARIANTS)) {
-    log_interaction("Display Variants Data.");
-    $("#main-results-table-set-variants-button").addClass("active-content");
-    $("#main-results-dashboard-variants").show();
-    _SESSION_DATA.VARIANTS.dashboard.variants_bar["tooltip"] = {
-      trigger: "axis",
-      formatter: (params, ticket, callback) => {
-        let contents = [];
-        for (let entry of params.filter((e) => e.componentSubType == "bar")) {
-          let frequency = [];
-          let quality = [];
-          let coverage = [];
-          for (let occurrence of entry.data[5].split(",")) {
-            let fields = occurrence.split(":");
-            if (fields[2] == "false") {
-              frequency.push(parseFloat(fields[3]));
-              quality.push(parseFloat(fields[4]));
-              coverage.push(parseFloat(fields[5]));
-            }
-          }
-          contents.push(
-            "<div style='display: inline-block; margin-right: 10px;'><b>Position</b>: " +
-              entry.data[0] +
-              "<br>" +
-              "<b>Frequency (Pass)</b>: " +
-              parseFloat(entry.data[1]).toFixed(2) +
-              " %<br>" +
-              "<b>Reference Content</b>: " +
-              entry.data[2] +
-              "<br>" +
-              "<b>Variant Content</b>: " +
-              entry.data[3] +
-              "<br>" +
-              "<b>Type (SnpEff)</b>: " +
-              entry.data[4] +
-              "<br>" +
-              "<b>Avg. Genotype Frequency</b>: " +
-              (_mean(frequency) * 100).toFixed(2) +
-              " %" +
-              "<br>" +
-              "<b>Avg. Quality</b>: " +
-              _mean(quality).toFixed(2) +
-              "<br>" +
-              "<b>Avg. Coverage</b>: " +
-              _mean(coverage).toFixed(2) +
-              "<br></div>"
-          );
-        }
-        return contents.join("");
-      },
-      alwaysShowContent: true,
-      position: ["5%", "65%"],
-      backgroundColor: "rgba(228, 229, 237, 0.5)",
-      borderColor: "rgba(228, 229, 237, 0.5)",
-      textStyle: {
-        fontSize: 11,
-      },
-    };
-    _SESSION_DATA.VARIANTS.dashboard.variants_bar["yAxis"][0]["axisLabel"] = {
-      formatter: (value, index) => {
-        return value.toFixed(1) + "%";
-      },
-    };
-    constructEChartInstance(
-      $("#main-results-dashboard-variants")[0],
-      _SESSION_DATA.VARIANTS.dashboard.variants_bar
-    );
-    _CHARTS[0].on("legendselectchanged", (event) => {
-      let series = _CHARTS[0]
-        .getModel()
-        .getSeries()
-        .filter((series) => {
-          return series.option.name == event.name;
-        })[0];
-      _CHARTS[0].dispatchAction({
-        type: "dataZoom",
-        startValue: series.option.pStart,
-        endValue: series.option.pEnd,
-      });
-      _CHARTS[0].dispatchAction({
-        type: "legendAllSelect",
-      });
-    });
-    _CHARTS[0].dispatchAction({
-      type: "legendAllSelect",
-    });
-  }
-}
-
-function constructTableColumns(columnFields) {
-  let columnDefinitions = [];
-  let propertySelectOptions = {};
-  for (let columnField of columnFields) {
-    let titleValue = columnField
-      .split(/[._]+/)
-      .join(" ")
-      .replaceAll("number of ", "");
-    if (
-      columnField.startsWith("allele") ||
-      columnField.startsWith("proteoform")
-    ) {
-      columnDefinitions.push({
-        title: titleValue,
-        field: columnField,
-        headerTooltip: true,
-        formatter: function (cell, formatterParams, onRendered) {
-          if (cell.getValue().includes(".x")) {
-            return "<b style='color: #fe4848;'>disrupted</b>";
-          } else if (cell.getValue() != "reference") {
-            return "<b style='color: #6d81ad;'>alternative</b>";
-          } else {
-            return "reference";
-          }
-        },
-      });
-    } else if (columnField.startsWith("occurrence")) {
-      columnDefinitions.push({
-        title: titleValue,
-        field: columnField,
-        headerTooltip: true,
-        formatter: function (cell, formatterParams, onRendered) {
-          let o = cell.getValue().split(",");
-          let contents = [];
-          for (let e of o) {
-            contents.push(
-              e.split(":")[2] == "true"
-                ? "<b style='color: #fe4848;'>" + e.split(":")[0] + "</b>"
-                : e.split(":")[0]
-            );
-          }
-          return contents.join(", ");
-        },
-      });
-    } else if (
-      columnField.startsWith("frequency") ||
-      columnField.startsWith("variable")
-    ) {
-      columnDefinitions.push({
-        title: titleValue,
-        field: columnField,
-        headerTooltip: true,
-        formatter: function (cell, formatterParams, onRendered) {
-          return parseFloat(cell.getValue()).toFixed(2) + " %";
-        },
-      });
-    } else {
-      columnDefinitions.push({
-        title: titleValue,
-        field: columnField,
-        headerTooltip: true,
-      });
-    }
-    propertySelectOptions[columnField] = titleValue;
-  }
-  Metro.getPlugin(
-    document.getElementById("main-results-table-filter-field"),
-    "select"
-  ).data(propertySelectOptions);
-  delete propertySelectOptions["name"];
-  Metro.getPlugin(
-    document.getElementById("main-results-table-group-field"),
-    "select"
-  ).data(propertySelectOptions);
-  Metro.getPlugin(
-    document.getElementById("main-results-dashboard-samples-overview-field"),
-    "select"
-  ).data(propertySelectOptions);
-  Metro.getPlugin(
-    document.getElementById("main-results-dashboard-correlation-1"),
-    "select"
-  ).data(propertySelectOptions);
-  Metro.getPlugin(
-    document.getElementById("main-results-dashboard-correlation-2"),
-    "select"
-  ).data(propertySelectOptions);
-  if (typeof _OVERVIEW_TABLE != "undefined") {
-    _OVERVIEW_TABLE_FILTERS_AND_GROUPS = [];
-    applyTableFilterAndGroups();
-  }
-  return columnDefinitions;
-}
-
-function constructEChartInstance(element, option) {
-  var chart = echarts.init(element, {
-    devicePixelRatio: 2,
-    renderer: "canvas",
-    width: "auto",
-    height: "auto",
-  });
-  var chart_observer = new ResizeObserver((entries) => {
-    chart.resize({
-      width: entries[0].width,
-      height: entries[0].height,
-    });
-  });
-  chart_observer.observe(element);
-  chart.setOption(option);
-  _CHARTS.push(chart);
-  _CHART_OBSERVERS.push(chart_observer);
-}
-
-function addTableFilter() {
-  var filter =
-    $("#main-results-table-filter-field")[0].value +
-    " " +
-    $("#main-results-table-filter-type")[0].value +
-    " " +
-    $("#main-results-table-filter-value")[0].value;
-  _OVERVIEW_TABLE_FILTERS_AND_GROUPS.push(filter);
-  Metro.getPlugin("#main-results-table-manage-tags", "taginput").val(
-    _OVERVIEW_TABLE_FILTERS_AND_GROUPS
-  );
-  applyTableFilterAndGroups();
-}
-
-function addTableGroup() {
-  let group = "groupby " + $("#main-results-table-group-field")[0].value;
-  _OVERVIEW_TABLE_FILTERS_AND_GROUPS.push(group);
-  Metro.getPlugin("#main-results-table-manage-tags", "taginput").val(
-    _OVERVIEW_TABLE_FILTERS_AND_GROUPS
-  );
-  applyTableFilterAndGroups();
-}
-
-function applyTableFilterAndGroups() {
-  if (typeof _OVERVIEW_TABLE == "undefined") {
-    return;
-  }
-  _OVERVIEW_TABLE.setGroupBy();
-  _OVERVIEW_TABLE.clearFilter();
-  var groups = [];
-  var filters = [];
-  for (let entry of _OVERVIEW_TABLE_FILTERS_AND_GROUPS) {
-    let entryFields = entry.split(" ");
-    if (entryFields[0] == "groupby") {
-      groups.push(entryFields[1]);
-    } else {
-      filters.push({
-        field: entryFields[0],
-        type: entryFields[1],
-        value: entryFields[2],
-      });
-    }
-  }
-  _OVERVIEW_TABLE.setGroupBy(groups);
-  _OVERVIEW_TABLE.setFilter(filters);
-  log_interaction(
-    "Set Table Filter/Groups to " +
-      filters
-        .map((o) => {
-          return [o.field, o.type, o.value].join(" ");
-        })
-        .join(", ") +
-      " / " +
-      groups.join(", ") +
-      "'."
-  );
-  _OVERVIEW_TABLE.redraw(true);
-  if (_ACTIVE_CATEGORY == "samples") {
-    _SESSION_DATA.ACTIVE_SAMPLES = getTableSamples(true);
-  }
-}
-
-function getTableSamples(active) {
-  let names = [];
-  let components = active
-    ? _OVERVIEW_TABLE.getData("active")
-    : _OVERVIEW_TABLE.getData();
-  for (let component of components) {
-    if (component.hasOwnProperty("name")) {
-      names.push(component["name"]);
-    }
-  }
-  return names;
-}
-
-function updateTableFilterAndGroups() {
-  _OVERVIEW_TABLE_FILTERS_AND_GROUPS = Metro.getPlugin(
-    "#main-results-table-manage-tags",
-    "taginput"
-  ).val();
-  applyTableFilterAndGroups();
-}
-
-function dataCorrelation() {
-  var REQUEST = {
-    field1: Metro.getPlugin(
-      "#main-results-dashboard-correlation-1",
-      "select"
-    ).val(),
-    field2: Metro.getPlugin(
-      "#main-results-dashboard-correlation-2",
-      "select"
-    ).val(),
-    test: Metro.getPlugin(
-      "#main-results-dashboard-correlation-test",
-      "select"
-    ).val(),
-    data_type: _ACTIVE_CATEGORY,
-  };
-  axios
-    .post(_URL + "/calc/correlation", pako.deflate(JSON.stringify(REQUEST)), {
-      headers: {
-        "Content-Type": "application/octet-stream",
-        "Content-Encoding": "zlib",
-      },
-    })
-    .then((response) => {
-      if (assessResponse(response)) {
-        $("#main-results-dashboard-correlation-results").html(
-          `Test Value: ` +
-            response.data.t +
-            `&nbsp;&nbsp;&nbsp;P-Value: ` +
-            response.data.p
-        );
-      }
-    })
-    .catch((error) => {
-      alertError(error.message);
-    });
-}
-
-function downloadSession() {
-  displayNotification(
-    "Request has been sent to the server. Your session data will be downloaded automatically as soon as processing is complete. Please do not close this page."
-  );
-  log_interaction("Request Download Session Data.");
-  axios
-    .get(_URL + "/download_session")
-    .then((response) => {
-      if (assessResponse(response)) {
-        downloadBlob(response.data, "session.json.br");
-      }
-    })
-    .catch((error) => {
-      alertError(error.message);
-    })
-    .finally(() => {
-      removeNotification();
-    });
-}
-
-function downloadOverview() {
-  log_interaction(
-    "Request Download '" + _ACTIVE_CATEGORY + "' Overview Table."
-  );
-  _OVERVIEW_TABLE.download("csv", _ACTIVE_CATEGORY + "_overview.csv");
-}
-
-function downloadSequences() {
-  var SWAL_DOWNLOAD_SEQUENCES_CONFIGURATION = {
-    title: "Download Sequences",
-    html:
-      `
-    <p>Please specify the following parameters and proceed with Download.</p>
-    <br>
-    <div class="remark m-4">
-      <div class="grid">
-
-        <div class="row">
-          <div class="cell-3 m-2 text-left">
-            <small><span class="rounded input-info-tag text-upper">feature for which sequences should be downloaded</span></small>
-          </div>
-          <div class="cell-3 m-2">
-            <select
-              id="download-feature"
-              class="input-small"
-              data-role="select"
-              data-prepend="Feature"
-              data-filter="false"
-            >
-              ` +
-      _SESSION_DATA.FEATURES.records
-        .map((r) => '<option value="' + r.name + '">' + r.name + "</option>")
-        .join("") +
-      `
-            </select>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="cell-3 m-2 text-left">
-            <small><span class="rounded input-info-tag text-upper">sequence content</span></small>
-          </div>
-          <div class="cell-3 m-2">
-            <select
-              id="download-data-content"
-              class="input-small"
-              data-role="select"
-              data-prepend="Content"
-              data-filter="false"
-            >
-              <option value="nucleotide">Nucleotide</option>
-              <option value="aminoacid">Aminoacid</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="cell-3 m-2 text-left">
-            <small><span class="rounded input-info-tag text-upper">align sequences</span></small>
-          </div>
-          <div class="cell-3 m-2">
-            <input
-              id="download-data-align"
-              type="checkbox"
-              checked
-              data-role="switch"
-              data-cls-switch="custom-switch-on-off"
-              data-material="true"
-            />
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="cell-3 m-2 text-left">
-            <small><span class="rounded input-info-tag text-upper">merge samples</span></small>
-          </div>
-          <div class="cell-3 m-2">
-            <input
-              id="download-data-merge"
-              type="checkbox"
-              checked
-              data-role="switch"
-              data-cls-switch="custom-switch-on-off"
-              data-material="true"
-            />
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="cell-3 m-2 text-left">
-            <small><span class="rounded input-info-tag text-upper">include conserved positions</span></small>
-          </div>
-          <div class="cell-3 m-2">
-            <input
-              id="download-data-include-conserved-positions"
-              type="checkbox"
-              data-role="switch"
-              data-cls-switch="custom-switch-on-off"
-              data-material="true"
-            />
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="cell-3 m-2 text-left">
-            <small><span class="rounded input-info-tag text-upper">include only or exclude specified samples (default 'all')</span></small>
-            <button data-role="hint" data-hint-text="Copy samples from table." data-hint-position="bottom" class="ml-1 button small rounded" onclick="Metro.getPlugin('#download-data-samples-list','taginput').val(_SESSION_DATA.ACTIVE_SAMPLES)"><i class="fa-duotone fa-paste"></i></button>
-          </div>
-          <div class="cell-1 mt-2 text-right">Include</div>
-          <div class="cell-1 ml-2">
-            <input
-              id="download-data-samples"
-              type="checkbox"
-              data-role="switch"
-              data-cls-switch="custom-switch-choice"
-              data-material="true"
-            />
-          </div>
-          <div class="cell-1 mt-2 text-left">Exclude</div>
-          <div class="cell-5 m-2">
-            <input id="download-data-samples-list" class="input-small" type="text" data-role="taginput" style="overflow-y: hide"/>
-          </div>
-        </div>
-
-      </div>
-    </div>`,
-    width: "100vw",
-    padding: "0.5em",
-    position: "bottom",
-    showCancelButton: true,
-    grow: true,
-    heightAuto: false,
-    cancelButtonColor: "#fe4848cc",
-    cancelButtonText: "Cancel",
-    confirmButtonColor: "#39c093cc",
-    confirmButtonText: "Download",
-    color: "#747474",
-    background: "transparent",
-    backdrop: `
-      #fafafcd9
-      left top
-      no-repeat
-    `,
-  };
-  Swal.fire(SWAL_DOWNLOAD_SEQUENCES_CONFIGURATION).then((result) => {
-    if (result.isConfirmed) {
-      var request = {
-        feature: $("#download-feature")[0].value,
-        content: $("#download-data-content")[0].value,
-        align: $("#download-data-align").is(":checked"),
-        merge: $("#download-data-merge").is(":checked"),
-        conserved: $("#download-data-include-conserved-positions").is(
-          ":checked"
-        ),
-        samples: [],
-      };
-      let include = !$("#download-data-samples").is(":checked");
-      let specified_samples = Metro.getPlugin(
-        "#download-data-samples-list",
-        "taginput"
-      ).val();
-      if (specified_samples.length == 0) {
-        request["samples"] = _clone(_SESSION_DATA.ACTIVE_SAMPLES);
-      } else if (include) {
-        request["samples"] = specified_samples;
-      } else {
-        request["samples"] = _clone(_SESSION_DATA.ACTIVE_SAMPLES).filter(
-          (s) => {
-            return !specified_samples.includes(s);
-          }
-        );
-      }
-      displayNotification(
-        "Request has been sent to the server. Your sequence data will be downloaded automatically as soon as processing is complete. Please do not close this page."
-      );
-      log_interaction(
-        "Request Download Sequences with Parameters " +
-          JSON.stringify(request, undefined, 2)
-      );
-      axios
-        .post(
-          _URL + "/download_sequences",
-          pako.deflate(JSON.stringify(request)),
-          {
-            headers: {
-              "Content-Type": "application/octet-stream",
-              "Content-Encoding": "zlib",
-            },
-            responseType: "blob",
-          }
-        )
-        .then((response) => {
-          if (assessResponse(response)) {
-            downloadBlob(response.data, request.feature + "_sequences.fasta");
-          }
-        })
-        .catch((error) => {
-          alertError(error.message);
-        })
-        .finally(() => {
-          removeNotification();
-        });
-    }
-  });
-}
-
-function downloadTable() {
-  var SWAL_DOWNLOAD_TABLE_CONFIGURATION = {
-    title: "Download Variants Table",
-    html:
-      `
-    <p>Please specify the following parameters and proceed with Download.</p>
-    <br>
-    <div class="remark m-4">
-      <div class="grid">
-
-        <div class="row">
-          <div class="cell-3 m-2 text-left">
-            <small><span class="rounded input-info-tag text-upper">feature for which sequences should be downloaded</span></small>
-          </div>
-          <div class="cell-3 m-2">
-            <select
-              id="download-feature"
-              class="input-small"
-              data-role="select"
-              data-prepend="Feature"
-              data-filter="false"
-            >
-              ` +
-      _SESSION_DATA.FEATURES.records
-        .map((r) => '<option value="' + r.name + '">' + r.name + "</option>")
-        .join("") +
-      `
-            </select>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="cell-3 m-2 text-left">
-            <small><span class="rounded input-info-tag text-upper">sequence content</span></small>
-          </div>
-          <div class="cell-3 m-2">
-            <select
-              id="download-data-content"
-              class="input-small"
-              data-role="select"
-              data-prepend="Content"
-              data-filter="false"
-            >
-              <option value="nucleotide">Nucleotide</option>
-              <option value="aminoacid">Aminoacid</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="cell-3 m-2 text-left">
-            <small><span class="rounded input-info-tag text-upper">merge samples</span></small>
-          </div>
-          <div class="cell-3 m-2">
-            <input
-              id="download-data-merge"
-              type="checkbox"
-              checked
-              data-role="switch"
-              data-cls-switch="custom-switch-on-off"
-              data-material="true"
-            />
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="cell-3 m-2 text-left">
-            <small><span class="rounded input-info-tag text-upper">include conserved positions</span></small>
-          </div>
-          <div class="cell-3 m-2">
-            <input
-              id="download-data-include-conserved-positions"
-              type="checkbox"
-              data-role="switch"
-              data-cls-switch="custom-switch-on-off"
-              data-material="true"
-            />
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="cell-3 m-2 text-left">
-            <small><span class="rounded input-info-tag text-upper">include only or exclude specified samples</span></small>
-            <button data-role="hint" data-hint-text="Copy samples from table." data-hint-position="bottom" class="ml-1 button small rounded" onclick="Metro.getPlugin('#download-data-samples-list','taginput').val(_SESSION_DATA.ACTIVE_SAMPLES)"><i class="fa-duotone fa-paste"></i></button>
-          </div>
-          <div class="cell-1 mt-2 text-right">Include</div>
-          <div class="cell-1 ml-2">
-            <input
-              id="download-data-samples"
-              type="checkbox"
-              data-role="switch"
-              data-cls-switch="custom-switch-choice"
-              data-material="true"
-            />
-          </div>
-          <div class="cell-1 mt-2 text-left">Exclude</div>
-          <div class="cell-5 m-2">
-            <input id="download-data-samples-list" class="input-small" type="text" data-role="taginput" style="overflow-y: hide"/>
-          </div>
-        </div>
-      </div>
-    </div>`,
-    width: "100vw",
-    padding: "0.5em",
-    position: "bottom",
-    showCancelButton: true,
-    grow: true,
-    heightAuto: true,
-    cancelButtonColor: "#fe4848cc",
-    cancelButtonText: "Cancel",
-    confirmButtonColor: "#39c093cc",
-    confirmButtonText: "Download",
-    color: "#747474",
-    background: "transparent",
-    backdrop: `
-      #fafafcd9
-      left top
-      no-repeat
-    `,
-  };
-  Swal.fire(SWAL_DOWNLOAD_TABLE_CONFIGURATION).then((result) => {
-    if (result.isConfirmed) {
-      var request = {
-        feature: $("#download-feature")[0].value,
-        content: $("#download-data-content")[0].value,
-        merge: $("#download-data-merge").is(":checked"),
-        conserved: $("#download-data-include-conserved-positions").is(
-          ":checked"
-        ),
-        samples: [],
-      };
-      let include = !$("#download-data-samples").is(":checked");
-      let specified_samples = Metro.getPlugin(
-        "#download-data-samples-list",
-        "taginput"
-      ).val();
-      if (specified_samples.length == 0) {
-        request["samples"] = _clone(_SESSION_DATA.ACTIVE_SAMPLES);
-      } else if (include) {
-        request["samples"] = specified_samples;
-      } else {
-        request["samples"] = _clone(_SESSION_DATA.ACTIVE_SAMPLES).filter(
-          (s) => {
-            return !specified_samples.includes(s);
-          }
-        );
-      }
-      displayNotification(
-        "Request has been sent to the server. Your variants table data will be downloaded automatically as soon as processing is complete. Please do not close this page."
-      );
-      log_interaction(
-        "Request Download Variants Table with Parameters " +
-          JSON.stringify(request, undefined, 2)
-      );
-      axios
-        .post(_URL + "/download_table", pako.deflate(JSON.stringify(request)), {
-          headers: {
-            "Content-Type": "application/octet-stream",
-            "Content-Encoding": "zlib",
-          },
-        })
-        .then((response) => {
-          if (assessResponse(assessResponse)) {
-            downloadBlob(response.data, request.feature + "_variants.tsv");
-          }
-        })
-        .catch((error) => {
-          alertError(error.message);
-        })
-        .finally(() => {
-          removeNotification();
-        });
-    }
-  });
 }

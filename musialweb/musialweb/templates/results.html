@@ -64,9 +64,7 @@
 </div>
 
 <!-- Menu elements floating right -->
-<div class="app-bar-container ml-auto d-none d-flex-fs">
-  <i id="menu-active-session-indicator" class="p-2 fa-duotone fa-hexagon"></i>
-</div>
+<div class="app-bar-container ml-auto d-none d-flex-fs"></div>
 {% endblock %} {% block content %}
 <div id="main-results" class="main">
   <div class="remark m-4">
@@ -79,7 +77,7 @@
       <button
         id="main-results-table-set-samples-button"
         class="button small rounded text-upper mr-6"
-        onclick="showSamples()"
+        onclick="displaySamplesRecord()"
         data-role="hint"
         data-hint-text="Display sample results."
         data-hint-position="bottom"
@@ -89,7 +87,7 @@
       <button
         id="main-results-table-set-features-button"
         class="button small rounded text-upper mr-6"
-        onclick="showFeatures()"
+        onclick="displayFeaturesRecord()"
         data-role="hint"
         data-hint-text="Display feature results."
         data-hint-position="bottom"
@@ -99,7 +97,7 @@
       <button
         id="main-results-table-set-variants-button"
         class="button small rounded text-upper"
-        onclick="showVariants()"
+        onclick="displayVariantsRecord()"
         data-role="hint"
         data-hint-text="Display variants results."
         data-hint-position="bottom"
@@ -111,7 +109,7 @@
       <span class="tag-dark">download results</span>
       <button
         class="button small rounded"
-        onclick="downloadOverview()"
+        onclick="downloadOverviewTable()"
         data-role="hint"
         data-hint-text="Download the displayed table in CSV format."
         data-hint-position="bottom"
@@ -120,7 +118,7 @@
       </button>
       <button
         class="button small rounded"
-        onclick="downloadSession()"
+        onclick="requestDownloadSession()"
         data-role="hint"
         data-hint-text="Download the binary session sata"
         data-hint-position="bottom"
@@ -129,7 +127,7 @@
       </button>
       <button
         class="button small rounded"
-        onclick="downloadSequences()"
+        onclick="requestDownloadSequences()"
         data-role="hint"
         data-hint-text="Download sequences in FASTA format (opens a popup for more options)."
         data-hint-position="bottom"
@@ -138,7 +136,7 @@
       </button>
       <button
         class="button small rounded"
-        onclick="downloadTable()"
+        onclick="requestDownloadTable()"
         data-role="hint"
         data-hint-text="Download variants data in TSV format (opens a popup for more options)"
         data-hint-position="bottom"
@@ -413,7 +411,7 @@
         id="main-results-table-manage-tags"
         data-role="taginput"
         value=""
-        data-on-tag-remove="updateTableFilterAndGroups()"
+        data-on-tag-remove="runUpdateTableFilterAndGroups"
       />
     </div>
 
@@ -447,7 +445,7 @@
       </select>
       <button
         class="button small rounded green-button"
-        onclick="dataCorrelation()"
+        onclick="requestTableDataCorrelation()"
         data-role="hint"
         data-hint-text="Run the specified correlation test."
         data-hint-position="bottom"
